@@ -125,7 +125,22 @@ function App() {
       {/* Sidebar for Desktop */}
       <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} onLogout={handleLogout} />
       
-      {/* Mobile navigation bottom bar */}
+      <div className="main-content">
+        <Header 
+          searchVal={searchVal} 
+          setSearchVal={setSearchVal} 
+          onSearchFocus={() => activeTab !== 'pacientes' && handleTabChange('pacientes')}
+          user={user}
+          onLogout={handleLogout}
+          onNavigate={handleTabChange}
+        />
+        
+        <main className="content-canvas">
+          {renderContent()}
+        </main>
+      </div>
+
+      {/* Mobile navigation bottom bar — in-flow footer (avoids iOS fixed-bar bounce) */}
       <nav className="mobile-nav">
         <button
           type="button"
@@ -170,21 +185,6 @@ function App() {
           <span>Perfil</span>
         </button>
       </nav>
-
-      <div className="main-content">
-        <Header 
-          searchVal={searchVal} 
-          setSearchVal={setSearchVal} 
-          onSearchFocus={() => activeTab !== 'pacientes' && handleTabChange('pacientes')}
-          user={user}
-          onLogout={handleLogout}
-          onNavigate={handleTabChange}
-        />
-        
-        <main className="content-canvas">
-          {renderContent()}
-        </main>
-      </div>
     </div>
   );
 }

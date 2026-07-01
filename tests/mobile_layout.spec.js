@@ -77,8 +77,9 @@ test.describe('Login branding and mobile chrome stability', () => {
       localStorage.setItem('palia_theme', 'light');
     });
     await page.reload();
+    await expect(page.locator('text=Portal del Coordinador')).toBeVisible();
 
-    const logo = page.locator('img[alt="Palia"]').first();
+    const logo = page.locator('.card img[src*="logo_icon"]');
     await expect(logo).toBeVisible();
     await expect(logo).toHaveAttribute('src', /logo_icon\.png$/);
 
@@ -115,6 +116,25 @@ test.describe('Login branding and mobile chrome stability', () => {
     expect(Math.abs(navBottomAfter - navBottomBefore)).toBeLessThan(1);
     expect(headerTopAfter).toBeGreaterThanOrEqual(-1);
     expect(headerTopAfter).toBeLessThanOrEqual(1);
+    expect(navBottomAfter).toBeGreaterThanOrEqual(-1);
+    expect(navBottomAfter).toBeLessThanOrEqual(4);
+
+    // Rapid scroll bursts should not move the in-flow chrome
+    await canvas.evaluate((el) => {
+      for (let i = 0; i < 6; i++) {
+        el.scrollTop = i % 2 === 0 ? el.scrollHeight : 0;
+      }
+    });
+    await page.waitForTimeout(100);
+    const headerTopFast = await header.evaluate((el) => el.getBoundingClientRect().top);
+    const navBottomFast = await nav.evaluate((el) => window.innerHeight - el.getBoundingClientRect().bottom);
+    expect(Math.abs(headerTopFast)).toBeLessThan(1);
+    expect(Math.abs(navBottomFast)).toBeLessThan(4);
+
+    const shellHeight = await page.evaluate(() =>
+      getComputedStyle(document.querySelector('.app-shell')).height
+    );
+    expect(shellHeight).toMatch(/px$/);
 
     const bodyOverflow = await page.evaluate(() => getComputedStyle(document.body).overflow);
     expect(bodyOverflow).toBe('hidden');

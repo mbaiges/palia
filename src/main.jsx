@@ -4,7 +4,18 @@ import './index.css'
 import App from './App.jsx'
 import { applyTheme, getStoredTheme } from './tokens.js'
 
-// Apply the persisted or OS-preferred theme BEFORE first render to avoid FOUC
+function setVisualViewportHeight() {
+  const vv = window.visualViewport
+  const h = vv?.height ?? window.innerHeight
+  document.documentElement.style.setProperty('--vvh', `${Math.round(h)}px`)
+}
+
+setVisualViewportHeight()
+window.visualViewport?.addEventListener('resize', setVisualViewportHeight)
+window.visualViewport?.addEventListener('scroll', setVisualViewportHeight)
+window.addEventListener('resize', setVisualViewportHeight)
+
+// Apply the persisted theme BEFORE first render to avoid FOUC
 applyTheme(getStoredTheme());
 
 createRoot(document.getElementById('root')).render(
