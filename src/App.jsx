@@ -1,0 +1,170 @@
+import React, { useState, useEffect } from 'react';
+import './App.css';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import Patients from './pages/Patients';
+import NewPatient from './pages/NewPatient';
+import PatientDetail from './pages/PatientDetail';
+import NewFollowUp from './pages/NewFollowUp';
+import Volunteers from './pages/Volunteers';
+import Stats from './pages/Stats';
+import Administration from './pages/Administration';
+import { dbService } from './services/db';
+
+function App() {
+  const [activeTab, setActiveTab] = useState('inicio');
+  const [currentView, setCurrentView] = useState('inicio'); // Handles sub-routing
+  const [searchVal, setSearchVal] = useState('');
+  const [selectedPatientId, setSelectedPatientId] = useState(null);
+
+  // Sync currentView with activeTab when sidebar clicks occur
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setCurrentView(tabId);
+    setSearchVal('');
+  };
+
+  // Initialize DB with seed data on mount
+  useEffect(() => {
+    dbService.initialize();
+  }, []);
+
+  const handlePatientSaveSuccess = (newId) => {
+    setSelectedPatientId(newId);
+    setCurrentView('detalle-paciente');
+    setActiveTab('pacientes');
+  };
+
+  const handleFollowUpSaveSuccess = () => {
+    setCurrentView('detalle-paciente');
+  };
+
+  // Render views based on sub-routing and activeTab
+  const renderContent = () => {
+    if (currentView === 'nuevo-paciente') {
+      return (
+        <NewPatient 
+          onCancel={() => handleTabChange('pacientes')} 
+          onSaveSuccess={handlePatientSaveSuccess}
+        />
+      );
+    }
+    
+    if (currentView === 'detalle-paciente') {
+      return (
+        <PatientDetail 
+          patientId={selectedPatientId} 
+          onBack={() => handleTabChange('pacientes')} 
+          onNewFollowUp={() => setCurrentView('nuevo-seguimiento')}
+        />
+      );
+    }
+
+    if (currentView === 'nuevo-seguimiento') {
+      return (
+        <NewFollowUp 
+          patientId={selectedPatientId} 
+          onCancel={() => setCurrentView('detalle-paciente')}
+          onSaveSuccess={handleFollowUpSaveSuccess}
+        />
+      );
+    }
+
+    switch (activeTab) {
+      case 'inicio':
+        return (
+          <div style={{ padding: '20px' }}>
+            <h2>Vista de Inicio</h2>
+            <p style={{ marginTop: '10px' }}>Bienvenido al Panel de Control de PaliativoCare. Los datos de prueba se han cargado en LocalStorage.</p>
+            <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={() => handleTabChange('pacientes')}>
+              Ir a Directorio de Pacientes
+            </button>
+          </div>
+        );
+      case 'pacientes':
+        return (
+          <Patients 
+            searchVal={searchVal}
+            onNewPatient={() => setCurrentView('nuevo-paciente')}
+            onViewDetail={(id) => {
+              setSelectedPatientId(id);
+              setCurrentView('detalle-paciente');
+            }}
+          />
+        );
+      case 'voluntariado':
+        return <Volunteers searchVal={searchVal} />;
+      case 'estadisticas':
+        return <Stats />;
+      case 'administracion':
+        return <Administration />;
+      default:
+        return <div>Vista no encontrada</div>;
+    }
+  };
+
+  return (
+    <div className="app-shell">
+      {/* Sidebar for Desktop */}
+      <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
+      
+      {/* Mobile navigation bottom bar */}
+      <nav className="mobile-nav">
+        <a 
+          className={`mobile-nav-item ${activeTab === 'inicio' ? 'active' : ''}`}
+          onClick={() => handleTabChange('inicio')}
+          role="button"
+        >
+          <span className="material-symbols-outlined">home</span>
+          <span>Inicio</span>
+        </a>
+        <a 
+          className={`mobile-nav-item ${activeTab === 'pacientes' ? 'active' : ''}`}
+          onClick={() => handleTabChange('pacientes')}
+          role="button"
+        >
+          <span className="material-symbols-outlined">person_search</span>
+          <span>Pacientes</span>
+        </a>
+        <a 
+          className={`mobile-nav-item ${activeTab === 'voluntariado' ? 'active' : ''}`}
+          onClick={() => handleTabChange('voluntariado')}
+          role="button"
+        >
+          <span className="material-symbols-outlined">group</span>
+          <span>Voluntarios</span>
+        </a>
+        <a 
+          className={`mobile-nav-item ${activeTab === 'estadisticas' ? 'active' : ''}`}
+          onClick={() => handleTabChange('estadisticas')}
+          role="button"
+        >
+          <span className="material-symbols-outlined">analytics</span>
+          <span>Estadísticas</span>
+        </a>
+        <a 
+          className={`mobile-nav-item ${activeTab === 'administracion' ? 'active' : ''}`}
+          onClick={() => handleTabChange('administracion')}
+          role="button"
+        >
+          <span className="material-symbols-outlined">person</span>
+          <span>Admin</span>
+        </a>
+      </nav>
+
+      <div className="main-content">
+        <Header 
+          searchVal={searchVal} 
+          setSearchVal={setSearchVal} 
+          onSearchFocus={() => activeTab !== 'pacientes' && handleTabChange('pacientes')}
+        />
+        
+        <main className="content-canvas">
+          {renderContent()}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default App;

@@ -1,0 +1,18 @@
+{
+  "short_name": "Palia",
+  "name": "Palia - Cuidados Paliativos",
+  "description": "Sistema de acompañamiento y seguimiento clínico para pacientes de cuidados paliativos.",
+  "icons": [
+    {
+      "src": "logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "background_color": "#f8f9ff",
+  "theme_color": "#005a71",
+  "display": "standalone",
+  "orientation": "portrait"
+}
