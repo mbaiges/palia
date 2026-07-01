@@ -1,11 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { dbService } from '../services/db';
+import AlertModal from '../components/AlertModal';
+import PrintReportPreview from '../components/PrintReportPreview';
 
 export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
-  const patient = dbService.getPatient(patientId);
+  const [patientState, setPatientState] = useState(() => dbService.getPatient(patientId));
+  const [followUpsState, setFollowUpsState] = useState(() => dbService.getFollowUpsForPatient(patientId));
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+
+  useEffect(() => {
+    setPatientState(dbService.getPatient(patientId));
+    setFollowUpsState(dbService.getFollowUpsForPatient(patientId));
+  }, [patientId]);
+
+  const patient = patientState;
   const caregiver = dbService.getCaregiverForPatient(patientId);
-  const followUps = dbService.getFollowUpsForPatient(patientId);
+  const followUps = followUpsState;
   const hospitals = dbService.getHospitals();
+
+  const handleAlertSubmit = (alertData) => {
+    // Generate follow-up event
+    const newEvent = {
+      patientId: patient.id,
+      authorId: 'admin',
+      authorName: 'Coordinador Central',
+      contactType: 'Presencial',
+      symptoms: {
+        pain: alertData.motive.includes('Dolor') ? '10 - Insoportable' : '1-3 - Leve',
+        nausea: alertData.motive.includes('Náusea') ? 'Persistente' : 'Ninguno',
+        gradient: 'none',
+        dyspnea: alertData.motive.includes('Disnea') ? 'Grado 3 - Severa' : 'Grado 0 - Normal'
+      },
+      symptomObservations: `🚨 Alerta Clínica [${alertData.motive}]: ${alertData.observations}`,
+      socialRisk: {
+        familySupport: 'Sólido y constante',
+        environmentNotes: 'Alerta gatillada desde el panel coordinador.'
+      },
+      equipmentNeeds: [],
+      equipmentOther: "",
+      interventions: `Activación de red médica de emergencia. Motivo: ${alertData.motive}.`,
+      alertActivated: true
+    };
+
+    dbService.saveFollowUp(newEvent);
+    // Reload local state
+    setPatientState(dbService.getPatient(patientId));
+    setFollowUpsState(dbService.getFollowUpsForPatient(patientId));
+  };
 
   if (!patient) {
     return (
@@ -57,10 +99,38 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
             </nav>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button className="btn btn-primary" onClick={onNewFollowUp}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary" onClick={onNewFollowUp} style={{ gap: '6px' }}>
             <span className="material-symbols-outlined">edit_note</span>
             Registrar Seguimiento
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => setIsAlertModalOpen(true)} 
+            style={{ 
+              backgroundColor: 'var(--color-error-container)', 
+              color: 'var(--color-error)', 
+              borderColor: 'var(--color-error)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 700
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>bolt</span>
+            Activar Alerta
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => setIsPrintModalOpen(true)} 
+            style={{ 
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>print</span>
+            Imprimir Historial
           </button>
         </div>
       </div>
@@ -286,6 +356,24 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
         <span className="material-symbols-outlined">add</span>
         <span>Registrar Seguimiento</span>
       </button>
+
+      {/* Alert Activation Modal */}
+      <AlertModal 
+        isOpen={isAlertModalOpen} 
+        onClose={() => setIsAlertModalOpen(false)} 
+        patient={patient} 
+        onSubmit={handleAlertSubmit} 
+      />
+
+      {/* PDF Summary Print Preview */}
+      <PrintReportPreview
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        patient={patient}
+        caregiver={caregiver}
+        followUps={followUps}
+        getHospitalName={getHospitalName}
+      />
     </div>
   );
 }

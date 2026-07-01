@@ -198,6 +198,13 @@ const DEFAULT_EVENTS = [
   }
 ];
 
+const DEFAULT_INVITATIONS = [
+  { id: "inv_1", name: "Roberto Martínez", email: "r.martinez@health.org", date: "12 Oct, 2023", status: "Pendiente", role: "Voluntario" },
+  { id: "inv_2", name: "Lucía Castro", email: "l.castro@voluntarios.es", date: "10 Oct, 2023", status: "Registrado", role: "Coordinador" },
+  { id: "inv_3", name: "Jorge Sánchez", email: "jorge.s@provider.com", date: "01 Oct, 2023", status: "Expirado", role: "Voluntario" },
+  { id: "inv_4", name: "Elena Pascual", email: "epascual@care.org", date: "13 Oct, 2023", status: "Pendiente", role: "Voluntario" }
+];
+
 // DB Helper Logic
 function getStorage(key, defaultValue) {
   const data = localStorage.getItem(key);
@@ -220,6 +227,7 @@ export const dbService = {
     getStorage("medice_patients", DEFAULT_PATIENTS);
     getStorage("medice_caregivers", DEFAULT_CAREGIVERS);
     getStorage("medice_events", DEFAULT_EVENTS);
+    getStorage("medice_invitations", DEFAULT_INVITATIONS);
     console.log("Medice local storage database initialized.");
   },
 
@@ -384,5 +392,37 @@ export const dbService = {
 
   isCloudBackend() {
     return USE_FIREBASE;
+  },
+
+  // Onboarding Invitations
+  getInvitations() {
+    return getStorage("medice_invitations", DEFAULT_INVITATIONS);
+  },
+
+  saveInvitation(invite) {
+    const invites = this.getInvitations();
+    invite.id = "inv_" + Date.now();
+    // Format: "12 Oct, 2023"
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const now = new Date();
+    invite.date = `${now.getDate()} ${months[now.getMonth()]}, ${now.getFullYear()}`;
+    invites.push(invite);
+    setStorage("medice_invitations", invites);
+    return invite;
+  },
+
+  revokeInvitation(id) {
+    const invites = this.getInvitations();
+    const idx = invites.findIndex(inv => inv.id === id);
+    if (idx !== -1) {
+      invites[idx].status = "Expirado";
+      setStorage("medice_invitations", invites);
+    }
+  },
+
+  deleteInvitation(id) {
+    const invites = this.getInvitations();
+    const filtered = invites.filter(inv => inv.id !== id);
+    setStorage("medice_invitations", filtered);
   }
 };
