@@ -81,7 +81,7 @@ function App() {
 
     switch (activeTab) {
       case 'inicio':
-        return <HomeDashboard onNavigate={handleTabChange} onViewDetail={(id) => { setSelectedPatientId(id); setCurrentView('detalle-paciente'); }} />;
+        return <HomeDashboard user={user} onNavigate={handleTabChange} onViewDetail={(id) => { setSelectedPatientId(id); setCurrentView('detalle-paciente'); }} />;
       case 'pacientes':
         return (
           <Patients 

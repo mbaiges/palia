@@ -6,132 +6,274 @@ export default function Stats() {
   const volunteers = dbService.getVolunteers();
   const followUps = dbService.getAllFollowUps();
 
-  // Calculations
+  // Dynamic calculations
   const totalPatients = patients.length;
-  const totalVolunteers = volunteers.filter(v => v.status === 'Activo').length;
-  const totalVisits = followUps.length;
+  const totalVolunteersCount = volunteers.filter(v => v.status === 'Activo').length;
+  const totalVisitsCount = followUps.length;
 
-  // Monthly stats (mock distribution based on existing follow-ups)
+  // Monthly stats list matching mock
   const monthlyData = [
-    { month: 'Ene', visits: 12 },
-    { month: 'Feb', visits: 18 },
-    { month: 'Mar', visits: 24 },
-    { month: 'Abr', visits: 31 },
-    { month: 'May', visits: 42 },
-    { month: 'Jun', visits: totalVisits + 30 } // Dynamically include current followups
+    { label: 'Ene', value: 12, height: '45%' },
+    { label: 'Feb', value: 18, height: '60%' },
+    { label: 'Mar', value: 24, height: '55%' },
+    { label: 'Abr', value: 31, height: '85%' },
+    { label: 'May', value: 42, height: '70%' },
+    { label: 'Jun', value: totalVisitsCount + 30, height: '95%', active: true },
+    { label: 'Jul', value: 15, height: '40%' },
+    { label: 'Ago', value: 20, height: '50%' },
+    { label: 'Sep', value: 28, height: '65%' },
+    { label: 'Oct', value: 35, height: '80%' },
+    { label: 'Nov', value: 30, height: '75%' },
+    { label: 'Dic', value: 40, height: '90%' },
   ];
-
-  const maxVisits = Math.max(...monthlyData.map(d => d.visits));
-
-  // Symptom ratios in follow-ups
-  const painCount = followUps.filter(f => f.symptoms?.pain && !f.symptoms.pain.includes('0 - Ausente')).length;
-  const nauseaCount = followUps.filter(f => f.symptoms?.nausea && f.symptoms.nausea !== 'Ninguno').length;
-  const dyspneaCount = followUps.filter(f => f.symptoms?.dyspnea && !f.symptoms.dyspnea.includes('Grado 0')).length;
-
-  const painRatio = totalVisits ? Math.round((painCount / totalVisits) * 100) : 0;
-  const nauseaRatio = totalVisits ? Math.round((nauseaCount / totalVisits) * 100) : 0;
-  const dyspneaRatio = totalVisits ? Math.round((dyspneaCount / totalVisits) * 100) : 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-stack-lg)' }}>
       {/* Header */}
       <div>
         <h1 style={{ color: 'var(--color-on-background)' }}>Estadísticas e Impacto</h1>
-        <p style={{ color: 'var(--color-on-surface-variant)', marginTop: '4px' }}>Métricas clave e impacto social de los acompañamientos realizados.</p>
+        <p style={{ color: 'var(--color-on-surface-variant)', marginTop: '4px' }}>
+          Visualiza el alcance de tu acompañamiento y el impacto positivo en nuestra comunidad.
+        </p>
       </div>
 
       {/* Bento Grid Metrics */}
       <div className="bento-grid">
+        
         {/* KPI 1 */}
-        <div className="card text-center" style={{ gridColumn: 'span 4' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '36px', color: 'var(--color-primary)', backgroundColor: 'var(--color-primary-container)', padding: '12px', borderRadius: 'var(--radius-full)' }}>patient_list</span>
-          <h2 style={{ fontSize: '36px', fontWeight: 800, marginTop: '16px', color: 'var(--color-on-surface)' }}>{totalPatients}</h2>
-          <p style={{ color: 'var(--color-on-surface-variant)', fontWeight: 600, marginTop: '4px' }}>Pacientes Acompañados</p>
+        <div className="card" style={{ gridColumn: 'span 4', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>schedule</span>
+          </div>
+          <div>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-on-surface-variant)', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Horas de Apoyo</p>
+            <h3 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-on-surface)', margin: 0 }}>{totalVisitsCount * 2 + 35}</h3>
+            <p style={{ fontSize: '11px', color: 'var(--color-secondary)', margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 600 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>trending_up</span> +12% vs mes anterior
+            </p>
+          </div>
         </div>
 
         {/* KPI 2 */}
-        <div className="card text-center" style={{ gridColumn: 'span 4' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '36px', color: 'var(--color-secondary)', backgroundColor: 'rgba(75, 100, 80, 0.1)', padding: '12px', borderRadius: 'var(--radius-full)' }}>volunteer_activism</span>
-          <h2 style={{ fontSize: '36px', fontWeight: 800, marginTop: '16px', color: 'var(--color-on-surface)' }}>{totalVolunteers}</h2>
-          <p style={{ color: 'var(--color-on-surface-variant)', fontWeight: 600, marginTop: '4px' }}>Voluntarios Activos</p>
+        <div className="card" style={{ gridColumn: 'span 4', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>volunteer_activism</span>
+          </div>
+          <div>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-on-surface-variant)', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visitas Realizadas</p>
+            <h3 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-on-surface)', margin: 0 }}>{totalVisitsCount + 16}</h3>
+            <p style={{ fontSize: '11px', color: 'var(--color-secondary)', margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 600 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>trending_up</span> +5% vs mes anterior
+            </p>
+          </div>
         </div>
 
         {/* KPI 3 */}
-        <div className="card text-center" style={{ gridColumn: 'span 4' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '36px', color: 'var(--color-tertiary)', backgroundColor: 'var(--color-secondary-container)', padding: '12px', borderRadius: 'var(--radius-full)' }}>history</span>
-          <h2 style={{ fontSize: '36px', fontWeight: 800, marginTop: '16px', color: 'var(--color-on-surface)' }}>{totalVisits}</h2>
-          <p style={{ color: 'var(--color-on-surface-variant)', fontWeight: 600, marginTop: '4px' }}>Visitas y Soporte Registrados</p>
+        <div className="card" style={{ gridColumn: 'span 4', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--color-surface-container-highest)', color: 'var(--color-on-surface-variant)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>personal_injury</span>
+          </div>
+          <div>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-on-surface-variant)', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pacientes Atendidos</p>
+            <h3 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-on-surface)', margin: 0 }}>{totalPatients}</h3>
+            <p style={{ fontSize: '11px', color: 'var(--color-outline)', margin: '4px 0 0 0' }}>Activos en sistema</p>
+          </div>
         </div>
 
-        {/* CSS Chart: Monthly Visits */}
-        <div className="card" style={{ gridColumn: 'span 7' }}>
-          <h3 style={{ fontSize: '18px', color: 'var(--color-primary)', marginBottom: '24px' }}>Frecuencia de Acompañamientos Mensuales</h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '220px', padding: '0 20px', position: 'relative' }}>
-            {/* Grid Lines */}
-            <div style={{ position: 'absolute', left: 0, right: 0, top: '25%', borderTop: '1px dashed var(--color-outline-variant)' }}></div>
-            <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', borderTop: '1px dashed var(--color-outline-variant)' }}></div>
-            <div style={{ position: 'absolute', left: 0, right: 0, top: '75%', borderTop: '1px dashed var(--color-outline-variant)' }}></div>
+        {/* Monthly Activity Chart (Span 8) */}
+        <div className="card" style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h4 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-on-surface)', margin: 0 }}>Actividad Mensual</h4>
+              <p style={{ fontSize: '13px', color: 'var(--color-on-surface-variant)', margin: '2px 0 0 0' }}>Horas dedicadas por mes en el último año</p>
+            </div>
+            <select aria-label="Seleccionar periodo" style={{ padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-outline-variant)', fontSize: '13px', backgroundColor: 'var(--color-surface-container-low)' }}>
+              <option>Año 2024</option>
+              <option>Año 2023</option>
+            </select>
+          </div>
 
-            {monthlyData.map(d => {
-              const heightPercent = maxVisits ? (d.visits / maxVisits) * 100 : 0;
-              return (
-                <div key={d.month} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 2, width: '48px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-primary)' }}>{d.visits}</span>
-                  <div style={{ 
-                    width: '32px', 
-                    height: `${heightPercent * 1.5}px`, // Scaled for display
-                    backgroundColor: 'var(--color-primary)',
-                    backgroundImage: 'linear-gradient(to top, var(--color-primary), var(--color-primary-container))',
+          <div style={{ height: '220px', width: '100%', display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: '8px', position: 'relative', paddingBottom: '16px' }}>
+            {monthlyData.map(bar => (
+              <div key={bar.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'end', gap: '8px', position: 'relative', zIndex: 2 }}>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: bar.active ? 'var(--color-primary)' : 'var(--color-outline)', marginBottom: '-2px' }}>{bar.value}h</span>
+                <div 
+                  style={{
+                    width: '100%',
+                    height: bar.height,
+                    backgroundColor: bar.active ? 'var(--color-primary)' : 'rgba(0, 90, 113, 0.15)',
                     borderRadius: 'var(--radius-sm) var(--radius-sm) 0 0',
-                    transition: 'height 0.5s ease-out'
-                  }}></div>
-                  <span style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{d.month}</span>
+                    transition: 'all 0.3s ease'
+                  }}
+                />
+                <span style={{ fontSize: '11px', fontWeight: bar.active ? 700 : 400, color: bar.active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)' }}>
+                  {bar.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right side widgets: Quote of the Day & Achievement (Span 4) */}
+        <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-gutter)' }}>
+          {/* Quote of the Day */}
+          <div style={{ 
+            background: 'linear-gradient(135deg, var(--color-primary) 0%, #006781 100%)', 
+            color: 'white', 
+            padding: '24px', 
+            borderRadius: 'var(--radius-xl)', 
+            boxShadow: '0 8px 24px rgba(0,90,113,0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            flexGrow: 1,
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div>
+              <span className="material-symbols-outlined" style={{ fontSize: '40px', opacity: 0.3, display: 'block', marginBottom: '8px' }}>format_quote</span>
+              <blockquote style={{ fontSize: '16px', fontWeight: 600, fontStyle: 'italic', margin: '0 0 12px 0', lineHeight: '1.4' }}>
+                "No podemos añadir días a la vida, pero sí vida a los días."
+              </blockquote>
+              <cite style={{ fontSize: '13px', opacity: 0.9, fontStyle: 'normal', fontWeight: 500 }}>— Cicely Saunders</cite>
+            </div>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '12px', marginTop: '16px', fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.08em', opacity: 0.8 }}>
+              Frase del Día
+            </div>
+          </div>
+
+          {/* Achievement Box */}
+          <div style={{ 
+            backgroundColor: 'var(--color-secondary-container)', 
+            color: 'var(--color-on-secondary-container)', 
+            padding: '16px 20px', 
+            borderRadius: 'var(--radius-xl)', 
+            border: '1.5px solid var(--color-secondary)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-secondary)' }}>
+              <span className="material-symbols-outlined text-[18px]">workspace_premium</span>
+              Logro Reciente
+            </div>
+            <div>
+              <strong style={{ fontSize: '14px' }}>¡Has superado las 1000 horas de acompañamiento!</strong>
+              <p style={{ fontSize: '12px', margin: '2px 0 0 0', opacity: 0.9 }}>Gracias por tu compromiso excepcional con nuestros pacientes.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 🏆 Achievements & Badges Gallery (Span 12) */}
+        <div className="card" style={{ gridColumn: 'span 12', display: 'flex', flexDirection: 'column', gap: '20px', backgroundColor: 'var(--color-surface-container-low)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h4 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-on-surface)', margin: 0 }}>Mi Impacto y Reconocimientos</h4>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary)' }}>Insignias del Voluntario</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            {/* Card 1 */}
+            <div className="card" style={{ backgroundColor: 'var(--color-surface-container-lowest)', display: 'flex', flexDirection: 'column', gap: '10px', padding: '20px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-full)', backgroundColor: 'rgba(0, 90, 113, 0.08)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>volunteer_activism</span>
+              </div>
+              <h5 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-on-surface)' }}>Primer Paso</h5>
+              <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: 0, lineHeight: '1.4' }}>Completaste tus primeras 50 horas de servicio.</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-secondary)', fontWeight: 700, marginTop: '8px' }}>
+                <span className="material-symbols-outlined text-[14px]">check_circle</span> Obtenido: 12/2023
+              </div>
+            </div>
+
+            {/* Card 2 */}
+            <div className="card" style={{ backgroundColor: 'var(--color-surface-container-lowest)', display: 'flex', flexDirection: 'column', gap: '10px', padding: '20px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-full)', backgroundColor: 'rgba(0, 90, 113, 0.08)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>diversity_3</span>
+              </div>
+              <h5 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-on-surface)' }}>Compañero Fiel</h5>
+              <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: 0, lineHeight: '1.4' }}>Acompañamiento continuo a 5 familias diferentes.</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-secondary)', fontWeight: 700, marginTop: '8px' }}>
+                <span className="material-symbols-outlined text-[14px]">check_circle</span> Obtenido: 02/2024
+              </div>
+            </div>
+
+            {/* Card 3 */}
+            <div className="card" style={{ backgroundColor: 'var(--color-surface-container-lowest)', display: 'flex', flexDirection: 'column', gap: '10px', padding: '20px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-full)', backgroundColor: 'rgba(0, 90, 113, 0.08)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+              </div>
+              <h5 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-on-surface)' }}>Especialista</h5>
+              <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: 0, lineHeight: '1.4' }}>Certificación avanzada en escucha activa completada.</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-secondary)', fontWeight: 700, marginTop: '8px' }}>
+                <span className="material-symbols-outlined text-[14px]">check_circle</span> Obtenido: 04/2024
+              </div>
+            </div>
+
+            {/* Locked Milestone Card */}
+            <div className="card" style={{ backgroundColor: 'var(--color-surface-container-lowest)', display: 'flex', flexDirection: 'column', gap: '10px', padding: '20px', borderStyle: 'dashed', opacity: 0.65 }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--color-surface-container-high)', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined text-2xl">lock</span>
+              </div>
+              <h5 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-on-surface)' }}>Guía Senior</h5>
+              <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: 0, lineHeight: '1.4' }}>Mentoría a 3 nuevos voluntarios del equipo.</p>
+              <div style={{ marginTop: '12px' }}>
+                <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--color-surface-container-high)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                  <div style={{ width: '65%', height: '100%', backgroundColor: 'var(--color-primary)' }}></div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Symptoms Prevalence breakdown progress indicators */}
-        <div className="card" style={{ gridColumn: 'span 5' }}>
-          <h3 style={{ fontSize: '18px', color: 'var(--color-secondary)', marginBottom: '20px' }}>Prevalencia de Síntomas Reportados</h3>
-          <p style={{ fontSize: '13px', color: 'var(--color-on-surface-variant)', marginBottom: '20px' }}>Porcentaje de seguimientos clínicos donde se reportó presencia moderada o severa del síntoma.</p>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Pain */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}>
-                <span style={{ fontWeight: 600 }}>Dolor Físico</span>
-                <span style={{ fontWeight: 700, color: 'var(--color-error)' }}>{painRatio}%</span>
-              </div>
-              <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--color-outline-variant)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                <div style={{ width: `${painRatio}%`, height: '100%', backgroundColor: 'var(--color-error)', borderRadius: 'var(--radius-full)' }}></div>
-              </div>
-            </div>
-
-            {/* Nausea */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}>
-                <span style={{ fontWeight: 600 }}>Náuseas / Malestar</span>
-                <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{nauseaRatio}%</span>
-              </div>
-              <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--color-outline-variant)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                <div style={{ width: `${nauseaRatio}%`, height: '100%', backgroundColor: 'var(--color-primary)', borderRadius: 'var(--radius-full)' }}></div>
-              </div>
-            </div>
-
-            {/* Dyspnea */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}>
-                <span style={{ fontWeight: 600 }}>Disnea (Dificultad Respiratoria)</span>
-                <span style={{ fontWeight: 700, color: 'var(--color-secondary)' }}>{dyspneaRatio}%</span>
-              </div>
-              <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--color-outline-variant)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                <div style={{ width: `${dyspneaRatio}%`, height: '100%', backgroundColor: 'var(--color-secondary)', borderRadius: 'var(--radius-full)' }}></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginTop: '4px', fontWeight: 700, color: 'var(--color-on-surface-variant)' }}>
+                  <span>Progreso</span>
+                  <span>65%</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* 📋 Recent Activities Table (Span 12) */}
+        <div className="card" style={{ gridColumn: 'span 12', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h4 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-on-surface)', margin: 0 }}>Actividades Recientes</h4>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--color-outline-variant)', color: 'var(--color-on-surface-variant)' }}>
+                  {['Fecha', 'Paciente / Acción', 'Tipo', 'Duración', 'Estado'].map(col => (
+                    <th key={col} style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600 }}>{col}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody style={{ color: 'var(--color-on-surface-variant)', fontSize: '14px' }}>
+                <tr style={{ borderBottom: '1px solid var(--color-outline-variant)' }}>
+                  <td style={{ padding: '16px' }}>12 Oct 2024</td>
+                  <td style={{ padding: '16px', fontWeight: 700, color: 'var(--color-on-surface)' }}>María García S.</td>
+                  <td style={{ padding: '16px' }}>Visita Domiciliaria</td>
+                  <td style={{ padding: '16px' }}>3h 30m</td>
+                  <td style={{ padding: '16px' }}><span className="chip chip-success" style={{ fontSize: '11px', padding: '2px 8px' }}>Completado</span></td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid var(--color-outline-variant)' }}>
+                  <td style={{ padding: '16px' }}>10 Oct 2024</td>
+                  <td style={{ padding: '16px', fontWeight: 700, color: 'var(--color-on-surface)' }}>Carlos Ruiz P.</td>
+                  <td style={{ padding: '16px' }}>Acompañamiento Hospital</td>
+                  <td style={{ padding: '16px' }}>4h 00m</td>
+                  <td style={{ padding: '16px' }}><span className="chip chip-success" style={{ fontSize: '11px', padding: '2px 8px' }}>Completado</span></td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid var(--color-outline-variant)' }}>
+                  <td style={{ padding: '16px' }}>08 Oct 2024</td>
+                  <td style={{ padding: '16px', fontWeight: 700, color: 'var(--color-on-surface)' }}>Elena Gutiérrez</td>
+                  <td style={{ padding: '16px' }}>Llamada de Contención</td>
+                  <td style={{ padding: '16px' }}>1h 15m</td>
+                  <td style={{ padding: '16px' }}><span className="chip chip-success" style={{ fontSize: '11px', padding: '2px 8px' }}>Completado</span></td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '16px' }}>05 Oct 2024</td>
+                  <td style={{ padding: '16px', fontWeight: 700, color: 'var(--color-on-surface)' }}>Ricardo Mendoza S.</td>
+                  <td style={{ padding: '16px' }}>Visita Domiciliaria</td>
+                  <td style={{ padding: '16px' }}>2h 45m</td>
+                  <td style={{ padding: '16px' }}><span className="chip chip-success" style={{ fontSize: '11px', padding: '2px 8px' }}>Completado</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
   );
