@@ -46,15 +46,14 @@ export default function Login({ onLoginSuccess }) {
       }}>
         {/* Brand Header */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-          <img 
-            src="/logo.png" 
-            alt="Palia Logo" 
-            style={{ 
-              width: '80px', 
-              height: '80px', 
-              borderRadius: 'var(--radius-xl)', 
-              boxShadow: '0 8px 24px rgba(0, 90, 113, 0.15)' 
-            }} 
+          <img
+            src="/logo_icon.png"
+            alt="Palia"
+            style={{
+              width: '72px',
+              height: '72px',
+              objectFit: 'contain',
+            }}
           />
           <div>
             <h1 style={{ fontSize: '32px', fontWeight: 800, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.03em' }}>Palia</h1>

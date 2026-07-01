@@ -63,3 +63,62 @@ test.describe('Mobile layout fixes verification', () => {
     await page.screenshot({ path: path.join(screenshotDir, 'mobile_light_theme_default.png'), fullPage: true });
   });
 });
+
+test.describe('Login branding and mobile chrome stability', () => {
+  test.beforeAll(() => {
+    fs.mkdirSync(screenshotDir, { recursive: true });
+  });
+
+  test('login page uses the shared Palia icon asset', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('http://localhost:5173');
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('palia_theme', 'light');
+    });
+    await page.reload();
+
+    const logo = page.locator('img[alt="Palia"]').first();
+    await expect(logo).toBeVisible();
+    await expect(logo).toHaveAttribute('src', /logo_icon\.png$/);
+
+    await page.screenshot({ path: path.join(screenshotDir, 'mobile_login_logo.png'), fullPage: true });
+  });
+
+  test('mobile header and bottom nav stay pinned while content scrolls', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('http://localhost:5173');
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('palia_theme', 'light');
+    });
+    await page.reload();
+    await page.click('text=Iniciar Sesión con Google');
+    await expect(page.locator('.top-header')).toBeVisible();
+
+    const header = page.locator('.top-header');
+    const nav = page.locator('.mobile-nav');
+    const canvas = page.locator('.content-canvas');
+
+    const headerTopBefore = await header.evaluate((el) => el.getBoundingClientRect().top);
+    const navBottomBefore = await nav.evaluate((el) => window.innerHeight - el.getBoundingClientRect().bottom);
+
+    await canvas.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await page.waitForTimeout(150);
+
+    const headerTopAfter = await header.evaluate((el) => el.getBoundingClientRect().top);
+    const navBottomAfter = await nav.evaluate((el) => window.innerHeight - el.getBoundingClientRect().bottom);
+
+    expect(Math.abs(headerTopAfter - headerTopBefore)).toBeLessThan(1);
+    expect(Math.abs(navBottomAfter - navBottomBefore)).toBeLessThan(1);
+    expect(headerTopAfter).toBeGreaterThanOrEqual(-1);
+    expect(headerTopAfter).toBeLessThanOrEqual(1);
+
+    const bodyOverflow = await page.evaluate(() => getComputedStyle(document.body).overflow);
+    expect(bodyOverflow).toBe('hidden');
+
+    await page.screenshot({ path: path.join(screenshotDir, 'mobile_chrome_pinned_scroll.png'), fullPage: true });
+  });
+});
