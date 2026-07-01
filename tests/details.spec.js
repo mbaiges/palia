@@ -34,9 +34,9 @@ test.describe('Patient Details & Follow-up Flow', () => {
 
     // 4. Fill in Follow-up report
     await page.selectOption('select[name="contactType"]', 'Remoto');
-    await page.selectOption('select[name="pain"]', '4-6 - Moderado');
-    await page.selectOption('select[name="nausea"]', 'Ninguno');
-    await page.selectOption('select[name="dyspnea"]', 'Grado 1 - Leve');
+    await page.click('button:has-text("4-6 - Moderado")');
+    await page.click('button:has-text("Ninguno")');
+    await page.click('button:has-text("G1 - Leve")');
     await page.fill('[placeholder="Describa el estado de ánimo, fatiga, nivel de conciencia o cualquier cambio notable en el estado físico del paciente..."]', 'Llamada de seguimiento de la tarde. El paciente se encuentra más calmado pero reporta dolor moderado.');
 
     // Social Risk

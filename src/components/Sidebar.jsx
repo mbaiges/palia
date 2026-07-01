@@ -12,10 +12,10 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }) {
   return (
     <aside className="sidebar">
       {/* Brand Identity */}
-      <div className="sidebar-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '24px 16px', borderBottom: '1px solid var(--color-outline-variant)' }}>
-        <img src="/logo.png" alt="Palia Logo" style={{ width: '56px', height: '56px', borderRadius: 'var(--radius-lg)', objectFit: 'cover', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }} />
-        <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.02em' }}>Palia</h1>
-        <p style={{ fontSize: '11px', color: 'var(--color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, fontWeight: 700 }}>Acompañamiento</p>
+      <div className="sidebar-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '28px 16px', borderBottom: '1px solid var(--color-outline-variant)' }}>
+        <img src="/logo.png" alt="Palia Logo" style={{ width: '80px', height: '80px', borderRadius: 'var(--radius-xl)', objectFit: 'cover', boxShadow: '0 6px 10px rgba(0, 90, 113, 0.1)' }} />
+        <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.02em' }}>Palia</h1>
+        <p style={{ fontSize: '11px', color: 'var(--color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0, fontWeight: 700 }}>Acompañamiento</p>
       </div>
 
       {/* Navigation */}
@@ -43,7 +43,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }) {
 
       {/* Footer Settings / Exit */}
       <div className="sidebar-footer">
-        <a className="nav-link" role="button">
+        <a className={`nav-link ${activeTab === 'configuracion' ? 'active' : ''}`} onClick={() => setActiveTab('configuracion')} role="button">
           <span className="material-symbols-outlined" data-icon="settings">settings</span>
           <span>Configuración</span>
         </a>

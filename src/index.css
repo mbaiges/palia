@@ -678,6 +678,20 @@ p, label, input, textarea, select, button {
   gap: 8px;
 }
 
+.form-row-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 580px) {
+  .form-row-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
 .form-group label {
   font-weight: 600;
   color: var(--color-on-surface-variant);
@@ -707,6 +721,7 @@ p, label, input, textarea, select, button {
 }
 
 .form-group-checkbox {
+  display: flex;
   flex-direction: row;
   align-items: center;
   gap: 12px;

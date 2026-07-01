@@ -11,6 +11,7 @@ import Stats from './pages/Stats';
 import Administration from './pages/Administration';
 import { dbService } from './services/db';
 import Login from './pages/Login';
+import Settings from './pages/Settings';
 
 function App() {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('palia_user') || 'null'));
@@ -105,6 +106,8 @@ function App() {
         return <Stats />;
       case 'administracion':
         return <Administration />;
+      case 'configuracion':
+        return <Settings />;
       default:
         return <div>Vista no encontrada</div>;
     }

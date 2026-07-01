@@ -106,7 +106,7 @@ export default function NewPatient({ onCancel, onSaveSuccess }) {
                   required
                 />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-row-grid">
                 <div className="form-group">
                   <label>Documento de Identidad (DNI) *</label>
                   <input

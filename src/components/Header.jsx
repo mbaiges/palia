@@ -1,24 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { dbService } from '../services/db';
 
 export default function Header({ searchVal, setSearchVal, onSearchFocus, user }) {
   const isCloud = dbService.isCloudBackend();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const alerts = dbService.getPatients().filter(p => p.status === 'Alerta');
 
   const handleRequestNotifications = () => {
     if ('Notification' in window) {
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(registration => {
-              registration.showNotification('Palia', {
-                body: 'Notificaciones activadas con éxito.',
-                icon: '/logo.png',
-                badge: '/logo.png'
+      if (Notification.permission === 'granted') {
+        setShowNotifications(!showNotifications);
+      } else {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification('Palia', {
+                  body: 'Notificaciones activadas con éxito.',
+                  icon: '/logo.png',
+                  badge: '/logo.png'
+                });
               });
-            });
+            }
+            setShowNotifications(true);
+          } else {
+            setShowNotifications(!showNotifications);
           }
-        }
-      });
+        });
+      }
+    } else {
+      setShowNotifications(!showNotifications);
     }
   };
 
@@ -50,14 +61,62 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user })
       </div>
 
       {/* Action Buttons & Profile */}
-      <div className="header-actions">
-        <button className="icon-btn" aria-label="Notificaciones" onClick={handleRequestNotifications}>
+      <div className="header-actions" style={{ position: 'relative' }}>
+        <button className="icon-btn" aria-label="Notificaciones" onClick={handleRequestNotifications} style={{ position: 'relative' }}>
           <span className="material-symbols-outlined">notifications</span>
-          <span className="badge"></span>
+          {alerts.length > 0 && (
+            <span className="badge" style={{ position: 'absolute', top: '8px', right: '8px', width: '8px', height: '8px', backgroundColor: 'var(--color-error)', borderRadius: 'var(--radius-full)' }}></span>
+          )}
         </button>
         <button className="icon-btn" aria-label="Ayuda">
           <span className="material-symbols-outlined">help</span>
         </button>
+
+        {showNotifications && (
+          <div className="card" style={{
+            position: 'absolute',
+            top: '52px',
+            right: '80px',
+            width: '300px',
+            padding: '16px',
+            zIndex: 100,
+            boxShadow: '0 8px 32px rgba(0, 90, 113, 0.15)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--color-outline-variant)',
+            backgroundColor: '#ffffff',
+            textAlign: 'left'
+          }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', margin: 0 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>notifications_active</span>
+              Alertas del Día
+            </h3>
+            <div style={{ height: '1px', backgroundColor: 'var(--color-outline-variant)', margin: '8px 0 12px 0' }}></div>
+            {alerts.length === 0 ? (
+              <p style={{ fontSize: '13px', color: 'var(--color-outline)', margin: 0, padding: '4px 0' }}>No hay alertas de pacientes activas en este momento.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                {alerts.map(p => (
+                  <div key={p.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 12px',
+                    backgroundColor: 'var(--color-error-container)',
+                    color: 'var(--color-on-error-container)',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '12px',
+                    fontWeight: 500
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-error)', animation: 'pulse-red 2s infinite' }}>warning</span>
+                    <div style={{ flexGrow: 1 }}>
+                      <strong>{p.name}</strong> requiere atención urgente.
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="header-divider"></div>
         

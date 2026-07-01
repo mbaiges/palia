@@ -96,6 +96,46 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
     }, 1000); // Visual saving spinner simulation
   };
 
+  const renderSegmentedSelector = (label, options, value, onChange) => {
+    return (
+      <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <label style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-on-surface-variant)' }}>{label}</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {options.map(opt => {
+            const isSelected = value === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onChange(opt.value)}
+                style={{
+                  height: '42px',
+                  padding: '0 16px',
+                  fontSize: '13px',
+                  borderRadius: 'var(--radius-full)',
+                  border: isSelected ? '1px solid var(--color-primary)' : '1px solid var(--color-outline-variant)',
+                  backgroundColor: isSelected ? 'var(--color-primary)' : 'var(--color-surface-container-low)',
+                  color: isSelected ? 'var(--color-on-primary)' : 'var(--color-on-surface-variant)',
+                  boxShadow: isSelected ? '0 4px 12px rgba(0, 90, 113, 0.15)' : 'none',
+                  fontWeight: 600,
+                  flexGrow: 1,
+                  minWidth: '100px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-stack-lg)' }}>
       {/* Header section with back link */}
@@ -170,39 +210,29 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
                 </select>
               </div>
 
-              {/* Symptom Selectors */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-                <div className="form-group">
-                  <label>Dolor (Escala 0-10) *</label>
-                  <select name="pain" value={pain} onChange={(e) => setPain(e.target.value)} required>
-                    <option value="">Seleccionar nivel...</option>
-                    <option value="0 - Ausente">0 - Ausente</option>
-                    <option value="1-3 - Leve">1-3 - Leve</option>
-                    <option value="4-6 - Moderado">4-6 - Moderado</option>
-                    <option value="7-9 - Severo">7-9 - Severo</option>
-                    <option value="10 - Insoportable">10 - Insoportable</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Náuseas / Malestar *</label>
-                  <select name="nausea" value={nausea} onChange={(e) => setNausea(e.target.value)} required>
-                    <option value="">Seleccionar nivel...</option>
-                    <option value="Ninguno">Ninguno</option>
-                    <option value="Ocasional">Ocasional</option>
-                    <option value="Frecuente">Frecuente</option>
-                    <option value="Persistente">Persistente</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Disnea (Resp.) *</label>
-                  <select name="dyspnea" value={dyspnea} onChange={(e) => setDyspnea(e.target.value)} required>
-                    <option value="">Seleccionar nivel...</option>
-                    <option value="Grado 0 - Normal">Grado 0 - Normal</option>
-                    <option value="Grado 1 - Leve">Grado 1 - Leve</option>
-                    <option value="Grado 2 - Moderada">Grado 2 - Moderada</option>
-                    <option value="Grado 3 - Severa">Grado 3 - Severa</option>
-                  </select>
-                </div>
+              {/* Symptom Choice Chips Toggles */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {renderSegmentedSelector('Dolor (Escala 0-10) *', [
+                  { label: '0 - Ausente', value: '0 - Ausente' },
+                  { label: '1-3 - Leve', value: '1-3 - Leve' },
+                  { label: '4-6 - Moderado', value: '4-6 - Moderado' },
+                  { label: '7-9 - Severo', value: '7-9 - Severo' },
+                  { label: '10 - Insoportable', value: '10 - Insoportable' }
+                ], pain, setPain)}
+
+                {renderSegmentedSelector('Náuseas / Malestar *', [
+                  { label: 'Ninguno', value: 'Ninguno' },
+                  { label: 'Ocasional', value: 'Ocasional' },
+                  { label: 'Frecuente', value: 'Frecuente' },
+                  { label: 'Persistente', value: 'Persistente' }
+                ], nausea, setNausea)}
+
+                {renderSegmentedSelector('Disnea (Resp.) *', [
+                  { label: 'G0 - Normal', value: 'Grado 0 - Normal' },
+                  { label: 'G1 - Leve', value: 'Grado 1 - Leve' },
+                  { label: 'G2 - Moderada', value: 'Grado 2 - Moderada' },
+                  { label: 'G3 - Severa', value: 'Grado 3 - Severa' }
+                ], dyspnea, setDyspnea)}
               </div>
 
               {/* Observations details */}
