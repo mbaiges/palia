@@ -1,4 +1,4 @@
-const CACHE_NAME = 'palia-cache-v2';
+const CACHE_NAME = 'palia-cache-v3';
 const ASSETS = [
   '/',
   '/index.html',
@@ -31,11 +31,18 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then((response) => response)
+        .catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
-      return cachedResponse || fetch(e.request).catch(() => {
-        // Offline fallback can go here if required
-      });
+      return cachedResponse || fetch(e.request).catch(() => undefined);
     })
   );
 });

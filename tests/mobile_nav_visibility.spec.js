@@ -41,8 +41,9 @@ test.describe('Mobile bottom nav visibility', () => {
       };
     });
 
-    expect(layout.shellDisplay).toBe('grid');
+    expect(layout.shellDisplay).toBe('flex');
     expect(layout.navDisplay).toBe('flex');
+    expect(layout.navPosition).toBe('fixed');
     expect(layout.navHeight).toBeGreaterThan(40);
     expect(layout.navBottom).toBeGreaterThan(layout.viewportHeight - 8);
     expect(layout.navBottom).toBeLessThanOrEqual(layout.viewportHeight + 1);

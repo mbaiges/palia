@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -13,45 +13,105 @@ import { dbService } from './services/db';
 import Login from './pages/Login';
 import Settings from './pages/Settings';
 import HomeDashboard from './pages/HomeDashboard';
+import { scrollToSection, resetContentScroll } from './utils/navigation';
+import { syncMobileLayout, syncViewportHeight, syncMobileNavOffset } from './utils/viewport';
 
 function App() {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('palia_user') || 'null'));
   const [activeTab, setActiveTab] = useState('inicio');
-  const [currentView, setCurrentView] = useState('inicio'); // Handles sub-routing
+  const [currentView, setCurrentView] = useState('inicio');
   const [searchVal, setSearchVal] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState(null);
-  // Deep-link into Administration sub-tabs (e.g. 'invitaciones')
   const [adminInitialTab, setAdminInitialTab] = useState(null);
+  const [settingsFocus, setSettingsFocus] = useState(null);
+  const pendingScrollRef = useRef(null);
 
   const handleLogout = () => {
     localStorage.removeItem('palia_user');
     setUser(null);
   };
 
-  // Sync currentView with activeTab when sidebar clicks occur
-  const handleTabChange = (tabId, subTab = null) => {
-    setActiveTab(tabId);
-    setCurrentView(tabId);
+  const normalizeNavOptions = (secondArg) => {
+    if (typeof secondArg === 'string') return { subTab: secondArg };
+    return secondArg || {};
+  };
+
+  const handleTabChange = (tabId, secondArg = null) => {
+    const { subTab, sectionId, settingsSubTab } = normalizeNavOptions(secondArg);
+
+    if (tabId === 'nuevo-paciente') {
+      setActiveTab('pacientes');
+      setCurrentView('nuevo-paciente');
+    } else {
+      setActiveTab(tabId);
+      setCurrentView(tabId);
+    }
+
     setSearchVal('');
+
     if (tabId === 'administracion' && subTab) {
       setAdminInitialTab(subTab);
-    } else {
+    } else if (tabId !== 'administracion') {
       setAdminInitialTab(null);
     }
+
+    if (tabId === 'configuracion' && (settingsSubTab || sectionId)) {
+      setSettingsFocus({ subTab: settingsSubTab, sectionId });
+    }
+
+    pendingScrollRef.current = sectionId || '__top__';
   };
+
+  const handleViewPatient = (patientId, options = {}) => {
+    pendingScrollRef.current = '__top__';
+    setSelectedPatientId(patientId);
+    setCurrentView('detalle-paciente');
+    setActiveTab('pacientes');
+    if (options.openFollowUp) {
+      setCurrentView('nuevo-seguimiento');
+    }
+  };
+
+  useEffect(() => {
+    const scrollTarget = pendingScrollRef.current;
+    if (!scrollTarget) return;
+    pendingScrollRef.current = null;
+
+    const timer = window.setTimeout(() => {
+      if (scrollTarget === '__top__') {
+        resetContentScroll();
+      } else {
+        scrollToSection(scrollTarget);
+      }
+    }, 60);
+
+    return () => window.clearTimeout(timer);
+  }, [activeTab, currentView]);
 
   // Initialize DB with seed data on mount
   useEffect(() => {
     dbService.initialize();
   }, []);
 
+  useEffect(() => {
+    if (!user) return undefined;
+    const syncLayout = () => {
+      syncMobileLayout();
+    };
+    syncLayout();
+    const timer = window.setTimeout(syncLayout, 120);
+    return () => window.clearTimeout(timer);
+  }, [user, activeTab, currentView]);
+
   const handlePatientSaveSuccess = (newId) => {
+    pendingScrollRef.current = '__top__';
     setSelectedPatientId(newId);
     setCurrentView('detalle-paciente');
     setActiveTab('pacientes');
   };
 
   const handleFollowUpSaveSuccess = () => {
+    pendingScrollRef.current = '__top__';
     setCurrentView('detalle-paciente');
   };
 
@@ -88,7 +148,7 @@ function App() {
 
     switch (activeTab) {
       case 'inicio':
-        return <HomeDashboard user={user} onNavigate={handleTabChange} onViewDetail={(id) => { setSelectedPatientId(id); setCurrentView('detalle-paciente'); }} />;
+        return <HomeDashboard user={user} onNavigate={handleTabChange} onViewDetail={(id) => handleViewPatient(id)} />;
       case 'pacientes':
         return (
           <Patients 
@@ -107,7 +167,7 @@ function App() {
       case 'administracion':
         return <Administration initialTab={adminInitialTab} onTabConsumed={() => setAdminInitialTab(null)} />;
       case 'configuracion':
-        return <Settings onNavigate={handleTabChange} />;
+        return <Settings onNavigate={handleTabChange} initialFocus={settingsFocus} onFocusConsumed={() => setSettingsFocus(null)} />;
       default:
         return <div>Vista no encontrada</div>;
     }
@@ -133,6 +193,8 @@ function App() {
           user={user}
           onLogout={handleLogout}
           onNavigate={handleTabChange}
+          onViewPatient={handleViewPatient}
+          alertPatients={dbService.getPatients().filter((p) => p.currentStatus === 'Alerta')}
         />
         
         <main className="content-canvas">

@@ -339,7 +339,7 @@ export default function Administration({ initialTab, onTabConsumed }) {
           </div>
 
           {/* Right Column: Active Invitations Table/Cards List (col-span-8) */}
-          <div className="card" style={{ gridColumn: isMobile ? 'span 12' : 'span 8', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div id="admin-invitations-panel" className="card" style={{ gridColumn: isMobile ? 'span 12' : 'span 8', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-on-surface)', margin: 0 }}>Invitaciones Activas</h3>
               <span className="chip chip-info" style={{ fontSize: '12px' }}>{pendingInvitesCount} Pendientes</span>

@@ -101,7 +101,7 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-stack-lg)' }}>
       {isMobile ? (
         /* 📱 MOBILE ONLY VIEW (Strict alignment with mock: directorio_de_pacientes.html) */
-        <div style={{ padding: '0 4px 90px 4px' }}>
+        <div id="patients-directory" style={{ padding: '0 4px 0 4px' }}>
           <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-on-background)', marginBottom: '16px' }}>Directorio de Pacientes</h1>
           {/* Search & Filter section */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>

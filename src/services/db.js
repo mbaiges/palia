@@ -1,6 +1,7 @@
 // Database Service using localStorage (Modularized for future Firebase/Supabase connection)
 
 const USE_FIREBASE = import.meta.env.VITE_USE_FIREBASE === 'true';
+const SEED_VERSION = 2;
 
 // Seed Data
 const DEFAULT_HOSPITALS = [
@@ -195,6 +196,326 @@ const DEFAULT_EVENTS = [
     equipmentOther: "",
     interventions: "Activación de red de apoyo. Reubicación temporal de familiar para cuidados continuos.",
     alertActivated: true
+  },
+  {
+    id: "ev_5",
+    patientId: "pat_2",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-06-25T11:00:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "1-3 - Leve", nausea: "Ninguno", dyspnea: "Grado 1 - Leve" },
+    symptomObservations: "Visita domiciliaria de control. Manuel mantiene estabilidad clínica y buen cumplimiento terapéutico.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Esposa presente y colaborativa." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Revisión de signos vitales, acompañamiento y refuerzo de pautas de cuidado.",
+    alertActivated: false,
+    durationHours: 2
+  },
+  {
+    id: "ev_6",
+    patientId: "pat_4",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-06-26T16:30:00-03:00",
+    contactType: "Remoto",
+    symptoms: { pain: "4-6 - Moderado", nausea: "Ocasional", dyspnea: "Grado 0 - Normal" },
+    symptomObservations: "Seguimiento telefónico tras sesión de radioterapia. Fernando refiere fatiga vespertina.",
+    socialRisk: { familySupport: "Intermitente / Fragilidad", environmentNotes: "Hermana solicita relevo los fines de semana." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Coordinación de visita presencial y ajuste de plan de descanso.",
+    alertActivated: false,
+    durationHours: 1
+  },
+  {
+    id: "ev_7",
+    patientId: "pat_1",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-06-27T10:15:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "7-9 - Severo", nausea: "Persistente", dyspnea: "Grado 2 - Moderada" },
+    symptomObservations: "Incremento del dolor y disnea. Se activa protocolo de alerta y se contacta al equipo médico.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Cuidadora principal presente durante la visita." },
+    equipmentNeeds: ["Concentrador Oxígeno"],
+    equipmentOther: "",
+    interventions: "Administración de medicación de rescate y monitoreo continuo.",
+    alertActivated: true,
+    durationHours: 2.5
+  },
+  {
+    id: "ev_8",
+    patientId: "pat_3",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-06-28T09:40:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "7-9 - Severo", nausea: "Ocasional", dyspnea: "Grado 2 - Moderada" },
+    symptomObservations: "Control post-crisis. Disnea en mejoría con oxigenoterapia. Se refuerza plan de cuidados nocturnos.",
+    socialRisk: { familySupport: "Intermitente / Fragilidad", environmentNotes: "Se acuerda presencia de familiar de relevo." },
+    equipmentNeeds: ["Concentrador Oxígeno"],
+    equipmentOther: "",
+    interventions: "Educación al cuidador y verificación de equipamiento domiciliario.",
+    alertActivated: false,
+    durationHours: 2
+  },
+  {
+    id: "ev_9",
+    patientId: "pat_2",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-06-30T15:00:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "1-3 - Leve", nausea: "Ninguno", dyspnea: "Grado 1 - Leve" },
+    symptomObservations: "Visita semanal de acompañamiento. Buen estado general y adherencia al tratamiento.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Ambiente domiciliario ordenado." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Contención emocional y revisión de medicación.",
+    alertActivated: false,
+    durationHours: 2
+  },
+  {
+    id: "ev_10",
+    patientId: "pat_4",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-07-01T08:30:00-03:00",
+    contactType: "Remoto",
+    symptoms: { pain: "4-6 - Moderado", nausea: "Ninguno", dyspnea: "Grado 0 - Normal" },
+    symptomObservations: "Check-in matutino de la coordinadora. Paciente estable, sin signos de alarma.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Próxima visita presencial programada." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Seguimiento telefónico y actualización del plan semanal.",
+    alertActivated: false,
+    durationHours: 1
+  },
+  {
+    id: "ev_11",
+    patientId: "pat_1",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-01-14T11:00:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "4-6 - Moderado", nausea: "Ninguno", dyspnea: "Grado 1 - Leve" },
+    symptomObservations: "Inicio de seguimiento intensivo del trimestre. Se documenta plan conjunto con la familia.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Buen soporte domiciliario." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Evaluación integral y definición de objetivos de cuidado.",
+    alertActivated: false,
+    durationHours: 2
+  },
+  {
+    id: "ev_12",
+    patientId: "pat_2",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-01-22T10:00:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "1-3 - Leve", nausea: "Ninguno", dyspnea: "Grado 0 - Normal" },
+    symptomObservations: "Control mensual. Paciente estable y colaborador.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Sin cambios en el entorno." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Acompañamiento y revisión de síntomas.",
+    alertActivated: false,
+    durationHours: 2
+  },
+  {
+    id: "ev_13",
+    patientId: "pat_3",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-02-08T14:30:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "4-6 - Moderado", nausea: "Ocasional", dyspnea: "Grado 2 - Moderada" },
+    symptomObservations: "Seguimiento respiratorio. Se refuerza uso de dispositivos y posición semi-Fowler.",
+    socialRisk: { familySupport: "Intermitente / Fragilidad", environmentNotes: "Se coordina apoyo adicional." },
+    equipmentNeeds: ["Concentrador Oxígeno"],
+    equipmentOther: "",
+    interventions: "Capacitación al cuidador y verificación de oxígeno.",
+    alertActivated: false,
+    durationHours: 2
+  },
+  {
+    id: "ev_14",
+    patientId: "pat_4",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-02-19T09:15:00-03:00",
+    contactType: "Remoto",
+    symptoms: { pain: "4-6 - Moderado", nausea: "Ocasional", dyspnea: "Grado 0 - Normal" },
+    symptomObservations: "Llamada de seguimiento post-consulta oncológica.",
+    socialRisk: { familySupport: "Intermitente / Fragilidad", environmentNotes: "Se programan visitas de relevo." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Contención telefónica y coordinación logística.",
+    alertActivated: false,
+    durationHours: 1
+  },
+  {
+    id: "ev_15",
+    patientId: "pat_1",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-03-05T16:00:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "7-9 - Severo", nausea: "Persistente", dyspnea: "Grado 2 - Moderada" },
+    symptomObservations: "Episodio de dolor irruptivo controlado en domicilio con medicación de rescate.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Familia siguió protocolo correctamente." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Soporte durante crisis y registro para equipo médico.",
+    alertActivated: true,
+    durationHours: 3
+  },
+  {
+    id: "ev_16",
+    patientId: "pat_2",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-03-18T11:30:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "1-3 - Leve", nausea: "Ninguno", dyspnea: "Grado 1 - Leve" },
+    symptomObservations: "Visita de rutina con buena evolución clínica.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Sin novedades ambientales." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Revisión de medicación y escucha activa.",
+    alertActivated: false,
+    durationHours: 2
+  },
+  {
+    id: "ev_17",
+    patientId: "pat_3",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-04-02T10:45:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "4-6 - Moderado", nausea: "Ocasional", dyspnea: "Grado 2 - Moderada" },
+    symptomObservations: "Control de disnea y ajuste de rutinas de movilización asistida.",
+    socialRisk: { familySupport: "Intermitente / Fragilidad", environmentNotes: "Cuidador principal con sobrecarga moderada." },
+    equipmentNeeds: ["Concentrador Oxígeno"],
+    equipmentOther: "",
+    interventions: "Técnicas de posicionamiento y apoyo emocional.",
+    alertActivated: false,
+    durationHours: 2
+  },
+  {
+    id: "ev_18",
+    patientId: "pat_4",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-04-16T13:00:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "4-6 - Moderado", nausea: "Ninguno", dyspnea: "Grado 0 - Normal" },
+    symptomObservations: "Visita presencial con evaluación de fatiga y estado anímico.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Red familiar activa." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Contención y planificación de actividades adaptadas.",
+    alertActivated: false,
+    durationHours: 2
+  },
+  {
+    id: "ev_19",
+    patientId: "pat_1",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-05-07T09:00:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "4-6 - Moderado", nausea: "Ninguno", dyspnea: "Grado 1 - Leve" },
+    symptomObservations: "Seguimiento mensual con mejoría parcial del dolor basal.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Buen clima familiar." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Revisión de pauta analgésica y movilización suave.",
+    alertActivated: false,
+    durationHours: 2
+  },
+  {
+    id: "ev_20",
+    patientId: "pat_2",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-05-21T15:30:00-03:00",
+    contactType: "Remoto",
+    symptoms: { pain: "1-3 - Leve", nausea: "Ninguno", dyspnea: "Grado 1 - Leve" },
+    symptomObservations: "Control telefónico quincenal sin eventos adversos.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Sin cambios." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Seguimiento de rutina y actualización de agenda.",
+    alertActivated: false,
+    durationHours: 1
+  },
+  {
+    id: "ev_21",
+    patientId: "pat_3",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-06-04T11:20:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "7-9 - Severo", nausea: "Ocasional", dyspnea: "Grado 2 - Moderada" },
+    symptomObservations: "Evaluación previa a alerta activa. Se refuerza red de apoyo domiciliario.",
+    socialRisk: { familySupport: "Ausente / Riesgo Crítico", environmentNotes: "Se gestiona relevo familiar." },
+    equipmentNeeds: ["Concentrador Oxígeno", "Aspirador Secreciones"],
+    equipmentOther: "",
+    interventions: "Coordinación con equipo y activación de medidas preventivas.",
+    alertActivated: false,
+    durationHours: 2.5
+  },
+  {
+    id: "ev_22",
+    patientId: "pat_4",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2026-06-12T10:00:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "4-6 - Moderado", nausea: "Ocasional", dyspnea: "Grado 0 - Normal" },
+    symptomObservations: "Visita de mitad de mes con foco en calidad de vida y descanso.",
+    socialRisk: { familySupport: "Intermitente / Fragilidad", environmentNotes: "Se acuerdan horarios de relevo." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Acompañamiento y ajuste de plan de visitas.",
+    alertActivated: false,
+    durationHours: 2
+  },
+  {
+    id: "ev_23",
+    patientId: "pat_1",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2025-11-10T10:30:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "4-6 - Moderado", nausea: "Ninguno", dyspnea: "Grado 1 - Leve" },
+    symptomObservations: "Histórico de seguimiento del año anterior para continuidad asistencial.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Continuidad de cuidados en domicilio." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Evaluación trimestral y actualización de objetivos.",
+    alertActivated: false,
+    durationHours: 2
+  },
+  {
+    id: "ev_24",
+    patientId: "pat_2",
+    authorId: "vol_1",
+    authorName: "Marta Rodríguez",
+    date: "2025-12-05T14:00:00-03:00",
+    contactType: "Presencial",
+    symptoms: { pain: "1-3 - Leve", nausea: "Ninguno", dyspnea: "Grado 0 - Normal" },
+    symptomObservations: "Cierre de año con paciente estable y plan de vacaciones de cuidador acordado.",
+    socialRisk: { familySupport: "Sólido y constante", environmentNotes: "Red de apoyo disponible en fiestas." },
+    equipmentNeeds: [],
+    equipmentOther: "",
+    interventions: "Planificación de cobertura y contención emocional.",
+    alertActivated: false,
+    durationHours: 2
   }
 ];
 
@@ -219,6 +540,34 @@ function setStorage(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
 }
 
+function mergeSeedRecords(key, defaults) {
+  const existing = getStorage(key, defaults);
+  const ids = new Set(existing.map((item) => item.id));
+  let changed = false;
+
+  defaults.forEach((item) => {
+    if (!ids.has(item.id)) {
+      existing.push(item);
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    setStorage(key, existing);
+  }
+
+  return existing;
+}
+
+function applySeedUpgrades() {
+  const currentVersion = parseInt(localStorage.getItem('medice_seed_version') || '0', 10);
+  if (currentVersion >= SEED_VERSION) return;
+
+  mergeSeedRecords('medice_events', DEFAULT_EVENTS);
+  localStorage.setItem('medice_seed_version', String(SEED_VERSION));
+  console.log(`Medice seed upgraded to v${SEED_VERSION}.`);
+}
+
 // Public API
 export const dbService = {
   initialize() {
@@ -228,6 +577,7 @@ export const dbService = {
     getStorage("medice_caregivers", DEFAULT_CAREGIVERS);
     getStorage("medice_events", DEFAULT_EVENTS);
     getStorage("medice_invitations", DEFAULT_INVITATIONS);
+    applySeedUpgrades();
     console.log("Medice local storage database initialized.");
   },
 

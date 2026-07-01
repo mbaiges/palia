@@ -134,11 +134,60 @@ test.describe('Login branding and mobile chrome stability', () => {
     const shellHeight = await page.evaluate(() =>
       getComputedStyle(document.querySelector('.app-shell')).height
     );
-    expect(shellHeight).toMatch(/px$/);
+    expect(shellHeight).toMatch(/px$|svh$/);
+
+    const shellTop = await page.evaluate(() =>
+      getComputedStyle(document.querySelector('.app-shell')).top
+    );
+    expect(shellTop).toMatch(/px$/);
+
+    const navFullyVisible = await nav.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      return rect.bottom <= (window.visualViewport?.height ?? window.innerHeight) + 2;
+    });
+    expect(navFullyVisible).toBe(true);
 
     const bodyOverflow = await page.evaluate(() => getComputedStyle(document.body).overflow);
     expect(bodyOverflow).toBe('hidden');
 
     await page.screenshot({ path: path.join(screenshotDir, 'mobile_chrome_pinned_scroll.png'), fullPage: true });
+  });
+
+  test('bottom nav stays visible when browser chrome reduces viewport height', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('http://localhost:5173');
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('palia_theme', 'light');
+    });
+    await page.reload();
+    await page.click('text=Iniciar Sesión con Google');
+    await expect(page.locator('.mobile-nav')).toBeVisible();
+
+    const assertNavVisible = async () => {
+      await expect(page.locator('.mobile-nav')).toBeVisible();
+      const metrics = await page.evaluate(() => {
+        const nav = document.querySelector('.mobile-nav');
+        const navRect = nav.getBoundingClientRect();
+        const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+        return {
+          navBottom: navRect.bottom,
+          viewportHeight,
+        };
+      });
+      expect(metrics.navBottom).toBeLessThanOrEqual(metrics.viewportHeight + 2);
+    };
+
+    await assertNavVisible();
+
+    await page.evaluate(() => {
+      document.documentElement.style.setProperty('--vvh', '700px');
+    });
+    await assertNavVisible();
+
+    await page.evaluate(() => {
+      document.documentElement.style.setProperty('--vvh', '844px');
+    });
+    await assertNavVisible();
   });
 });

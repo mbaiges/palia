@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { dbService } from '../services/db';
 import OfflineSync from '../components/OfflineSync';
 import { applyTheme, getStoredTheme } from '../tokens.js';
+import { scrollToSection } from '../utils/navigation';
 
-export default function Settings({ onNavigate }) {
+export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) {
   const [theme, setTheme] = useState(() => getStoredTheme());
   const isCloud = dbService.isCloudBackend();
   const [swStatus, setSwStatus] = useState('Registrado y Activo');
   const [notifPermission, setNotifPermission] = useState(() => 'Notification' in window ? Notification.permission : 'No compatible');
-
-  // Subtabs: 'preferencias' | 'sincronizacion'
   const [activeSubTab, setActiveSubTab] = useState('preferencias');
+  const [syncFocusSection, setSyncFocusSection] = useState(null);
+
+  useEffect(() => {
+    if (!initialFocus) return;
+    if (initialFocus.subTab) setActiveSubTab(initialFocus.subTab);
+    if (initialFocus.sectionId) {
+      if (initialFocus.subTab === 'sincronizacion' || initialFocus.sectionId.startsWith('sync-')) {
+        setSyncFocusSection(initialFocus.sectionId);
+      } else {
+        scrollToSection(initialFocus.sectionId);
+      }
+    }
+    onFocusConsumed?.();
+  }, [initialFocus, onFocusConsumed]);
 
   const handleResetData = () => {
     if (confirm('¿Está seguro de que desea restablecer todos los datos del simulador? Se perderán los pacientes y seguimientos creados.')) {
@@ -166,7 +179,7 @@ export default function Settings({ onNavigate }) {
                 <span style={{ fontSize: '13px', color: 'var(--color-on-surface-variant)' }}>
                   Acceda a la gestión de hospitales, centros de salud, personal e invitaciones de voluntarios.
                 </span>
-                <button className="btn btn-primary" onClick={() => onNavigate('administracion')} style={{ height: '36px', padding: '0 16px', fontSize: '13px' }}>
+                <button className="btn btn-primary" onClick={() => onNavigate('administracion', { subTab: 'invitaciones', sectionId: 'admin-invitations-panel' })} style={{ height: '36px', padding: '0 16px', fontSize: '13px' }}>
                   Panel de Administración
                 </button>
               </div>
@@ -176,7 +189,7 @@ export default function Settings({ onNavigate }) {
       )}
 
       {activeSubTab === 'sincronizacion' && (
-        <OfflineSync />
+        <OfflineSync focusSection={syncFocusSection} onFocusConsumed={() => setSyncFocusSection(null)} />
       )}
     </div>
   );

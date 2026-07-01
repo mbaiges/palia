@@ -1,15 +1,21 @@
 import React from 'react';
 import { dbService } from '../services/db';
+import {
+  buildMonthlyHoursChart,
+  sumFollowUpHours,
+  toBarFillStyle,
+} from '../utils/chartData';
 
 export default function Stats() {
   const patients = dbService.getPatients();
   const volunteers = dbService.getVolunteers();
   const followUps = dbService.getAllFollowUps();
+  const currentYear = new Date().getFullYear();
 
-  // Dynamic calculations
   const totalPatients = patients.length;
-  const totalVolunteersCount = volunteers.filter(v => v.status === 'Activo').length;
   const totalVisitsCount = followUps.length;
+  const totalHours = sumFollowUpHours(followUps, currentYear);
+  const monthlyData = buildMonthlyHoursChart(followUps, new Date());
 
   const uniquePatientsCount = new Set(followUps.map(f => f.patientId)).size;
   const hasAlertVisits = followUps.some(f => f.alertActivated);
@@ -51,21 +57,7 @@ export default function Stats() {
     }
   ];
 
-  // Monthly stats list matching mock
-  const monthlyData = [
-    { label: 'Ene', value: 12, height: '45%' },
-    { label: 'Feb', value: 18, height: '60%' },
-    { label: 'Mar', value: 24, height: '55%' },
-    { label: 'Abr', value: 31, height: '85%' },
-    { label: 'May', value: 42, height: '70%' },
-    { label: 'Jun', value: totalVisitsCount + 30, height: '95%', active: true },
-    { label: 'Jul', value: 15, height: '40%' },
-    { label: 'Ago', value: 20, height: '50%' },
-    { label: 'Sep', value: 28, height: '65%' },
-    { label: 'Oct', value: 35, height: '80%' },
-    { label: 'Nov', value: 30, height: '75%' },
-    { label: 'Dic', value: 40, height: '90%' },
-  ];
+  // Monthly stats derived from follow-up events in local DB / Firebase mirror
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-stack-lg)' }}>
@@ -87,9 +79,9 @@ export default function Stats() {
           </div>
           <div>
             <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-on-surface-variant)', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Horas de Apoyo</p>
-            <h3 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-on-surface)', margin: 0 }}>{totalVisitsCount * 2 + 35}</h3>
-            <p style={{ fontSize: '11px', color: 'var(--color-secondary)', margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 600 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>trending_up</span> +12% vs mes anterior
+            <h3 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-on-surface)', margin: 0 }}>{totalHours}h</h3>
+            <p style={{ fontSize: '11px', color: 'var(--color-outline)', margin: '4px 0 0 0' }}>
+              Basado en {totalVisitsCount} seguimiento{totalVisitsCount !== 1 ? 's' : ''} registrado{totalVisitsCount !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -101,10 +93,8 @@ export default function Stats() {
           </div>
           <div>
             <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-on-surface-variant)', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visitas Realizadas</p>
-            <h3 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-on-surface)', margin: 0 }}>{totalVisitsCount + 16}</h3>
-            <p style={{ fontSize: '11px', color: 'var(--color-secondary)', margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 600 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>trending_up</span> +5% vs mes anterior
-            </p>
+            <h3 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-on-surface)', margin: 0 }}>{totalVisitsCount}</h3>
+            <p style={{ fontSize: '11px', color: 'var(--color-outline)', margin: '4px 0 0 0' }}>Registros en la base de datos</p>
           </div>
         </div>
 
@@ -121,15 +111,15 @@ export default function Stats() {
         </div>
 
         {/* Monthly Activity Chart (Span 8) */}
-        <div className="card" style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div id="monthly-activity-chart" className="card" style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h4 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-on-surface)', margin: 0 }}>Actividad Mensual</h4>
               <p style={{ fontSize: '13px', color: 'var(--color-on-surface-variant)', margin: '2px 0 0 0' }}>Horas dedicadas por mes en el último año</p>
             </div>
-            <select aria-label="Seleccionar periodo" style={{ padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-outline-variant)', fontSize: '13px', backgroundColor: 'var(--color-surface-container-low)' }}>
-              <option>Año 2024</option>
-              <option>Año 2023</option>
+            <select aria-label="Seleccionar periodo" style={{ padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-outline-variant)', fontSize: '13px', backgroundColor: 'var(--color-surface-container-low)' }} defaultValue={String(currentYear)}>
+              <option value={String(currentYear)}>Año {currentYear}</option>
+              <option value={String(currentYear - 1)}>Año {currentYear - 1}</option>
             </select>
           </div>
 
@@ -140,8 +130,10 @@ export default function Stats() {
                 <div className="bar-chart__track">
                   <div
                     className="bar-chart__bar"
+                    data-hours={bar.value}
+                    data-fill={bar.fillPercent}
                     style={{
-                      '--bar-fill': bar.height,
+                      '--bar-fill': toBarFillStyle(bar.fillPercent),
                       backgroundColor: bar.active ? 'var(--color-primary)' : 'rgba(0, 90, 113, 0.15)',
                     }}
                   />

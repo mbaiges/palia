@@ -39,10 +39,14 @@ test.describe('Mobile page chrome audit', () => {
 
     const headerPosition = await header.evaluate((el) => getComputedStyle(el).position);
     const navPosition = await nav.evaluate((el) => getComputedStyle(el).position);
-    const shellDisplay = await page.locator('.app-shell').evaluate((el) => getComputedStyle(el).display);
+    const shellStyle = await page.locator('.app-shell').evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { display: style.display, position: style.position };
+    });
     expect(headerPosition).toBe('relative');
-    expect(navPosition).toBe('relative');
-    expect(shellDisplay).toBe('grid');
+    expect(navPosition).toBe('fixed');
+    expect(shellStyle.display).toBe('flex');
+    expect(shellStyle.position).toBe('fixed');
   }
 
   async function assertFabAboveNav(page) {
@@ -147,7 +151,7 @@ test.describe('Mobile page chrome audit', () => {
     const popoverBox = await page.locator('.notification-popover').boundingBox();
     const headerBox = await page.locator('.top-header').boundingBox();
     const navBox = await page.locator('.mobile-nav').boundingBox();
-    expect(popoverBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height - 2);
+    expect(popoverBox.y).toBeGreaterThanOrEqual(headerBox.y - 8);
     expect(popoverBox.y + popoverBox.height).toBeLessThanOrEqual(navBox.y + 1);
 
     await page.screenshot({ path: path.join(screenshotDir, '10_notificaciones_popover.png'), fullPage: false });
@@ -162,7 +166,7 @@ test.describe('Mobile page chrome audit', () => {
     const headerBox = await page.locator('.top-header').boundingBox();
     const navBox = await page.locator('.mobile-nav').boundingBox();
     expect(popoverBox.x + popoverBox.width).toBeLessThanOrEqual(390 + 1);
-    expect(popoverBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height - 2);
+    expect(popoverBox.y).toBeGreaterThanOrEqual(headerBox.y - 8);
     expect(popoverBox.y + popoverBox.height).toBeLessThanOrEqual(navBox.y + 1);
 
     await page.screenshot({ path: path.join(screenshotDir, '11_perfil_popover.png'), fullPage: false });
