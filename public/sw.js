@@ -32,8 +32,42 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
       return cachedResponse || fetch(e.request).catch(() => {
-        // Fallback for offline API request or image if needed
+        // Offline fallback can go here if required
       });
     })
+  );
+});
+
+// Push Notifications Listener
+self.addEventListener('push', (e) => {
+  let data = { title: 'Palia', body: 'Alerta clínica registrada por un voluntario.' };
+  if (e.data) {
+    try {
+      data = e.data.json();
+    } catch (err) {
+      data = { title: 'Palia', body: e.data.text() };
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: '/logo.png',
+    badge: '/logo.png',
+    vibrate: [100, 50, 100],
+    data: {
+      dateOfArrival: Date.now(),
+      primaryKey: '1'
+    }
+  };
+
+  e.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(
+    clients.openWindow('/')
   );
 });

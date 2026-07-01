@@ -4,6 +4,24 @@ import { dbService } from '../services/db';
 export default function Header({ searchVal, setSearchVal, onSearchFocus, user }) {
   const isCloud = dbService.isCloudBackend();
 
+  const handleRequestNotifications = () => {
+    if ('Notification' in window) {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(registration => {
+              registration.showNotification('Palia', {
+                body: 'Notificaciones activadas con éxito.',
+                icon: '/logo.png',
+                badge: '/logo.png'
+              });
+            });
+          }
+        }
+      });
+    }
+  };
+
   return (
     <header className="top-header">
       {/* Search Bar */}
@@ -33,7 +51,7 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user })
 
       {/* Action Buttons & Profile */}
       <div className="header-actions">
-        <button className="icon-btn" aria-label="Notificaciones">
+        <button className="icon-btn" aria-label="Notificaciones" onClick={handleRequestNotifications}>
           <span className="material-symbols-outlined">notifications</span>
           <span className="badge"></span>
         </button>
