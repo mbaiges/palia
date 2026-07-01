@@ -4,24 +4,26 @@
   "description": "Sistema de acompañamiento y seguimiento clínico para pacientes de cuidados paliativos.",
   "icons": [
     {
-      "src": "/logo_icon_48.png",
+      "src": "/logo_manifest_48.png",
       "type": "image/png",
-      "sizes": "48x48"
+      "sizes": "48x48",
+      "purpose": "any"
     },
     {
-      "src": "/logo_icon_192.png",
+      "src": "/logo_manifest_192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
-      "src": "/logo_icon.png",
+      "src": "/logo_manifest_512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ],
   "start_url": ".",
-  "background_color": "#f8f9ff",
+  "background_color": "#ffffff",
   "theme_color": "#005a71",
   "display": "standalone",
   "orientation": "portrait"

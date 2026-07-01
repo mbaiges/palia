@@ -29,6 +29,7 @@ playwright-report/
 blob-report/
 playwright/.cache/
 tests/screenshots/
+public/logo_manifest_512_preview.png
 
 # Local Environment Configs
 .env
