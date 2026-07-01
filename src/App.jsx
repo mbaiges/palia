@@ -131,15 +131,7 @@ function App() {
           role="button"
         >
           <span className="material-symbols-outlined">person_search</span>
-          <span>Pacientes</span>
-        </a>
-        <a 
-          className={`mobile-nav-item ${activeTab === 'voluntariado' ? 'active' : ''}`}
-          onClick={() => handleTabChange('voluntariado')}
-          role="button"
-        >
-          <span className="material-symbols-outlined">group</span>
-          <span>Voluntarios</span>
+          <span>Directorio</span>
         </a>
         <a 
           className={`mobile-nav-item ${activeTab === 'estadisticas' ? 'active' : ''}`}
@@ -150,12 +142,12 @@ function App() {
           <span>Estadísticas</span>
         </a>
         <a 
-          className={`mobile-nav-item ${activeTab === 'administracion' ? 'active' : ''}`}
-          onClick={() => handleTabChange('administracion')}
+          className={`mobile-nav-item ${activeTab === 'configuracion' ? 'active' : ''}`}
+          onClick={() => handleTabChange('configuracion')}
           role="button"
         >
           <span className="material-symbols-outlined">person</span>
-          <span>Admin</span>
+          <span>Perfil</span>
         </a>
       </nav>
 

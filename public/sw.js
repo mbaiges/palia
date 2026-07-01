@@ -2,7 +2,9 @@ const CACHE_NAME = 'palia-cache-v1';
 const ASSETS = [
   '/',
   '/index.html',
-  '/logo.png',
+  '/logo_icon.png',
+  '/logo_icon_192.png',
+  '/logo_icon_48.png',
   '/manifest.json'
 ];
 
@@ -51,8 +53,8 @@ self.addEventListener('push', (e) => {
 
   const options = {
     body: data.body,
-    icon: '/logo.png',
-    badge: '/logo.png',
+    icon: '/logo_icon_192.png',
+    badge: '/logo_icon_192.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),

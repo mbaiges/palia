@@ -20,37 +20,18 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user })
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showNotifications]);
 
-  const handleRequestNotifications = () => {
-    if ('Notification' in window) {
-      if (Notification.permission === 'granted') {
-        setShowNotifications(!showNotifications);
-      } else {
-        Notification.requestPermission().then(permission => {
-          if (permission === 'granted') {
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification('Palia', {
-                  body: 'Notificaciones activadas con éxito.',
-                  icon: '/logo.png',
-                  badge: '/logo.png'
-                });
-              });
-            }
-            setShowNotifications(true);
-          } else {
-            setShowNotifications(!showNotifications);
-          }
-        });
-      }
-    } else {
-      setShowNotifications(!showNotifications);
-    }
-  };
-
   return (
     <header className="top-header">
-      {/* Search Bar */}
-      <div className="header-search-container">
+      {/* Mobile brand title (visible on mobile only) */}
+      <div className="mobile-only">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="material-symbols-outlined text-primary" style={{ fontSize: '24px', fontWeight: 'bold' }}>healing</span>
+          <span style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--color-primary)' }}>Cuidados Paliativos</span>
+        </div>
+      </div>
+
+      {/* Search Bar (desktop only) */}
+      <div className="header-search-container desktop-only">
         <div className="header-search">
           <span className="material-symbols-outlined search-icon">search</span>
           <input
@@ -85,20 +66,7 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user })
           </button>
 
           {showNotifications && (
-            <div className="card" style={{
-              position: 'absolute',
-              top: '52px',
-              right: '0',
-              width: '320px',
-              padding: '16px',
-              zIndex: 100,
-              boxShadow: '0 8px 32px rgba(0, 90, 113, 0.15)',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--color-outline-variant)',
-              backgroundColor: '#ffffff',
-              textAlign: 'left',
-              animation: 'slideDown 0.15s ease'
-            }}>
+            <div className="notification-popover card">
               <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', margin: 0 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>notifications_active</span>
                 Alertas del Día
