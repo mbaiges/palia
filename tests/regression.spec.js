@@ -64,9 +64,9 @@ test.describe('Palia Full App E2E Regression Suite', () => {
     await expect(page.locator('text=Registro Clínico de Seguimiento')).toBeVisible();
 
     await page.selectOption('select[name="contactType"]', 'Presencial');
-    await page.click('button:has-text("7-9 - Severo")');
-    await page.click('button:has-text("Frecuente")');
-    await page.click('button:has-text("G2 - Moderada")');
+    await page.click('label[for="dolor"]');
+    await page.click('label[for="nauseas"]');
+    await page.click('label[for="disnea"]');
     await page.fill('[placeholder="Describa el estado de ánimo, fatiga, nivel de conciencia o cualquier cambio notable en el estado físico del paciente..."]', 'Paciente presenta dolor agudo y náuseas postprandiales.');
     await page.fill('[placeholder="Describa detalladamente las acciones tomadas durante esta sesión (ej: movilizaciones suave, administración de medicación indicada, contención emocional, diálogo espiritual...)"]', 'Se administró medicación analgésica y antiemética de rescate indicada.');
 

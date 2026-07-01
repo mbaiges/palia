@@ -34,9 +34,9 @@ test.describe('Patient Details & Follow-up Flow', () => {
 
     // 4. Fill in Follow-up report
     await page.selectOption('select[name="contactType"]', 'Remoto');
-    await page.click('button:has-text("4-6 - Moderado")');
-    await page.click('button:has-text("Ninguno")');
-    await page.click('button:has-text("G1 - Leve")');
+    await page.click('label[for="dolor"]');
+    await page.click('label[for="nauseas"]');
+    await page.click('label[for="disnea"]');
     await page.fill('[placeholder="Describa el estado de ánimo, fatiga, nivel de conciencia o cualquier cambio notable en el estado físico del paciente..."]', 'Llamada de seguimiento de la tarde. El paciente se encuentra más calmado pero reporta dolor moderado.');
 
     // Social Risk
@@ -44,8 +44,8 @@ test.describe('Patient Details & Follow-up Flow', () => {
     await page.fill('[placeholder="Estado anímico del cuidador, higiene del hogar, apoyo vecinal..."]', 'Hogar templado, el cuidador se encuentra descansando.');
 
     // Equipments
-    await page.click('text=Concentrador Oxígeno');
-    await page.click('text=Cama Articulada');
+    await page.click('label[for="oxigeno"]');
+    await page.click('label[for="cama"]');
 
     // Interventions
     await page.fill('[placeholder="Describa detalladamente las acciones tomadas durante esta sesión (ej: movilizaciones suave, administración de medicación indicada, contención emocional, diálogo espiritual...)"]', 'Se dialogó con el paciente sobre control de dolor y se verificó el uso del concentrador de oxígeno.');

@@ -150,18 +150,19 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
                 {/* Actions Footer */}
                 <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--color-outline-variant)', display: 'flex', gap: '10px' }}>
                   <button 
-                    className={`btn ${isAlert ? 'btn-error' : 'btn-tertiary'}`} 
+                    className={`btn ${isAlert ? 'btn-error' : 'btn-primary'}`} 
                     style={{ flexGrow: 1 }}
                     onClick={() => onViewDetail(patient.id)}
                   >
-                    {isAlert ? 'Atención Urgente' : 'Ver Ficha'}
+                    {isAlert ? '⚠ Atención Urgente' : 'Ver Ficha'}
                   </button>
                   <button 
                     className="btn btn-tertiary" 
                     style={{ padding: '0 12px' }}
-                    aria-label="Editar ficha"
+                    aria-label="Abrir ficha del paciente"
+                    onClick={() => onViewDetail(patient.id)}
                   >
-                    <span className="material-symbols-outlined" style={{ color: 'var(--color-outline)' }}>edit</span>
+                    <span className="material-symbols-outlined" style={{ color: 'var(--color-outline)' }}>open_in_new</span>
                   </button>
                 </div>
               </div>

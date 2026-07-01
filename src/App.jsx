@@ -12,6 +12,7 @@ import Administration from './pages/Administration';
 import { dbService } from './services/db';
 import Login from './pages/Login';
 import Settings from './pages/Settings';
+import HomeDashboard from './pages/HomeDashboard';
 
 function App() {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('palia_user') || 'null'));
@@ -80,15 +81,7 @@ function App() {
 
     switch (activeTab) {
       case 'inicio':
-        return (
-          <div style={{ padding: '20px' }}>
-            <h2>Vista de Inicio</h2>
-            <p style={{ marginTop: '10px' }}>Bienvenido al Panel de Control de PaliativoCare. Los datos de prueba se han cargado en LocalStorage.</p>
-            <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={() => handleTabChange('pacientes')}>
-              Ir a Directorio de Pacientes
-            </button>
-          </div>
-        );
+        return <HomeDashboard onNavigate={handleTabChange} onViewDetail={(id) => { setSelectedPatientId(id); setCurrentView('detalle-paciente'); }} />;
       case 'pacientes':
         return (
           <Patients 
