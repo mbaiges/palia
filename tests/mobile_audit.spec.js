@@ -1,71 +1,105 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import fs from 'fs';
 
-test.describe('Mobile Audit Screenshots Collection', () => {
-  const artifactPath = (filename) => {
-    return path.join('C:\\Users\\matia\\.gemini\\antigravity\\brain\\2e0687bd-9b71-454a-a9a0-c62048b5073e', filename);
-  };
+const screenshotDir = path.join(process.cwd(), 'tests', 'screenshots', 'mobile_audit');
 
-  test('should capture screenshots for all main views on mobile', async ({ page }) => {
+test.describe('Mobile page chrome audit', () => {
+  test.beforeAll(() => {
+    fs.mkdirSync(screenshotDir, { recursive: true });
+  });
+
+  test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    
-    // 1. Login
     await page.goto('http://localhost:5173');
-    await expect(page.locator('text=Portal del Coordinador')).toBeVisible();
-    await page.screenshot({ path: artifactPath('audit_mobile_1_login.png') });
-
-    // Login click
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('palia_theme', 'light');
+    });
+    await page.reload();
     await page.click('text=Iniciar Sesión con Google');
-    
-    // 2. Inicio
-    await expect(page.locator('text=Equipo Palia')).toBeVisible();
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: artifactPath('audit_mobile_2_inicio.png') });
+    await expect(page.locator('.top-header')).toBeVisible();
+  });
 
-    // 3. Pacientes
-    await page.click('.mobile-nav-item:has-text("Directorio")');
+  async function assertChromeClearance(page) {
+    const header = page.locator('.top-header');
+    const nav = page.locator('.mobile-nav');
+    const canvas = page.locator('.content-canvas');
+
+    const headerBox = await header.boundingBox();
+    const navBox = await nav.boundingBox();
+    const canvasBox = await canvas.boundingBox();
+
+    expect(headerBox).not.toBeNull();
+    expect(navBox).not.toBeNull();
+    expect(canvasBox).not.toBeNull();
+
+    expect(canvasBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height - 1);
+    expect(canvasBox.y + canvasBox.height).toBeLessThanOrEqual(navBox.y + 1);
+
+    const headerPosition = await header.evaluate((el) => getComputedStyle(el).position);
+    const navPosition = await nav.evaluate((el) => getComputedStyle(el).position);
+    expect(headerPosition).toBe('relative');
+    expect(navPosition).toBe('relative');
+  }
+
+  async function assertFabAboveNav(page) {
+    const fab = page.locator('.fab');
+    if (!(await fab.count())) return;
+
+    const fabBox = await fab.boundingBox();
+    const navBox = await page.locator('.mobile-nav').boundingBox();
+    expect(fabBox).not.toBeNull();
+    expect(navBox).not.toBeNull();
+    expect(fabBox.y + fabBox.height).toBeLessThanOrEqual(navBox.y - 8);
+  }
+
+  test('inicio keeps alert banner and content clear of chrome', async ({ page }) => {
+    await expect(page.locator('text=ALERTA CRÍTICA')).toBeVisible();
+    await assertChromeClearance(page);
+    await assertFabAboveNav(page);
+
+    const alertBox = await page.locator('text=ALERTA CRÍTICA').first().boundingBox();
+    const headerBox = await page.locator('.top-header').boundingBox();
+    expect(alertBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height - 1);
+
+    await page.screenshot({ path: path.join(screenshotDir, '01_inicio.png'), fullPage: true });
+  });
+
+  test('directorio page layout', async ({ page }) => {
+    await page.locator('.mobile-nav-item').nth(1).click();
     await expect(page.locator('text=Directorio de Pacientes')).toBeVisible();
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: artifactPath('audit_mobile_3_pacientes.png') });
+    await assertChromeClearance(page);
+    await page.screenshot({ path: path.join(screenshotDir, '02_directorio.png'), fullPage: true });
+  });
 
-    // 4. Detalle de Paciente (Ricardo Mendoza S.)
+  test('patient detail layout', async ({ page }) => {
+    await page.locator('.mobile-nav-item').nth(1).click();
     await page.locator('.card', { hasText: 'Ricardo Mendoza S.' }).locator('button').first().click();
     await expect(page.locator('text=Ficha del Paciente')).toBeVisible();
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: artifactPath('audit_mobile_4_detalle.png') });
+    await assertChromeClearance(page);
+    await assertFabAboveNav(page);
+    await page.screenshot({ path: path.join(screenshotDir, '03_detalle.png'), fullPage: true });
+  });
 
-    // 5. Nuevo Seguimiento
-    await page.locator('.fab').click();
-    await expect(page.locator('text=Registro Clínico de Seguimiento')).toBeVisible();
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: artifactPath('audit_mobile_5_seguimiento.png') });
-    await page.click('span:has-text("Ficha del Paciente")'); // Go back
-
-    // 6. Nuevo Paciente
-    await page.click('.mobile-nav-item:has-text("Directorio")');
-    await page.click('text=Nuevo Paciente');
-    await expect(page.locator('text=Registrar Nuevo Paciente')).toBeVisible();
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: artifactPath('audit_mobile_6_nuevo_paciente.png') });
-
-    // 7. Voluntariado
-    await page.click('.mobile-nav-item:has-text("Inicio")');
-    await page.click('button:has-text("Voluntariado")');
-    await expect(page.locator('text=Comunidad de Voluntarios')).toBeVisible();
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: artifactPath('audit_mobile_7_voluntariado.png') });
-
-    // 8. Estadísticas
-    await page.click('.mobile-nav-item:has-text("Estadísticas")');
+  test('stats page layout', async ({ page }) => {
+    await page.locator('.mobile-nav-item').nth(2).click();
     await expect(page.locator('text=Estadísticas e Impacto')).toBeVisible();
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: artifactPath('audit_mobile_8_estadisticas.png') });
+    await assertChromeClearance(page);
+    await page.screenshot({ path: path.join(screenshotDir, '04_stats.png'), fullPage: true });
+  });
 
-    // 9. Administración
-    await page.click('.mobile-nav-item:has-text("Perfil")');
-    await page.click('text=Panel de Administración');
+  test('settings page layout', async ({ page }) => {
+    await page.locator('.mobile-nav-item').last().click();
+    await expect(page.locator('text=Configuración de Palia')).toBeVisible();
+    await assertChromeClearance(page);
+    await page.screenshot({ path: path.join(screenshotDir, '05_configuracion.png'), fullPage: true });
+  });
+
+  test('administration page layout', async ({ page }) => {
+    await page.locator('.mobile-nav-item').nth(3).click();
     await expect(page.locator('text=Panel de Administración')).toBeVisible();
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: artifactPath('audit_mobile_9_administracion.png') });
+    await assertChromeClearance(page);
+    await page.screenshot({ path: path.join(screenshotDir, '06_administracion.png'), fullPage: true });
   });
 });

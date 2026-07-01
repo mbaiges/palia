@@ -75,6 +75,8 @@
   /* Visual viewport height — updated via JS for iOS momentum scroll stability */
   --vvh: 100dvh;
   --mobile-nav-height: 64px;
+  --header-height-mobile: 64px;
+  --fab-height: 56px;
 }
 
 /* ── Dark mode adjustments for shadow/glow ── */
@@ -231,23 +233,6 @@ p, label, input, textarea, select, button {
     -webkit-overflow-scrolling: touch;
     padding: var(--margin-mobile);
     padding-bottom: 24px;
-  }
-
-  .mobile-nav {
-    position: relative;
-    bottom: auto;
-    left: auto;
-    flex-shrink: 0;
-    width: 100%;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-    height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
-  }
-
-  .fab {
-    position: fixed;
-    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 16px);
-    right: 20px;
-    z-index: 45;
   }
 }
 
@@ -1340,3 +1325,39 @@ p, label, input, textarea, select, button {
   }
 }
 
+/* Mobile shell — final overrides (must remain last for cascade) */
+@media (max-width: 1024px) {
+  .top-header {
+    position: relative;
+    top: auto;
+    right: auto;
+    left: auto;
+    width: 100%;
+    height: var(--header-height-mobile);
+    flex-shrink: 0;
+    z-index: 40;
+  }
+
+  .mobile-nav {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    display: flex;
+    flex-shrink: 0;
+    width: 100%;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .fab {
+    position: fixed;
+    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 16px);
+    right: 20px;
+    z-index: 44;
+  }
+
+  .content-canvas:has(.fab) {
+    padding-bottom: calc(var(--fab-height) + 32px);
+  }
+}
