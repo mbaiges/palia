@@ -133,20 +133,18 @@ export default function Stats() {
             </select>
           </div>
 
-          <div style={{ height: '220px', width: '100%', display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: '8px', position: 'relative', paddingBottom: '16px' }}>
+          <div className="bar-chart bar-chart--monthly">
             {monthlyData.map(bar => (
-              <div key={bar.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'end', gap: '8px', position: 'relative', zIndex: 2 }}>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: bar.active ? 'var(--color-primary)' : 'var(--color-outline)', marginBottom: '-2px' }}>{bar.value}h</span>
-                <div 
+              <div key={bar.label} className="bar-chart__column">
+                <span className="bar-chart__value" style={{ color: bar.active ? 'var(--color-primary)' : 'var(--color-outline)' }}>{bar.value}h</span>
+                <div
+                  className="bar-chart__bar"
                   style={{
-                    width: '100%',
                     height: bar.height,
                     backgroundColor: bar.active ? 'var(--color-primary)' : 'rgba(0, 90, 113, 0.15)',
-                    borderRadius: 'var(--radius-sm) var(--radius-sm) 0 0',
-                    transition: 'all 0.3s ease'
                   }}
                 />
-                <span style={{ fontSize: '11px', fontWeight: bar.active ? 700 : 400, color: bar.active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)' }}>
+                <span className="bar-chart__label" style={{ fontWeight: bar.active ? 700 : 400, color: bar.active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)' }}>
                   {bar.label}
                 </span>
               </div>

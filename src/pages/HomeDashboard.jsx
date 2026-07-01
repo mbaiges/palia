@@ -195,18 +195,18 @@ export default function HomeDashboard({ user, onNavigate, onViewDetail }) {
             </select>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-            <div style={{ backgroundColor: 'rgba(0, 90, 113, 0.05)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(0, 90, 113, 0.1)' }}>
+          <div className="stat-cards-grid">
+            <div className="stat-card" style={{ backgroundColor: 'rgba(0, 90, 113, 0.05)', border: '1px solid rgba(0, 90, 113, 0.1)' }}>
               <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)', fontSize: '20px', marginBottom: '8px', display: 'block' }}>event_available</span>
               <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-primary)' }}>{totalVisitsCount}</div>
               <div style={{ fontSize: '11px', color: 'var(--color-on-surface-variant)', fontWeight: 600, textTransform: 'uppercase', marginTop: '4px' }}>Visitas Realizadas</div>
             </div>
-            <div style={{ backgroundColor: 'rgba(75, 100, 80, 0.08)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(75, 100, 80, 0.15)' }}>
+            <div className="stat-card" style={{ backgroundColor: 'rgba(75, 100, 80, 0.08)', border: '1px solid rgba(75, 100, 80, 0.15)' }}>
               <span className="material-symbols-outlined" style={{ color: 'var(--color-secondary)', fontSize: '20px', marginBottom: '8px', display: 'block' }}>volunteer_activism</span>
               <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-secondary)' }}>{activeVolunteersCount}</div>
               <div style={{ fontSize: '11px', color: 'var(--color-on-surface-variant)', fontWeight: 600, textTransform: 'uppercase', marginTop: '4px' }}>Voluntarios Activos</div>
             </div>
-            <div style={{ backgroundColor: 'var(--color-surface-container-high)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-outline-variant)' }}>
+            <div className="stat-card" style={{ backgroundColor: 'var(--color-surface-container-high)', border: '1px solid var(--color-outline-variant)' }}>
               <span className="material-symbols-outlined" style={{ color: 'var(--color-on-surface-variant)', fontSize: '20px', marginBottom: '8px', display: 'block' }}>people</span>
               <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-on-surface-variant)' }}>{totalPatients}</div>
               <div style={{ fontSize: '11px', color: 'var(--color-on-surface-variant)', fontWeight: 600, textTransform: 'uppercase', marginTop: '4px' }}>Pacientes Activos</div>
@@ -214,20 +214,18 @@ export default function HomeDashboard({ user, onNavigate, onViewDetail }) {
           </div>
 
           {/* Weekly CSS Bar Chart */}
-          <div style={{ height: '180px', width: '100%', display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: '8px', position: 'relative', borderTop: '1px solid var(--color-outline-variant)', paddingTop: '20px', marginTop: '10px' }}>
+          <div className="bar-chart bar-chart--weekly">
             {weeklyData.map(bar => (
-              <div key={bar.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'end', gap: '8px' }}>
-                <div 
+              <div key={bar.label} className="bar-chart__column">
+                <div
                   title={`${bar.label}: ${bar.value} visitas`}
+                  className="bar-chart__bar"
                   style={{
-                    width: '100%',
                     height: bar.height,
                     backgroundColor: bar.active ? 'var(--color-primary)' : 'rgba(0, 90, 113, 0.2)',
-                    borderRadius: 'var(--radius-sm) var(--radius-sm) 0 0',
-                    transition: 'all 0.3s ease'
                   }}
                 />
-                <span style={{ fontSize: '11px', fontWeight: bar.active ? 700 : 400, color: bar.active ? 'var(--color-primary)' : 'var(--color-outline)' }}>
+                <span className="bar-chart__label" style={{ fontWeight: bar.active ? 700 : 400, color: bar.active ? 'var(--color-primary)' : 'var(--color-outline)' }}>
                   {bar.label}
                 </span>
               </div>

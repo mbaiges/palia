@@ -533,6 +533,95 @@ p, label, input, textarea, select, button {
   box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.05);
 }
 
+/* Dashboard stat cards — stack on mobile to prevent overflow */
+.stat-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.stat-card {
+  min-width: 0;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+}
+
+/* Shared bar chart layout — equal columns, no flex drift on narrow screens */
+.bar-chart {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--bar-count, 7), minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+  box-sizing: border-box;
+}
+
+.bar-chart--weekly {
+  --bar-count: 7;
+  height: 180px;
+  border-top: 1px solid var(--color-outline-variant);
+  padding-top: 20px;
+  margin-top: 10px;
+}
+
+.bar-chart--monthly {
+  --bar-count: 12;
+  height: 220px;
+  padding-bottom: 16px;
+}
+
+.bar-chart__column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bar-chart__value {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.bar-chart__bar {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: all 0.3s ease;
+}
+
+.bar-chart__label {
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .stat-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bar-chart {
+    gap: 4px;
+  }
+
+  .bar-chart--monthly .bar-chart__value {
+    font-size: 8px;
+  }
+
+  .bar-chart--monthly .bar-chart__label {
+    font-size: 9px;
+  }
+}
+
 /* Card Visual Header Accent */
 .card-header-gradient {
   background: linear-gradient(to right, var(--color-surface-container-low), var(--color-surface-container-lowest));

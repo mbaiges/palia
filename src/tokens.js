@@ -146,8 +146,6 @@ export function getStoredTheme() {
   try {
     const stored = localStorage.getItem('palia_theme');
     if (stored === 'dark' || stored === 'light') return stored;
-    // Respect OS preference as fallback
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
   } catch (_) {}
   return 'light';
 }
