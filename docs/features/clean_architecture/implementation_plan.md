@@ -28,7 +28,7 @@ Este plan describe el procedimiento controlado por iteraciones para refactorizar
 
 ### Iteración 4: Implementación de Adaptadores Firebase y Notificaciones
 1. **Escribir Adaptadores Reales:**
-   * Crear `src/infrastructure/adapters/FirebaseDatabaseAdapter.js` y `src/infrastructure/adapters/FirebaseAuthAdapter.js`.
+   * Crear `src/infrastructure/adapters/FirebaseDatabaseAdapter.js` and `src/infrastructure/adapters/FirebaseAuthAdapter.js`.
    * Crear `src/infrastructure/adapters/WebNotificationAdapter.js` unificando la lógica de permisos push de la cabecera.
 
 ### Iteración 5: Validación y Regression Suite
