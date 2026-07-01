@@ -10,12 +10,19 @@ import Volunteers from './pages/Volunteers';
 import Stats from './pages/Stats';
 import Administration from './pages/Administration';
 import { dbService } from './services/db';
+import Login from './pages/Login';
 
 function App() {
+  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('palia_user') || 'null'));
   const [activeTab, setActiveTab] = useState('inicio');
   const [currentView, setCurrentView] = useState('inicio'); // Handles sub-routing
   const [searchVal, setSearchVal] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState(null);
+
+  const handleLogout = () => {
+    localStorage.removeItem('palia_user');
+    setUser(null);
+  };
 
   // Sync currentView with activeTab when sidebar clicks occur
   const handleTabChange = (tabId) => {
@@ -103,10 +110,14 @@ function App() {
     }
   };
 
+  if (!user) {
+    return <Login onLoginSuccess={setUser} />;
+  }
+
   return (
     <div className="app-shell">
       {/* Sidebar for Desktop */}
-      <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
+      <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} onLogout={handleLogout} />
       
       {/* Mobile navigation bottom bar */}
       <nav className="mobile-nav">
@@ -157,6 +168,7 @@ function App() {
           searchVal={searchVal} 
           setSearchVal={setSearchVal} 
           onSearchFocus={() => activeTab !== 'pacientes' && handleTabChange('pacientes')}
+          user={user}
         />
         
         <main className="content-canvas">

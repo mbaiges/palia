@@ -1,7 +1,7 @@
 import React from 'react';
 import { dbService } from '../services/db';
 
-export default function Header({ searchVal, setSearchVal, onSearchFocus }) {
+export default function Header({ searchVal, setSearchVal, onSearchFocus, user }) {
   const isCloud = dbService.isCloudBackend();
 
   return (
@@ -45,12 +45,13 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus }) {
         
         <div className="user-profile-menu">
           <div className="user-avatar" aria-label="Avatar del usuario administrador">
-            <img 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdXGuMCmzFL7Ymvch2Hc8CVe66MyxzA9MPk0_rnJQrR3mRNdxP3IygPbo2oFctVDuxLgYqjV1nUPmxIyaFISVXppyZKKtSrI8WU-4dBaWrUkpqkHUNbRjzCD82zHbf-2yO0-tEhgalTSGZcAyAg3KK5pKw9Wfhf8zqCOvzTPjZMFgqe2hVqS1kpsxH-8z-F_usFld3wvq4nRvmO2GzxGp6V8p3Vk8QAV61cC2nPLvwnKAGnq5i8Y6qxsS3r83q5wGpyQdCuU6XjQ8" 
-              alt="Avatar Admin" 
-            />
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt="Avatar Admin" />
+            ) : (
+              <span>{user?.displayName ? user.displayName[0].toUpperCase() : 'A'}</span>
+            )}
           </div>
-          <span className="user-name">Admin Medice</span>
+          <span className="user-name">{user?.displayName || 'Admin Palia'}</span>
           <span className="material-symbols-outlined">expand_more</span>
         </div>
       </div>

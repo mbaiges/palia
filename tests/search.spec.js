@@ -9,6 +9,7 @@ test.describe('Global Search Integration', () => {
   test('should filter volunteers list dynamically based on top search bar input', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('http://localhost:5173');
+    await page.click('text=Iniciar Sesión con Google');
 
     // 1. Go to Voluntariado
     await page.click('text=Voluntariado');

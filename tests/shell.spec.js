@@ -12,6 +12,7 @@ test.describe('Navigation Shell Verification', () => {
 
     // Go to local server
     await page.goto('http://localhost:5173');
+    await page.click('text=Iniciar Sesión con Google');
 
     // Wait for the app shell to load
     await expect(page.locator('.app-shell')).toBeVisible();

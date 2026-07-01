@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Sidebar({ activeTab, setActiveTab }) {
+export default function Sidebar({ activeTab, setActiveTab, onLogout }) {
   const menuItems = [
     { id: 'inicio', label: 'Inicio', icon: 'dashboard' },
     { id: 'pacientes', label: 'Pacientes', icon: 'person_search' },
@@ -47,7 +47,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           <span className="material-symbols-outlined" data-icon="settings">settings</span>
           <span>Configuración</span>
         </a>
-        <a className="nav-link text-error" role="button">
+        <a className="nav-link text-error" onClick={onLogout} role="button">
           <span className="material-symbols-outlined" data-icon="logout">logout</span>
           <span>Cerrar Sesión</span>
         </a>

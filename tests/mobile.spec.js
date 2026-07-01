@@ -10,6 +10,7 @@ test.describe('Mobile PWA Visual Verification', () => {
     // 1. Set mobile viewport size (iPhone 13 style)
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('http://localhost:5173');
+    await page.click('text=Iniciar Sesión con Google');
 
     // 2. Verify header mobile optimizations
     // Sidebar should be hidden, mobile navigation should be visible

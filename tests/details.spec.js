@@ -9,6 +9,7 @@ test.describe('Patient Details & Follow-up Flow', () => {
   test('should view patient details and log a follow-up report', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('http://localhost:5173');
+    await page.click('text=Iniciar Sesión con Google');
 
     // 1. Navigate to Patients
     await page.click('text=Pacientes');

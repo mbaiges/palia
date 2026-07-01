@@ -9,6 +9,7 @@ test.describe('Administration, Volunteers and Stats Flow', () => {
   test('should navigate through volunteers, stats, and administration features', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('http://localhost:5173');
+    await page.click('text=Iniciar Sesión con Google');
 
     // 1. Check Volunteers Tab
     await page.click('text=Voluntariado');

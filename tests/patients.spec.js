@@ -9,6 +9,7 @@ test.describe('Patient Directory & Registration Flow', () => {
   test('should navigate, register patient, and verify details', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('http://localhost:5173');
+    await page.click('text=Iniciar Sesión con Google');
 
     // 1. Navigate to Patients Directory
     await page.click('text=Pacientes');
