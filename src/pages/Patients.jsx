@@ -5,11 +5,11 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
   const [filterStatus, setFilterStatus] = useState('Todos');
   const [localQuery, setLocalQuery] = useState('');
 
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 1024 : false);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth <= 1024);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -32,7 +32,7 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
   };
 
   const filteredPatients = allPatients.filter(p => {
-    const query = (searchVal || localQuery || '').toLowerCase();
+    const query = (isMobile ? localQuery : (searchVal || localQuery || '')).toLowerCase();
     const matchesQuery =
       p.name.toLowerCase().includes(query) ||
       p.diagnosis.toLowerCase().includes(query) ||
@@ -101,7 +101,7 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-stack-lg)' }}>
       {isMobile ? (
         /* 📱 MOBILE ONLY VIEW (Strict alignment with mock: directorio_de_pacientes.html) */
-        <div style={{ padding: '0 4px' }}>
+        <div style={{ padding: '0 4px 90px 4px' }}>
           <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-on-background)', marginBottom: '16px' }}>Directorio de Pacientes</h1>
           {/* Search & Filter section */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>

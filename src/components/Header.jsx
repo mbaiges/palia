@@ -7,11 +7,11 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user })
   const notifRef = useRef(null);
   const alerts = dbService.getPatients().filter(p => p.currentStatus === 'Alerta');
 
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 1024 : false);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth <= 1024);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
