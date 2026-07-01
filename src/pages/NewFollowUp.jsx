@@ -81,7 +81,7 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
   // Reusable checkbox card for equipment
   const EquipCard = ({ id, label }) => (
     <label
-      htmlFor={`equip-${id}`}
+      htmlFor={id}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -95,7 +95,7 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
       }}
     >
       <input
-        id={`equip-${id}`}
+        id={id}
         type="checkbox"
         checked={equip[id]}
         onChange={() => toggleEquip(id)}
@@ -168,7 +168,7 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
           <div className="form-section">
             <div className="form-group">
               <label>Tipo de Acompañamiento *</label>
-              <select value={contactType} onChange={(e) => setContactType(e.target.value)}>
+              <select name="contactType" value={contactType} onChange={(e) => setContactType(e.target.value)}>
                 <option value="Presencial">Presencial (Visita Domiciliaria)</option>
                 <option value="Remoto">Remoto (Soporte Telefónico)</option>
               </select>
@@ -183,7 +183,7 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
                     <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-primary)' }}>bolt</span>
                     Dolor (Escala 0-10)
                   </label>
-                  <select value={dolorLevel} onChange={(e) => setDolorLevel(e.target.value)}>
+                  <select name="dolorLevel" value={dolorLevel} onChange={(e) => setDolorLevel(e.target.value)}>
                     <option value="">Seleccionar nivel...</option>
                     <option value="0">0 – Ausente</option>
                     <option value="1-3">1-3 – Leve</option>
@@ -197,7 +197,7 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
                     <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-primary)' }}>sick</span>
                     Náuseas / Malestar
                   </label>
-                  <select value={nauseaLevel} onChange={(e) => setNauseaLevel(e.target.value)}>
+                  <select name="nauseaLevel" value={nauseaLevel} onChange={(e) => setNauseaLevel(e.target.value)}>
                     <option value="">Seleccionar estado...</option>
                     <option value="Ninguno">Ninguno</option>
                     <option value="Ocasional">Ocasional</option>
@@ -210,7 +210,7 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
                     <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-primary)' }}>wind_power</span>
                     Disnea (Dificultad Resp.)
                   </label>
-                  <select value={disnea} onChange={(e) => setDisnea(e.target.value)}>
+                  <select name="disnea" value={disnea} onChange={(e) => setDisnea(e.target.value)}>
                     <option value="">Seleccionar grado...</option>
                     <option value="Grado 0 – Normal">Grado 0 – Normal</option>
                     <option value="Grado 1 – Leve">Grado 1 – Leve</option>
@@ -224,7 +224,7 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
             <div className="form-group">
               <label>Observaciones detalladas de síntomas *</label>
               <textarea
-                placeholder="Describa cualquier cambio notable en el estado físico del paciente..."
+                placeholder="Describa el estado de ánimo, fatiga, nivel de conciencia o cualquier cambio notable en el estado físico del paciente..."
                 value={symptomObs}
                 onChange={(e) => setSymptomObs(e.target.value)}
                 rows="4"
@@ -264,7 +264,7 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
             <div className="form-group" style={{ marginTop: '12px' }}>
               <label style={{ color: 'var(--color-on-secondary-container)' }}>Notas de entorno</label>
               <textarea
-                placeholder="Estado del cuidador principal, higiene del hogar..."
+                placeholder="Estado anímico del cuidador, higiene del hogar, apoyo vecinal..."
                 value={environmentNotes}
                 onChange={(e) => setEnvironmentNotes(e.target.value)}
                 rows="4"
@@ -307,7 +307,7 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
           <div className="form-group">
             <label>Resumen de la intervención</label>
             <textarea
-              placeholder="Detalle las acciones tomadas durante esta sesión..."
+              placeholder="Describa detalladamente las acciones tomadas durante esta sesión (ej: movilizaciones suave, administración de medicación indicada, contención emocional, diálogo espiritual...)"
               value={interventions}
               onChange={(e) => setInterventions(e.target.value)}
               rows="7"

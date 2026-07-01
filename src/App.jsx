@@ -100,7 +100,7 @@ function App() {
       case 'administracion':
         return <Administration />;
       case 'configuracion':
-        return <Settings />;
+        return <Settings onNavigate={handleTabChange} />;
       default:
         return <div>Vista no encontrada</div>;
     }

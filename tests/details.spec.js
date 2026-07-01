@@ -15,9 +15,8 @@ test.describe('Patient Details & Follow-up Flow', () => {
     await page.click('text=Pacientes');
     await expect(page.locator('text=Directorio de Pacientes')).toBeVisible();
 
-    // 2. Open Ricardo Mendoza's card
-    const card = page.locator('.card', { hasText: 'Ricardo Mendoza S.' });
-    await card.locator('button', { hasText: 'Atención Urgente' }).click();
+    // 2. Open Ricardo Mendoza's card/row
+    await page.locator('tr:has-text("Ricardo Mendoza S.")').click();
 
     // Verify detail page elements
     await expect(page.locator('text=Ficha del Paciente')).toBeVisible();
@@ -34,9 +33,9 @@ test.describe('Patient Details & Follow-up Flow', () => {
 
     // 4. Fill in Follow-up report
     await page.selectOption('select[name="contactType"]', 'Remoto');
-    await page.click('label[for="dolor"]');
-    await page.click('label[for="nauseas"]');
-    await page.click('label[for="disnea"]');
+    await page.selectOption('select[name="dolorLevel"]', '4-6');
+    await page.selectOption('select[name="nauseaLevel"]', 'Ocasional');
+    await page.selectOption('select[name="disnea"]', 'Grado 2 – Moderada');
     await page.fill('[placeholder="Describa el estado de ánimo, fatiga, nivel de conciencia o cualquier cambio notable en el estado físico del paciente..."]', 'Llamada de seguimiento de la tarde. El paciente se encuentra más calmado pero reporta dolor moderado.');
 
     // Social Risk

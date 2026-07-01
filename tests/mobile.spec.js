@@ -23,7 +23,7 @@ test.describe('Mobile PWA Visual Verification', () => {
     await page.screenshot({ path: artifactPath('screenshot_mobile_inicio.png') });
 
     // 3. Navigate to Patients page on mobile via bottom bar click
-    await page.click('.mobile-nav-item:has-text("Pacientes")');
+    await page.click('.mobile-nav-item:has-text("Directorio")');
     await expect(page.locator('text=Directorio de Pacientes')).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: artifactPath('screenshot_mobile_patients.png') });

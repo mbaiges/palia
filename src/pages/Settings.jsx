@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { dbService } from '../services/db';
 
-export default function Settings() {
+export default function Settings({ onNavigate }) {
   const [theme, setTheme] = useState(() => document.documentElement.classList.contains('dark') ? 'dark' : 'light');
   const isCloud = dbService.isCloudBackend();
   const [swStatus, setSwStatus] = useState('Registrado y Activo');
@@ -130,10 +130,28 @@ export default function Settings() {
                     Habilitar
                   </button>
                 )}
-              </div>
             </div>
           </div>
         </div>
+      </div>
+
+        {/* System Administration panel link */}
+        {onNavigate && (
+          <div className="card" style={{ gridColumn: 'span 12', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--color-primary)' }}>
+              <span className="material-symbols-outlined" style={{ backgroundColor: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)', padding: '8px', borderRadius: 'var(--radius-md)' }}>admin_panel_settings</span>
+              <h2 style={{ fontSize: '20px', margin: 0 }}>Administración del Sistema</h2>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginTop: '8px' }}>
+              <span style={{ fontSize: '13px', color: 'var(--color-on-surface-variant)' }}>
+                Acceda a la gestión de hospitales, centros de salud y personal.
+              </span>
+              <button className="btn btn-primary" onClick={() => onNavigate('administracion')} style={{ height: '36px', padding: '0 16px', fontSize: '13px' }}>
+                Panel de Administración
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

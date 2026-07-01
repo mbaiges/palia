@@ -7,6 +7,16 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user })
   const notifRef = useRef(null);
   const alerts = dbService.getPatients().filter(p => p.currentStatus === 'Alerta');
 
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Close popover when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -22,38 +32,38 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user })
 
   return (
     <header className="top-header">
-      {/* Mobile brand title (visible on mobile only) */}
-      <div className="mobile-only">
+      {isMobile ? (
+        /* Mobile brand title (visible on mobile only) */
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span className="material-symbols-outlined text-primary" style={{ fontSize: '24px', fontWeight: 'bold' }}>healing</span>
           <span style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--color-primary)' }}>Cuidados Paliativos</span>
         </div>
-      </div>
+      ) : (
+        /* Search Bar (desktop only) */
+        <div className="header-search-container">
+          <div className="header-search">
+            <span className="material-symbols-outlined search-icon">search</span>
+            <input
+              type="text"
+              placeholder="Buscar paciente o registro..."
+              value={searchVal || ''}
+              onChange={(e) => setSearchVal && setSearchVal(e.target.value)}
+              onFocus={onSearchFocus}
+              aria-label="Buscar paciente o registro"
+            />
+          </div>
 
-      {/* Search Bar (desktop only) */}
-      <div className="header-search-container desktop-only">
-        <div className="header-search">
-          <span className="material-symbols-outlined search-icon">search</span>
-          <input
-            type="text"
-            placeholder="Buscar paciente o registro..."
-            value={searchVal || ''}
-            onChange={(e) => setSearchVal && setSearchVal(e.target.value)}
-            onFocus={onSearchFocus}
-            aria-label="Buscar paciente o registro"
-          />
+          {/* Database Status Badge */}
+          <div className="db-status-badge">
+            <span className="material-symbols-outlined db-status-icon" style={{ fontSize: '18px', color: isCloud ? '#0070f3' : 'var(--color-secondary)' }}>
+              {isCloud ? 'cloud' : 'database'}
+            </span>
+            <span className="db-status-text">
+              {isCloud ? 'Nube (Firebase)' : 'Persistencia Local'}
+            </span>
+          </div>
         </div>
-
-        {/* Database Status Badge */}
-        <div className="db-status-badge">
-          <span className="material-symbols-outlined db-status-icon" style={{ fontSize: '18px', color: isCloud ? '#0070f3' : 'var(--color-secondary)' }}>
-            {isCloud ? 'cloud' : 'database'}
-          </span>
-          <span className="db-status-text">
-            {isCloud ? 'Nube (Firebase)' : 'Persistencia Local'}
-          </span>
-        </div>
-      </div>
+      )}
 
       {/* Action Buttons & Profile */}
       <div className="header-actions" style={{ position: 'relative' }}>

@@ -25,7 +25,7 @@ test.describe('Palia Full App E2E Regression Suite', () => {
     await page.click('text=Iniciar Sesión con Google');
     
     // Wait for the Dashboard shell to load
-    await expect(page.locator('text=Vista de Inicio')).toBeVisible();
+    await expect(page.locator('text=Equipo Palia')).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: artifactPath('reg_2_home_screen.png') });
 
@@ -64,9 +64,9 @@ test.describe('Palia Full App E2E Regression Suite', () => {
     await expect(page.locator('text=Registro Clínico de Seguimiento')).toBeVisible();
 
     await page.selectOption('select[name="contactType"]', 'Presencial');
-    await page.click('label[for="dolor"]');
-    await page.click('label[for="nauseas"]');
-    await page.click('label[for="disnea"]');
+    await page.selectOption('select[name="dolorLevel"]', '4-6');
+    await page.selectOption('select[name="nauseaLevel"]', 'Ocasional');
+    await page.selectOption('select[name="disnea"]', 'Grado 2 – Moderada');
     await page.fill('[placeholder="Describa el estado de ánimo, fatiga, nivel de conciencia o cualquier cambio notable en el estado físico del paciente..."]', 'Paciente presenta dolor agudo y náuseas postprandiales.');
     await page.fill('[placeholder="Describa detalladamente las acciones tomadas durante esta sesión (ej: movilizaciones suave, administración de medicación indicada, contención emocional, diálogo espiritual...)"]', 'Se administró medicación analgésica y antiemética de rescate indicada.');
 
@@ -124,10 +124,10 @@ test.describe('Palia Full App E2E Regression Suite', () => {
 
     // 2. Perform Google Sign-In
     await page.click('text=Iniciar Sesión con Google');
-    await expect(page.locator('text=Vista de Inicio')).toBeVisible();
+    await expect(page.locator('text=Equipo Palia')).toBeVisible();
 
     // 3. Navigate to Patients Directory via Bottom Bar
-    await page.click('.mobile-nav-item:has-text("Pacientes")');
+    await page.click('.mobile-nav-item:has-text("Directorio")');
     await expect(page.locator('text=Directorio de Pacientes')).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: artifactPath('reg_mobile_2_directory.png') });

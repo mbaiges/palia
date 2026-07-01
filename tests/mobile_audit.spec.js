@@ -18,12 +18,12 @@ test.describe('Mobile Audit Screenshots Collection', () => {
     await page.click('text=Iniciar Sesión con Google');
     
     // 2. Inicio
-    await expect(page.locator('text=Vista de Inicio')).toBeVisible();
+    await expect(page.locator('text=Equipo Palia')).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: artifactPath('audit_mobile_2_inicio.png') });
 
     // 3. Pacientes
-    await page.click('.mobile-nav-item:has-text("Pacientes")');
+    await page.click('.mobile-nav-item:has-text("Directorio")');
     await expect(page.locator('text=Directorio de Pacientes')).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: artifactPath('audit_mobile_3_pacientes.png') });
@@ -42,14 +42,15 @@ test.describe('Mobile Audit Screenshots Collection', () => {
     await page.click('span:has-text("Ficha del Paciente")'); // Go back
 
     // 6. Nuevo Paciente
-    await page.click('.mobile-nav-item:has-text("Pacientes")');
+    await page.click('.mobile-nav-item:has-text("Directorio")');
     await page.click('text=Nuevo Paciente');
     await expect(page.locator('text=Registrar Nuevo Paciente')).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: artifactPath('audit_mobile_6_nuevo_paciente.png') });
 
     // 7. Voluntariado
-    await page.click('.mobile-nav-item:has-text("Voluntarios")');
+    await page.click('.mobile-nav-item:has-text("Inicio")');
+    await page.click('button:has-text("Voluntariado")');
     await expect(page.locator('text=Comunidad de Voluntarios')).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: artifactPath('audit_mobile_7_voluntariado.png') });
@@ -61,7 +62,8 @@ test.describe('Mobile Audit Screenshots Collection', () => {
     await page.screenshot({ path: artifactPath('audit_mobile_8_estadisticas.png') });
 
     // 9. Administración
-    await page.click('.mobile-nav-item:has-text("Admin")');
+    await page.click('.mobile-nav-item:has-text("Perfil")');
+    await page.click('text=Panel de Administración');
     await expect(page.locator('text=Panel de Administración')).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: artifactPath('audit_mobile_9_administracion.png') });

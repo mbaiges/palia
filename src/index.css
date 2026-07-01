@@ -1032,15 +1032,7 @@ p, label, input, textarea, select, button {
 .mobile-only {
   display: none !important;
 }
-.desktop-only {
-  display: block !important;
-}
-table.desktop-only {
-  display: table !important;
-}
-div.desktop-only {
-  display: block !important;
-}
+
 
 /* Notification popover */
 .notification-popover {
