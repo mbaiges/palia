@@ -340,7 +340,7 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
 
           {/* Stat cards */}
           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
-            <StatCard label="Todos los Pacientes" value={counts.total} icon="groups" color="var(--color-primary)" bg="var(--color-primary-container)" borderColor="var(--color-primary)" filterKey="Todos" />
+            <StatCard label="Todos los Pacientes" value={counts.total} icon="groups" color="#0277bd" bg="#e1f5fe" borderColor="#0277bd" filterKey="Todos" />
             <StatCard label="Situación Crítica" value={counts.critico} icon="priority_high" color="var(--color-error)" bg="var(--color-error-container)" borderColor="var(--color-error)" filterKey="Crítico" />
             <StatCard label="Alertas Activas" value={counts.alerta} icon="warning" color="var(--color-secondary)" bg="var(--color-secondary-container)" borderColor="var(--color-secondary)" filterKey="Observación" />
             <StatCard label="Estables" value={counts.estable} icon="check_circle" color="#4b6450" bg="#cdead0" borderColor="#4b6450" filterKey="Estable" />

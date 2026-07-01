@@ -59,7 +59,7 @@ export default function Login({ onLoginSuccess }) {
           <div>
             <h1 style={{ fontSize: '32px', fontWeight: 800, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.03em' }}>Palia</h1>
             <p style={{ fontSize: '13px', color: 'var(--color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '6px', fontWeight: 700 }}>
-              Cuidados Paliativos Conectados
+              Acompañamiento paliativo integral
             </p>
           </div>
         </div>
@@ -68,7 +68,7 @@ export default function Login({ onLoginSuccess }) {
         <div style={{ marginBottom: '32px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--color-on-surface)', margin: '0 0 8px 0' }}>Portal del Coordinador</h2>
           <p style={{ fontSize: '14px', color: 'var(--color-outline)', lineHeight: '1.5', margin: 0 }}>
-            Acceda de forma segura utilizando sus credenciales corporativas para gestionar la red de acompañamientos de cuidados paliativos.
+            Acceda de forma segura utilizando sus credenciales corporativas para gestionar la red de acompañamientos de Palia.
           </p>
         </div>
 

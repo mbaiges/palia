@@ -12,10 +12,9 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }) {
   return (
     <aside className="sidebar">
       {/* Brand Identity */}
-      <div className="sidebar-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '24px 16px', borderBottom: '1px solid var(--color-outline-variant)' }}>
-        <img src="/logo_icon.png" alt="Palia Logo" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
-        <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.02em' }}>Palia</h1>
-        <p style={{ fontSize: '11px', color: 'var(--color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0, fontWeight: 700 }}>Cuidados Paliativos</p>
+      <div className="sidebar-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '24px 16px', borderBottom: '1px solid var(--color-outline-variant)' }}>
+        <img src="/logo_icon.png" alt="Palia" style={{ width: '72px', height: '72px', objectFit: 'contain' }} />
+        <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.02em' }}>Palia</h1>
       </div>
 
       {/* Navigation */}

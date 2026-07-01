@@ -22,6 +22,16 @@ test.describe('Mobile PWA Visual Verification', () => {
     await page.waitForTimeout(300);
     await page.screenshot({ path: artifactPath('screenshot_mobile_inicio.png') });
 
+    // 2b. Profile popover should stay fully visible on mobile
+    await page.locator('.user-profile-menu').click();
+    const profilePopover = page.locator('.profile-popover');
+    await expect(profilePopover).toBeVisible();
+    await expect(profilePopover.locator('text=Cerrar Sesión')).toBeVisible();
+    const box = await profilePopover.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(390);
+    await page.locator('.user-profile-menu').click();
+
     // 3. Navigate to Patients page on mobile via bottom bar click
     await page.click('.mobile-nav-item:has-text("Directorio")');
     await expect(page.locator('text=Directorio de Pacientes')).toBeVisible();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { dbService } from '../services/db';
 
-export default function Administration() {
+export default function Administration({ initialTab, onTabConsumed }) {
   const [patients, setPatients] = useState(dbService.getPatients());
   const [volunteers, setVolunteers] = useState(dbService.getVolunteers());
   const [hospitals, setHospitals] = useState(dbService.getHospitals());
@@ -16,7 +16,15 @@ export default function Administration() {
   }, []);
 
   // Tabs: 'asignacion' | 'invitaciones'
-  const [activeSubTab, setActiveSubTab] = useState('asignacion');
+  const [activeSubTab, setActiveSubTab] = useState(initialTab || 'asignacion');
+
+  // Consume the initialTab prop if set externally (deep-link)
+  useEffect(() => {
+    if (initialTab) {
+      setActiveSubTab(initialTab);
+      if (onTabConsumed) onTabConsumed();
+    }
+  }, [initialTab]);
 
   // Volunteer Assignment form states
   const [assignPatientId, setAssignPatientId] = useState(patients[0]?.id || '');

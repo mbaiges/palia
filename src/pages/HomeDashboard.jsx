@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { dbService } from '../services/db';
 
 export default function HomeDashboard({ user, onNavigate, onViewDetail }) {
   const patients = dbService.getPatients();
   const volunteers = dbService.getVolunteers();
   const followUps = dbService.getAllFollowUps();
+  const [weekFilter, setWeekFilter] = useState('Esta semana');
 
   const totalPatients = patients.length;
   const alertPatients = patients.filter(p => p.currentStatus === 'Alerta');
@@ -18,16 +19,38 @@ export default function HomeDashboard({ user, onNavigate, onViewDetail }) {
   const greeting = today.getHours() < 12 ? 'Buenos días' : today.getHours() < 19 ? 'Buenas tardes' : 'Buenas noches';
   const userName = user?.displayName ? user.displayName.split(' ')[0] : 'Coordinador';
 
-  // Weekly stats bars matching mock inicio_desktop_corregido
-  const weeklyData = [
-    { label: 'Lun', value: 10, height: '40%' },
-    { label: 'Mar', value: 15, height: '65%' },
-    { label: 'Mié', value: 12, height: '55%' },
-    { label: 'Jue', value: 22, height: '90%', active: true },
-    { label: 'Vie', value: 18, height: '75%' },
-    { label: 'Sáb', value: 8, height: '30%' },
-    { label: 'Dom', value: 5, height: '20%' },
-  ];
+  // Compute weekly visits from real followUps data
+  const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+  const todayDay = today.getDay(); // 0=Sun,1=Mon,...
+  followUps.forEach(fu => {
+    if (!fu.date && !fu.createdAt) return;
+    const d = new Date(fu.date || fu.createdAt);
+    const diff = Math.floor((today - d) / (1000 * 60 * 60 * 24));
+    if (diff >= 0 && diff < 7) {
+      // Map JS day (Sun=0) to our week index (Mon=0)
+      const jsDay = d.getDay();
+      const idx = jsDay === 0 ? 6 : jsDay - 1;
+      dayCounts[idx]++;
+    }
+  });
+  const maxCount = Math.max(...dayCounts, 1);
+  // Today's index in Mon-based week
+  const todayIdx = todayDay === 0 ? 6 : todayDay - 1;
+  const weeklyData = dayLabels.map((label, i) => ({
+    label,
+    value: dayCounts[i],
+    height: `${Math.max(8, Math.round((dayCounts[i] / maxCount) * 100))}%`,
+    active: i === todayIdx
+  }));
+
+  // Achievements — only show when conditions match real data
+  const achievements = [];
+  if (totalVisitsCount >= 10) achievements.push({ icon: 'military_tech', label: '10+ Seguimientos', color: 'var(--color-primary)' });
+  if (activeVolunteersCount >= 3) achievements.push({ icon: 'groups', label: 'Equipo activo', color: 'var(--color-secondary)' });
+  if (alertPatients.length === 0 && totalPatients > 0) achievements.push({ icon: 'verified', label: 'Sin alertas críticas', color: '#2e7d32' });
+  if (stablePatients.length >= 5) achievements.push({ icon: 'favorite', label: '5+ Pacientes estables', color: 'var(--color-secondary)' });
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-stack-lg)' }}>
@@ -143,21 +166,28 @@ export default function HomeDashboard({ user, onNavigate, onViewDetail }) {
         <section className="card" style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-primary)', margin: 0 }}>Resumen Semanal</h2>
-            <select 
-              aria-label="Seleccionar periodo" 
-              style={{ 
+            <select
+              aria-label="Seleccionar periodo"
+              value={weekFilter}
+              onChange={e => setWeekFilter(e.target.value)}
+              style={{
                 height: '34px',
-                padding: '0 16px', 
-                borderRadius: 'var(--radius-full)', 
-                border: '1.5px solid var(--color-outline-variant)', 
-                fontSize: '13px', 
+                padding: '0 12px',
+                borderRadius: 'var(--radius-full)',
+                border: '1.5px solid var(--color-primary)',
+                fontSize: '13px',
                 fontWeight: 700,
                 color: 'var(--color-primary)',
-                backgroundColor: 'var(--color-surface-container-lowest)',
+                backgroundColor: 'var(--color-primary-container)',
                 outline: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-                transition: 'all 0.15s ease'
+                boxShadow: '0 2px 8px rgba(0,90,113,0.10)',
+                transition: 'all 0.15s ease',
+                appearance: 'none',
+                paddingRight: '28px',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23005A71' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 8px center'
               }}
             >
               <option>Esta semana</option>
@@ -168,18 +198,18 @@ export default function HomeDashboard({ user, onNavigate, onViewDetail }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
             <div style={{ backgroundColor: 'rgba(0, 90, 113, 0.05)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(0, 90, 113, 0.1)' }}>
               <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)', fontSize: '20px', marginBottom: '8px', display: 'block' }}>event_available</span>
-              <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-primary)' }}>{totalVisitsCount + 16}</div>
+              <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-primary)' }}>{totalVisitsCount}</div>
               <div style={{ fontSize: '11px', color: 'var(--color-on-surface-variant)', fontWeight: 600, textTransform: 'uppercase', marginTop: '4px' }}>Visitas Realizadas</div>
             </div>
             <div style={{ backgroundColor: 'rgba(75, 100, 80, 0.08)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(75, 100, 80, 0.15)' }}>
               <span className="material-symbols-outlined" style={{ color: 'var(--color-secondary)', fontSize: '20px', marginBottom: '8px', display: 'block' }}>volunteer_activism</span>
-              <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-secondary)' }}>{activeVolunteersCount + 6}</div>
+              <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-secondary)' }}>{activeVolunteersCount}</div>
               <div style={{ fontSize: '11px', color: 'var(--color-on-surface-variant)', fontWeight: 600, textTransform: 'uppercase', marginTop: '4px' }}>Voluntarios Activos</div>
             </div>
             <div style={{ backgroundColor: 'var(--color-surface-container-high)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-outline-variant)' }}>
-              <span className="material-symbols-outlined" style={{ color: 'var(--color-on-surface-variant)', fontSize: '20px', marginBottom: '8px', display: 'block' }}>hourglass_empty</span>
-              <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-on-surface-variant)' }}>{totalVisitsCount * 2 + 10}</div>
-              <div style={{ fontSize: '11px', color: 'var(--color-on-surface-variant)', fontWeight: 600, textTransform: 'uppercase', marginTop: '4px' }}>Horas de Apoyo</div>
+              <span className="material-symbols-outlined" style={{ color: 'var(--color-on-surface-variant)', fontSize: '20px', marginBottom: '8px', display: 'block' }}>people</span>
+              <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-on-surface-variant)' }}>{totalPatients}</div>
+              <div style={{ fontSize: '11px', color: 'var(--color-on-surface-variant)', fontWeight: 600, textTransform: 'uppercase', marginTop: '4px' }}>Pacientes Activos</div>
             </div>
           </div>
 
@@ -360,6 +390,31 @@ export default function HomeDashboard({ user, onNavigate, onViewDetail }) {
         </section>
 
       </div>
+
+      {/* Conditional Achievements section (only shown if user earned them) */}
+      {achievements.length > 0 && (
+        <section className="card" style={{ background: 'linear-gradient(135deg, var(--color-primary-container) 0%, var(--color-secondary-container) 100%)', border: '1.5px solid var(--color-outline-variant)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)', fontSize: '22px' }}>emoji_events</span>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-primary)', margin: 0 }}>Logros del Equipo</h3>
+          </div>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            {achievements.map((a, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                backgroundColor: 'rgba(255,255,255,0.6)',
+                border: '1px solid rgba(255,255,255,0.8)',
+                borderRadius: 'var(--radius-full)',
+                padding: '6px 14px',
+                backdropFilter: 'blur(4px)'
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px', color: a.color }}>{a.icon}</span>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-on-surface)' }}>{a.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Floating Action Button for quick follow-up logs (Desktop/Mobile) */}
       <button 

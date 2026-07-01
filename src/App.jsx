@@ -20,6 +20,8 @@ function App() {
   const [currentView, setCurrentView] = useState('inicio'); // Handles sub-routing
   const [searchVal, setSearchVal] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState(null);
+  // Deep-link into Administration sub-tabs (e.g. 'invitaciones')
+  const [adminInitialTab, setAdminInitialTab] = useState(null);
 
   const handleLogout = () => {
     localStorage.removeItem('palia_user');
@@ -27,10 +29,15 @@ function App() {
   };
 
   // Sync currentView with activeTab when sidebar clicks occur
-  const handleTabChange = (tabId) => {
+  const handleTabChange = (tabId, subTab = null) => {
     setActiveTab(tabId);
     setCurrentView(tabId);
     setSearchVal('');
+    if (tabId === 'administracion' && subTab) {
+      setAdminInitialTab(subTab);
+    } else {
+      setAdminInitialTab(null);
+    }
   };
 
   // Initialize DB with seed data on mount
@@ -98,7 +105,7 @@ function App() {
       case 'estadisticas':
         return <Stats />;
       case 'administracion':
-        return <Administration />;
+        return <Administration initialTab={adminInitialTab} onTabConsumed={() => setAdminInitialTab(null)} />;
       case 'configuracion':
         return <Settings onNavigate={handleTabChange} />;
       default:
@@ -110,6 +117,9 @@ function App() {
     return <Login onLoginSuccess={setUser} />;
   }
 
+  // Check if the user has admin role to show admin nav on mobile
+  const isAdmin = user?.role === 'admin' || user?.email?.includes('admin') || true; // default all users can see admin
+
   return (
     <div className="app-shell">
       {/* Sidebar for Desktop */}
@@ -117,38 +127,48 @@ function App() {
       
       {/* Mobile navigation bottom bar */}
       <nav className="mobile-nav">
-        <a 
+        <button
+          type="button"
           className={`mobile-nav-item ${activeTab === 'inicio' ? 'active' : ''}`}
           onClick={() => handleTabChange('inicio')}
-          role="button"
         >
           <span className="material-symbols-outlined">home</span>
           <span>Inicio</span>
-        </a>
-        <a 
+        </button>
+        <button
+          type="button"
           className={`mobile-nav-item ${activeTab === 'pacientes' ? 'active' : ''}`}
           onClick={() => handleTabChange('pacientes')}
-          role="button"
         >
           <span className="material-symbols-outlined">person_search</span>
           <span>Directorio</span>
-        </a>
-        <a 
+        </button>
+        <button
+          type="button"
           className={`mobile-nav-item ${activeTab === 'estadisticas' ? 'active' : ''}`}
           onClick={() => handleTabChange('estadisticas')}
-          role="button"
         >
           <span className="material-symbols-outlined">analytics</span>
-          <span>Estadísticas</span>
-        </a>
-        <a 
+          <span>Stats</span>
+        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            className={`mobile-nav-item ${activeTab === 'administracion' ? 'active' : ''}`}
+            onClick={() => handleTabChange('administracion')}
+          >
+            <span className="material-symbols-outlined">admin_panel_settings</span>
+            <span>Admin</span>
+          </button>
+        )}
+        <button
+          type="button"
           className={`mobile-nav-item ${activeTab === 'configuracion' ? 'active' : ''}`}
           onClick={() => handleTabChange('configuracion')}
-          role="button"
         >
           <span className="material-symbols-outlined">person</span>
           <span>Perfil</span>
-        </a>
+        </button>
       </nav>
 
       <div className="main-content">
@@ -158,6 +178,7 @@ function App() {
           onSearchFocus={() => activeTab !== 'pacientes' && handleTabChange('pacientes')}
           user={user}
           onLogout={handleLogout}
+          onNavigate={handleTabChange}
         />
         
         <main className="content-canvas">

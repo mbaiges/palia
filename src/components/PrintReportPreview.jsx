@@ -156,8 +156,8 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
             marginBottom: '32px'
           }}>
             <div>
-              <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--color-primary)' }}>ASOCIACIÓN MEDICE</h1>
-              <p style={{ fontSize: '12px', margin: '4px 0 0 0', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6f787d', fontWeight: 700 }}>Gestión de Cuidados Paliativos</p>
+              <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--color-primary)' }}>PALIA</h1>
+              <p style={{ fontSize: '12px', margin: '4px 0 0 0', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6f787d', fontWeight: 700 }}>Red de Acompañamiento Paliativo</p>
             </div>
             <div style={{ textAlign: 'right' }}>
               <span style={{

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { dbService } from '../services/db';
 
-export default function Header({ searchVal, setSearchVal, onSearchFocus, user, onLogout }) {
+export default function Header({ searchVal, setSearchVal, onSearchFocus, user, onLogout, onNavigate }) {
   const isCloud = dbService.isCloudBackend();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -19,39 +19,47 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user, o
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Close notifications popover when clicking outside
+  const toggleNotifications = () => {
+    setShowNotifications((open) => {
+      if (!open) setShowProfileDropdown(false);
+      return !open;
+    });
+  };
+
+  const toggleProfileDropdown = () => {
+    setShowProfileDropdown((open) => {
+      if (!open) setShowNotifications(false);
+      return !open;
+    });
+  };
+
+  // Close popovers when clicking/tapping outside (pointer events work on mobile)
   useEffect(() => {
-    const handleClickOutside = (e) => {
+    const handlePointerOutside = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
         setShowNotifications(false);
       }
-    };
-    if (showNotifications) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showNotifications]);
-
-  // Close profile popover when clicking outside
-  useEffect(() => {
-    const handleClickOutsideProfile = (e) => {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setShowProfileDropdown(false);
       }
     };
-    if (showProfileDropdown) {
-      document.addEventListener('mousedown', handleClickOutsideProfile);
+    if (showNotifications || showProfileDropdown) {
+      document.addEventListener('pointerdown', handlePointerOutside);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutsideProfile);
-  }, [showProfileDropdown]);
+    return () => document.removeEventListener('pointerdown', handlePointerOutside);
+  }, [showNotifications, showProfileDropdown]);
 
   return (
     <header className="top-header">
       {isMobile ? (
-        /* Mobile brand title (visible on mobile only) */
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="material-symbols-outlined text-primary" style={{ fontSize: '24px', fontWeight: 'bold' }}>healing</span>
-          <span style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--color-primary)' }}>Cuidados Paliativos</span>
+        /* Mobile brand — Palia logo */
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img
+            src="/logo_icon.png"
+            alt="Palia"
+            style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }}
+          />
+          <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>Palia</span>
         </div>
       ) : (
         /* Search Bar (desktop only) */
@@ -83,7 +91,7 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user, o
       {/* Action Buttons & Profile */}
       <div className="header-actions" style={{ position: 'relative' }}>
         <div ref={notifRef} style={{ position: 'relative' }}>
-          <button className="icon-btn" aria-label="Notificaciones" onClick={() => setShowNotifications(!showNotifications)} style={{ position: 'relative' }}>
+          <button className="icon-btn" aria-label="Notificaciones" onClick={toggleNotifications} style={{ position: 'relative' }}>
             <span className="material-symbols-outlined">notifications</span>
             {alerts.length > 0 && (
               <span className="badge" style={{ position: 'absolute', top: '8px', right: '8px', width: '8px', height: '8px', backgroundColor: 'var(--color-error)', borderRadius: 'var(--radius-full)' }}></span>
@@ -133,45 +141,86 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user, o
         <div ref={profileRef} style={{ position: 'relative' }}>
           <div 
             className="user-profile-menu" 
-            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+            onClick={toggleProfileDropdown}
+            role="button"
+            tabIndex={0}
+            aria-expanded={showProfileDropdown}
+            aria-haspopup="true"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleProfileDropdown();
+              }
+            }}
             style={{ cursor: 'pointer' }}
           >
             <div className="user-avatar" aria-label="Avatar del usuario administrador">
               {user?.photoURL ? (
-                <img src={user.photoURL} alt="Avatar Admin" />
+                <img 
+                  src={user.photoURL} 
+                  alt="Avatar Admin" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
+                />
               ) : (
                 <span>{user?.displayName ? user.displayName[0].toUpperCase() : 'A'}</span>
               )}
             </div>
-            <span className="user-name">{user?.displayName || 'Admin Palia'}</span>
-            <span className="material-symbols-outlined">expand_more</span>
+            {/* Only show name & arrow on desktop */}
+            {!isMobile && (
+              <>
+                <span className="user-name">{user?.displayName || 'Admin Palia'}</span>
+                <span className="material-symbols-outlined">expand_more</span>
+              </>
+            )}
           </div>
 
           {showProfileDropdown && (
-            <div 
-              className="notification-popover card" 
-              style={{
-                position: 'absolute',
-                top: '48px',
-                right: 0,
-                width: '240px',
-                padding: '16px',
-                zIndex: 100,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px'
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <strong style={{ fontSize: '14px', color: 'var(--color-on-surface)' }}>{user?.displayName || 'Coordinador Palia'}</strong>
-                <span style={{ fontSize: '12.5px', color: 'var(--color-outline)', wordBreak: 'break-all' }}>{user?.email || 'coordinacion@palia.org'}</span>
-                <span className="chip chip-info" style={{ alignSelf: 'flex-start', fontSize: '11px', marginTop: '6px' }}>Equipo Palia</span>
+            <div className="notification-popover profile-popover card">
+              {/* Avatar + name section */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden',
+                  backgroundColor: 'var(--color-primary-container)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <span style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '18px' }}>
+                      {user?.displayName ? user.displayName[0].toUpperCase() : 'A'}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                  <strong style={{ fontSize: '14px', color: 'var(--color-on-surface)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {user?.displayName || 'Coordinador Palia'}
+                  </strong>
+                  <span style={{ fontSize: '11.5px', color: 'var(--color-outline)', wordBreak: 'break-all' }}>
+                    {user?.email || 'coordinacion@palia.org'}
+                  </span>
+                  <span className="chip chip-info" style={{ alignSelf: 'flex-start', fontSize: '10px', marginTop: '4px', padding: '2px 8px' }}>
+                    Equipo Palia
+                  </span>
+                </div>
               </div>
               
-              <div style={{ height: '1.5px', backgroundColor: 'var(--color-outline-variant)', margin: '4px 0' }} />
+              <div style={{ height: '1.5px', backgroundColor: 'var(--color-outline-variant)', margin: '2px 0' }} />
+
+              {/* Quick actions */}
+              {onNavigate && (
+                <button
+                  className="btn btn-tertiary"
+                  onClick={() => { setShowProfileDropdown(false); onNavigate('configuracion'); }}
+                  style={{ width: '100%', height: '36px', fontSize: '13px', justifyContent: 'flex-start', gap: '8px', display: 'flex', alignItems: 'center' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>settings</span>
+                  Configuración
+                </button>
+              )}
               
               <button 
-                className="btn btn-error" 
+                className="btn"
                 onClick={onLogout}
                 style={{
                   width: '100%',

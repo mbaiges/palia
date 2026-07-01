@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { dbService } from '../services/db';
 import OfflineSync from '../components/OfflineSync';
+import { applyTheme, getStoredTheme } from '../tokens.js';
 
 export default function Settings({ onNavigate }) {
-  const [theme, setTheme] = useState(() => document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+  const [theme, setTheme] = useState(() => getStoredTheme());
   const isCloud = dbService.isCloudBackend();
   const [swStatus, setSwStatus] = useState('Registrado y Activo');
   const [notifPermission, setNotifPermission] = useState(() => 'Notification' in window ? Notification.permission : 'No compatible');
@@ -22,13 +23,7 @@ export default function Settings({ onNavigate }) {
   const toggleTheme = () => {
     const nextTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(nextTheme);
-    if (nextTheme === 'dark') {
-      document.documentElement.classList.remove('light');
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('light');
-    }
+    applyTheme(nextTheme);
   };
 
   const requestNotificationPermission = () => {
@@ -39,7 +34,7 @@ export default function Settings({ onNavigate }) {
           navigator.serviceWorker.ready.then(reg => {
             reg.showNotification('Palia', {
               body: 'Notificaciones habilitadas desde la configuración.',
-              icon: '/logo.png'
+              icon: '/logo_icon.png'
             });
           });
         }

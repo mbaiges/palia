@@ -1,16 +1,20 @@
-/* CSS Design System - Serenity & Clarity */
+/* =====================================================
+   Palia Design System — CSS Layer
+   Color tokens are injected dynamically via src/tokens.js.
+   This file only declares structural/static tokens plus
+   component styles that reference those tokens.
+   ===================================================== */
+
+/* Fallback light values (tokens.js will override at runtime) */
 :root {
   /* Surface Color Tiers */
   --color-background: #f8f9ff;
   --color-on-background: #0d1c2f;
-  
   --color-surface: #f8f9ff;
   --color-on-surface: #0d1c2f;
   --color-on-surface-variant: #3f484c;
-  
   --color-surface-dim: #ccdbf4;
   --color-surface-bright: #f8f9ff;
-  
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #eff4ff;
   --color-surface-container: #e6eeff;
@@ -22,16 +26,16 @@
   --color-on-primary: #ffffff;
   --color-primary-container: #d3f1ff;
   --color-on-primary-container: #003543;
-  
   --color-secondary: #4b6450;
   --color-on-secondary: #ffffff;
   --color-secondary-container: #cdead0;
   --color-on-secondary-container: #516a55;
-
   --color-tertiary: #505355;
   --color-on-tertiary: #ffffff;
   --color-tertiary-container: #686b6d;
   --color-on-tertiary-container: #eaecee;
+  --color-secondary-fixed: #cdead0;
+  --color-on-secondary-fixed-variant: #516a55;
 
   /* Urgency / Warnings */
   --color-error: #ba1a1a;
@@ -46,14 +50,14 @@
   --color-outline: #6f787d;
   --color-outline-variant: #bec8cd;
 
-  /* Border Radii */
+  /* Border Radii — static, never theme-dependent */
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1.5rem;
   --radius-full: 9999px;
 
-  /* Spacing */
+  /* Spacing — static */
   --touch-target-min: 44px;
   --spacing-gutter: 24px;
   --spacing-stack-sm: 8px;
@@ -61,6 +65,28 @@
   --spacing-stack-lg: 32px;
   --margin-mobile: 16px;
   --margin-desktop: 40px;
+
+  /* Shadow tokens */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.12);
+  --shadow-fab: 0 4px 14px rgba(0, 90, 113, 0.30);
+}
+
+/* ── Dark mode adjustments for shadow/glow ── */
+html.dark {
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.40), 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.50);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.70);
+  --shadow-fab: 0 4px 20px rgba(34, 211, 238, 0.25);
+  color-scheme: dark;
+}
+
+/* ── Dark mode glassmorphism overlays ── */
+html.dark .notification-popover,
+html.dark .card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 /* Global Reset & Base Styles */
@@ -449,6 +475,10 @@ p, label, input, textarea, select, button {
   width: 20%;
   gap: 2px;
   cursor: pointer;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  padding: 0;
 }
 
 .mobile-nav-item.active {
@@ -1049,6 +1079,18 @@ p, label, input, textarea, select, button {
   animation: slideDown 0.15s ease;
 }
 
+.profile-popover {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header-actions,
+.top-header {
+  overflow: visible;
+}
+
 /* Mobile overflow and responsive overrides */
 @media (max-width: 768px) {
   .mobile-only {
@@ -1068,6 +1110,12 @@ p, label, input, textarea, select, button {
     right: 16px;
     width: auto;
     max-width: calc(100vw - 32px);
+  }
+
+  .profile-popover {
+    left: auto;
+    right: 12px;
+    width: min(280px, calc(100vw - 24px));
   }
 
   .app-shell {
