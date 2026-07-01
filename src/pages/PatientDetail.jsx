@@ -9,10 +9,18 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 1024 : false);
+
   useEffect(() => {
     setPatientState(dbService.getPatient(patientId));
     setFollowUpsState(dbService.getFollowUpsForPatient(patientId));
   }, [patientId]);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const patient = patientState;
   const caregiver = dbService.getCaregiverForPatient(patientId);
@@ -99,11 +107,13 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
             </nav>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button className="btn btn-primary" onClick={onNewFollowUp} style={{ gap: '6px' }}>
-            <span className="material-symbols-outlined">edit_note</span>
-            Registrar Seguimiento
-          </button>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
+          {!isMobile && (
+            <button className="btn btn-primary" onClick={onNewFollowUp} style={{ gap: '6px' }}>
+              <span className="material-symbols-outlined">edit_note</span>
+              Registrar Seguimiento
+            </button>
+          )}
           <button 
             className="btn btn-secondary" 
             onClick={() => setIsAlertModalOpen(true)} 
@@ -114,7 +124,9 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              fontWeight: 700
+              fontWeight: 700,
+              flex: isMobile ? '1 1 0' : 'none',
+              justifyContent: 'center'
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>bolt</span>
@@ -126,7 +138,9 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
             style={{ 
               display: 'flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '6px',
+              flex: isMobile ? '1 1 0' : 'none',
+              justifyContent: 'center'
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>print</span>

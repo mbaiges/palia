@@ -143,7 +143,23 @@ export default function HomeDashboard({ user, onNavigate, onViewDetail }) {
         <section className="card" style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-primary)', margin: 0 }}>Resumen Semanal</h2>
-            <select aria-label="Seleccionar periodo" style={{ padding: '4px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-outline-variant)', fontSize: '13px', backgroundColor: 'var(--color-surface-container-low)' }}>
+            <select 
+              aria-label="Seleccionar periodo" 
+              style={{ 
+                height: '34px',
+                padding: '0 16px', 
+                borderRadius: 'var(--radius-full)', 
+                border: '1.5px solid var(--color-outline-variant)', 
+                fontSize: '13px', 
+                fontWeight: 700,
+                color: 'var(--color-primary)',
+                backgroundColor: 'var(--color-surface-container-lowest)',
+                outline: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                transition: 'all 0.15s ease'
+              }}
+            >
               <option>Esta semana</option>
               <option>Últimos 14 días</option>
             </select>

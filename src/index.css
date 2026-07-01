@@ -20,8 +20,8 @@
   /* Brand Tones */
   --color-primary: #005a71;
   --color-on-primary: #ffffff;
-  --color-primary-container: #0e7490;
-  --color-on-primary-container: #d3f1ff;
+  --color-primary-container: #d3f1ff;
+  --color-on-primary-container: #003543;
   
   --color-secondary: #4b6450;
   --color-on-secondary: #ffffff;
@@ -286,7 +286,7 @@ p, label, input, textarea, select, button {
 .user-avatar img {
   width: 100%;
   height: 100%;
-  object-cover: cover;
+  object-fit: cover;
 }
 
 .user-name {

@@ -11,6 +11,46 @@ export default function Stats() {
   const totalVolunteersCount = volunteers.filter(v => v.status === 'Activo').length;
   const totalVisitsCount = followUps.length;
 
+  const uniquePatientsCount = new Set(followUps.map(f => f.patientId)).size;
+  const hasAlertVisits = followUps.some(f => f.alertActivated);
+  
+  // Dynamic Badge Unlocking
+  const badgesList = [
+    {
+      id: 'primer_paso',
+      name: 'Primer Paso',
+      description: 'Completaste tus primeras 5 horas de servicio de acompañamiento.',
+      unlocked: totalVisitsCount >= 1, // At least one visit logged
+      icon: 'volunteer_activism',
+      date: 'Obtenido: Reciente'
+    },
+    {
+      id: 'companero_fiel',
+      name: 'Compañero Fiel',
+      description: 'Acompañamiento continuo a 2 o más familias de pacientes.',
+      unlocked: uniquePatientsCount >= 2,
+      icon: 'diversity_3',
+      date: 'Obtenido: Reciente'
+    },
+    {
+      id: 'especialista',
+      name: 'Especialista',
+      description: 'Asistencia y soporte clínico en situaciones de alerta crítica.',
+      unlocked: hasAlertVisits,
+      icon: 'verified',
+      date: 'Obtenido: Reciente'
+    },
+    {
+      id: 'guia_senior',
+      name: 'Guía Senior',
+      description: 'Mentoría y registro de 6 o más seguimientos de visitas.',
+      unlocked: totalVisitsCount >= 6,
+      icon: 'star',
+      progress: Math.min(100, Math.round((totalVisitsCount / 6) * 100)),
+      date: 'Obtenido: Reciente'
+    }
+  ];
+
   // Monthly stats list matching mock
   const monthlyData = [
     { label: 'Ene', value: 12, height: '45%' },
@@ -172,59 +212,45 @@ export default function Stats() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-            {/* Card 1 */}
-            <div className="card" style={{ backgroundColor: 'var(--color-surface-container-lowest)', display: 'flex', flexDirection: 'column', gap: '10px', padding: '20px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-full)', backgroundColor: 'rgba(0, 90, 113, 0.08)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>volunteer_activism</span>
-              </div>
-              <h5 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-on-surface)' }}>Primer Paso</h5>
-              <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: 0, lineHeight: '1.4' }}>Completaste tus primeras 50 horas de servicio.</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-secondary)', fontWeight: 700, marginTop: '8px' }}>
-                <span className="material-symbols-outlined text-[14px]">check_circle</span> Obtenido: 12/2023
-              </div>
-            </div>
-
-            {/* Card 2 */}
-            <div className="card" style={{ backgroundColor: 'var(--color-surface-container-lowest)', display: 'flex', flexDirection: 'column', gap: '10px', padding: '20px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-full)', backgroundColor: 'rgba(0, 90, 113, 0.08)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>diversity_3</span>
-              </div>
-              <h5 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-on-surface)' }}>Compañero Fiel</h5>
-              <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: 0, lineHeight: '1.4' }}>Acompañamiento continuo a 5 familias diferentes.</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-secondary)', fontWeight: 700, marginTop: '8px' }}>
-                <span className="material-symbols-outlined text-[14px]">check_circle</span> Obtenido: 02/2024
-              </div>
-            </div>
-
-            {/* Card 3 */}
-            <div className="card" style={{ backgroundColor: 'var(--color-surface-container-lowest)', display: 'flex', flexDirection: 'column', gap: '10px', padding: '20px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-full)', backgroundColor: 'rgba(0, 90, 113, 0.08)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-              </div>
-              <h5 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-on-surface)' }}>Especialista</h5>
-              <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: 0, lineHeight: '1.4' }}>Certificación avanzada en escucha activa completada.</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-secondary)', fontWeight: 700, marginTop: '8px' }}>
-                <span className="material-symbols-outlined text-[14px]">check_circle</span> Obtenido: 04/2024
-              </div>
-            </div>
-
-            {/* Locked Milestone Card */}
-            <div className="card" style={{ backgroundColor: 'var(--color-surface-container-lowest)', display: 'flex', flexDirection: 'column', gap: '10px', padding: '20px', borderStyle: 'dashed', opacity: 0.65 }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--color-surface-container-high)', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span className="material-symbols-outlined text-2xl">lock</span>
-              </div>
-              <h5 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-on-surface)' }}>Guía Senior</h5>
-              <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: 0, lineHeight: '1.4' }}>Mentoría a 3 nuevos voluntarios del equipo.</p>
-              <div style={{ marginTop: '12px' }}>
-                <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--color-surface-container-high)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                  <div style={{ width: '65%', height: '100%', backgroundColor: 'var(--color-primary)' }}></div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginTop: '4px', fontWeight: 700, color: 'var(--color-on-surface-variant)' }}>
-                  <span>Progreso</span>
-                  <span>65%</span>
-                </div>
-              </div>
-            </div>
+            {badgesList.map(badge => {
+              if (badge.unlocked) {
+                return (
+                  <div key={badge.id} className="card" style={{ backgroundColor: 'var(--color-surface-container-lowest)', display: 'flex', flexDirection: 'column', gap: '10px', padding: '20px' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-full)', backgroundColor: 'rgba(0, 90, 113, 0.08)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>{badge.icon}</span>
+                    </div>
+                    <h5 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-on-surface)' }}>{badge.name}</h5>
+                    <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: 0, lineHeight: '1.4' }}>{badge.description}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-secondary)', fontWeight: 700, marginTop: '8px' }}>
+                      <span className="material-symbols-outlined text-[14px]">check_circle</span> {badge.date}
+                    </div>
+                  </div>
+                );
+              } else {
+                return (
+                  <div key={badge.id} className="card" style={{ backgroundColor: 'var(--color-surface-container-lowest)', display: 'flex', flexDirection: 'column', gap: '10px', padding: '20px', borderStyle: 'dashed', opacity: 0.65 }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--color-surface-container-high)', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span className="material-symbols-outlined text-2xl">lock</span>
+                    </div>
+                    <h5 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--color-on-surface)' }}>{badge.name}</h5>
+                    <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: 0, lineHeight: '1.4' }}>{badge.description}</p>
+                    {badge.progress !== undefined ? (
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--color-surface-container-high)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                          <div style={{ width: `${badge.progress}%`, height: '100%', backgroundColor: 'var(--color-primary)' }}></div>
+                        </div>
+                        <div style={{ display: 'flex', fontSize: '10px', marginTop: '4px', fontWeight: 700, color: 'var(--color-on-surface-variant)', justifyContent: 'space-between' }}>
+                          <span>Progreso</span>
+                          <span>{badge.progress}%</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '11px', color: 'var(--color-outline)', marginTop: '8px', fontWeight: 600 }}>Bloqueado</span>
+                    )}
+                  </div>
+                );
+              }
+            })}
           </div>
         </div>
 

@@ -157,6 +157,7 @@ function App() {
           setSearchVal={setSearchVal} 
           onSearchFocus={() => activeTab !== 'pacientes' && handleTabChange('pacientes')}
           user={user}
+          onLogout={handleLogout}
         />
         
         <main className="content-canvas">

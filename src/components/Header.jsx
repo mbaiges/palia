@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { dbService } from '../services/db';
 
-export default function Header({ searchVal, setSearchVal, onSearchFocus, user }) {
+export default function Header({ searchVal, setSearchVal, onSearchFocus, user, onLogout }) {
   const isCloud = dbService.isCloudBackend();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const notifRef = useRef(null);
+  const profileRef = useRef(null);
   const alerts = dbService.getPatients().filter(p => p.currentStatus === 'Alerta');
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 1024 : false);
@@ -17,7 +19,7 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user })
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Close popover when clicking outside
+  // Close notifications popover when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
@@ -29,6 +31,19 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user })
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showNotifications]);
+
+  // Close profile popover when clicking outside
+  useEffect(() => {
+    const handleClickOutsideProfile = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setShowProfileDropdown(false);
+      }
+    };
+    if (showProfileDropdown) {
+      document.addEventListener('mousedown', handleClickOutsideProfile);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutsideProfile);
+  }, [showProfileDropdown]);
 
   return (
     <header className="top-header">
@@ -115,16 +130,71 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user })
         
         <div className="header-divider"></div>
         
-        <div className="user-profile-menu">
-          <div className="user-avatar" aria-label="Avatar del usuario administrador">
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="Avatar Admin" />
-            ) : (
-              <span>{user?.displayName ? user.displayName[0].toUpperCase() : 'A'}</span>
-            )}
+        <div ref={profileRef} style={{ position: 'relative' }}>
+          <div 
+            className="user-profile-menu" 
+            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className="user-avatar" aria-label="Avatar del usuario administrador">
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="Avatar Admin" />
+              ) : (
+                <span>{user?.displayName ? user.displayName[0].toUpperCase() : 'A'}</span>
+              )}
+            </div>
+            <span className="user-name">{user?.displayName || 'Admin Palia'}</span>
+            <span className="material-symbols-outlined">expand_more</span>
           </div>
-          <span className="user-name">{user?.displayName || 'Admin Palia'}</span>
-          <span className="material-symbols-outlined">expand_more</span>
+
+          {showProfileDropdown && (
+            <div 
+              className="notification-popover card" 
+              style={{
+                position: 'absolute',
+                top: '48px',
+                right: 0,
+                width: '240px',
+                padding: '16px',
+                zIndex: 100,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <strong style={{ fontSize: '14px', color: 'var(--color-on-surface)' }}>{user?.displayName || 'Coordinador Palia'}</strong>
+                <span style={{ fontSize: '12.5px', color: 'var(--color-outline)', wordBreak: 'break-all' }}>{user?.email || 'coordinacion@palia.org'}</span>
+                <span className="chip chip-info" style={{ alignSelf: 'flex-start', fontSize: '11px', marginTop: '6px' }}>Equipo Palia</span>
+              </div>
+              
+              <div style={{ height: '1.5px', backgroundColor: 'var(--color-outline-variant)', margin: '4px 0' }} />
+              
+              <button 
+                className="btn btn-error" 
+                onClick={onLogout}
+                style={{
+                  width: '100%',
+                  height: '36px',
+                  fontSize: '13px',
+                  justifyContent: 'center',
+                  backgroundColor: 'var(--color-error-container)',
+                  color: 'var(--color-error)',
+                  borderColor: 'var(--color-error)',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer',
+                  border: '1px solid var(--color-error)'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
+                Cerrar Sesión
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
