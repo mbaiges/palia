@@ -309,12 +309,12 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
           <button
             onClick={onNewPatient}
             aria-label="Añadir nuevo paciente"
+            className="fab fab--patients"
             style={{
-              position: 'fixed', bottom: '92px', right: '16px', height: '56px',
               backgroundColor: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)',
-              borderRadius: '16px', border: 'none', padding: '0 20px', zIndex: 40,
+              borderRadius: '16px', border: 'none', padding: '0 20px',
               boxShadow: '0 4px 14px rgba(0, 90, 113, 0.25)', display: 'flex', alignItems: 'center', gap: '8px',
-              cursor: 'pointer'
+              cursor: 'pointer', width: 'auto', height: '56px'
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>person_add</span>

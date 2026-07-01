@@ -177,7 +177,7 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
             {/* 3-column symptom dropdowns matching mock */}
             <div className="form-group">
               <label>Evaluación de Síntomas</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '8px' }}>
+              <div className="symptom-eval-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '8px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', margin: 0, color: 'var(--color-on-surface-variant)' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-primary)' }}>bolt</span>

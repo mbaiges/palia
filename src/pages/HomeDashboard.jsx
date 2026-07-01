@@ -217,14 +217,16 @@ export default function HomeDashboard({ user, onNavigate, onViewDetail }) {
           <div className="bar-chart bar-chart--weekly">
             {weeklyData.map(bar => (
               <div key={bar.label} className="bar-chart__column">
-                <div
-                  title={`${bar.label}: ${bar.value} visitas`}
-                  className="bar-chart__bar"
-                  style={{
-                    height: bar.height,
-                    backgroundColor: bar.active ? 'var(--color-primary)' : 'rgba(0, 90, 113, 0.2)',
-                  }}
-                />
+                <div className="bar-chart__track">
+                  <div
+                    title={`${bar.label}: ${bar.value} visitas`}
+                    className="bar-chart__bar"
+                    style={{
+                      '--bar-fill': bar.height,
+                      backgroundColor: bar.active ? 'var(--color-primary)' : 'rgba(0, 90, 113, 0.2)',
+                    }}
+                  />
+                </div>
                 <span className="bar-chart__label" style={{ fontWeight: bar.active ? 700 : 400, color: bar.active ? 'var(--color-primary)' : 'var(--color-outline)' }}>
                   {bar.label}
                 </span>

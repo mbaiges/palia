@@ -137,13 +137,15 @@ export default function Stats() {
             {monthlyData.map(bar => (
               <div key={bar.label} className="bar-chart__column">
                 <span className="bar-chart__value" style={{ color: bar.active ? 'var(--color-primary)' : 'var(--color-outline)' }}>{bar.value}h</span>
-                <div
-                  className="bar-chart__bar"
-                  style={{
-                    height: bar.height,
-                    backgroundColor: bar.active ? 'var(--color-primary)' : 'rgba(0, 90, 113, 0.15)',
-                  }}
-                />
+                <div className="bar-chart__track">
+                  <div
+                    className="bar-chart__bar"
+                    style={{
+                      '--bar-fill': bar.height,
+                      backgroundColor: bar.active ? 'var(--color-primary)' : 'rgba(0, 90, 113, 0.15)',
+                    }}
+                  />
+                </div>
                 <span className="bar-chart__label" style={{ fontWeight: bar.active ? 700 : 400, color: bar.active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)' }}>
                   {bar.label}
                 </span>

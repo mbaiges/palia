@@ -39,8 +39,10 @@ test.describe('Mobile page chrome audit', () => {
 
     const headerPosition = await header.evaluate((el) => getComputedStyle(el).position);
     const navPosition = await nav.evaluate((el) => getComputedStyle(el).position);
+    const shellDisplay = await page.locator('.app-shell').evaluate((el) => getComputedStyle(el).display);
     expect(headerPosition).toBe('relative');
     expect(navPosition).toBe('relative');
+    expect(shellDisplay).toBe('grid');
   }
 
   async function assertFabAboveNav(page) {
@@ -86,6 +88,15 @@ test.describe('Mobile page chrome audit', () => {
     await page.locator('.mobile-nav-item').nth(2).click();
     await expect(page.locator('text=Estadísticas e Impacto')).toBeVisible();
     await assertChromeClearance(page);
+
+    const labels = page.locator('.bar-chart--monthly .bar-chart__label');
+    await expect(labels).toHaveCount(12);
+    for (let i = 0; i < 12; i++) {
+      const box = await labels.nth(i).boundingBox();
+      expect(box.width).toBeGreaterThan(0);
+      expect(box.height).toBeGreaterThan(0);
+    }
+
     await page.screenshot({ path: path.join(screenshotDir, '04_stats.png'), fullPage: true });
   });
 
@@ -101,5 +112,67 @@ test.describe('Mobile page chrome audit', () => {
     await expect(page.locator('text=Panel de Administración')).toBeVisible();
     await assertChromeClearance(page);
     await page.screenshot({ path: path.join(screenshotDir, '06_administracion.png'), fullPage: true });
+  });
+
+  test('admin invitations sub-tab layout', async ({ page }) => {
+    await page.locator('.mobile-nav-item').nth(3).click();
+    await page.click('text=Invitaciones y Accesos');
+    await expect(page.locator('text=Invitaciones Activas')).toBeVisible();
+    await assertChromeClearance(page);
+    await page.screenshot({ path: path.join(screenshotDir, '07_admin_invitaciones.png'), fullPage: true });
+  });
+
+  test('new patient form layout', async ({ page }) => {
+    await page.locator('.mobile-nav-item').nth(1).click();
+    await page.getByRole('button', { name: 'Añadir nuevo paciente' }).click();
+    await expect(page.locator('text=Registrar Nuevo Paciente')).toBeVisible();
+    await assertChromeClearance(page);
+    await page.screenshot({ path: path.join(screenshotDir, '08_nuevo_paciente.png'), fullPage: true });
+  });
+
+  test('new follow-up form layout', async ({ page }) => {
+    await page.locator('.mobile-nav-item').nth(1).click();
+    await page.locator('.card', { hasText: 'Ricardo Mendoza S.' }).locator('button').first().click();
+    await page.locator('.fab').click();
+    await expect(page.locator('text=Nuevo Seguimiento')).toBeVisible();
+    await assertChromeClearance(page);
+    await page.screenshot({ path: path.join(screenshotDir, '09_nuevo_seguimiento.png'), fullPage: true });
+  });
+
+  test('header notifications popover layout', async ({ page }) => {
+    await page.locator('.header-actions button[aria-label="Notificaciones"]').click();
+    await expect(page.locator('.notification-popover')).toBeVisible();
+    await assertChromeClearance(page);
+
+    const popoverBox = await page.locator('.notification-popover').boundingBox();
+    const headerBox = await page.locator('.top-header').boundingBox();
+    const navBox = await page.locator('.mobile-nav').boundingBox();
+    expect(popoverBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height - 2);
+    expect(popoverBox.y + popoverBox.height).toBeLessThanOrEqual(navBox.y + 1);
+
+    await page.screenshot({ path: path.join(screenshotDir, '10_notificaciones_popover.png'), fullPage: false });
+  });
+
+  test('header profile popover layout', async ({ page }) => {
+    await page.locator('.user-profile-menu').click();
+    await expect(page.locator('.profile-popover')).toBeVisible();
+    await assertChromeClearance(page);
+
+    const popoverBox = await page.locator('.profile-popover').boundingBox();
+    const headerBox = await page.locator('.top-header').boundingBox();
+    const navBox = await page.locator('.mobile-nav').boundingBox();
+    expect(popoverBox.x + popoverBox.width).toBeLessThanOrEqual(390 + 1);
+    expect(popoverBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height - 2);
+    expect(popoverBox.y + popoverBox.height).toBeLessThanOrEqual(navBox.y + 1);
+
+    await page.screenshot({ path: path.join(screenshotDir, '11_perfil_popover.png'), fullPage: false });
+  });
+
+  test('login page layout', async ({ page }) => {
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await expect(page.locator('text=Portal del Coordinador')).toBeVisible();
+    await expect(page.locator('.mobile-nav')).toHaveCount(0);
+    await page.screenshot({ path: path.join(screenshotDir, '12_login.png'), fullPage: true });
   });
 });

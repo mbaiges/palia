@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { dbService } from '../services/db';
 
 export default function Header({ searchVal, setSearchVal, onSearchFocus, user, onLogout, onNavigate }) {
@@ -51,6 +52,17 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user, o
 
   return (
     <header className="top-header">
+      {isMobile && (showNotifications || showProfileDropdown) && createPortal(
+        <div
+          className="mobile-popover-scrim"
+          aria-hidden="true"
+          onPointerDown={() => {
+            setShowNotifications(false);
+            setShowProfileDropdown(false);
+          }}
+        />,
+        document.body
+      )}
       {isMobile ? (
         /* Mobile brand — Palia logo */
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
