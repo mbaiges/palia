@@ -13,6 +13,7 @@
 **/playwright-report/
 **/.vite/
 **/target/
+e2e/artifacts/
 **/*.db
 **/*.db-shm
 **/*.db-wal
