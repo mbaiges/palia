@@ -1,0 +1,21 @@
+{
+  "app": { "tagline": "A reusable authenticated application foundation" },
+  "email": {
+    "verifySubject": "Verify your account",
+    "resetSubject": "Reset your password",
+    "verifyTitle": "Verify your email",
+    "useCode": "Use this code to verify your account:",
+    "orClick": "Or click the button below:",
+    "verifyButton": "Verify my email",
+    "codesExpire": "Codes expire in 15 minutes.",
+    "ignoreIfNotRequested": "If you didn't request this, you can ignore it.",
+    "resetTitle": "Reset your password",
+    "resetClick": "Click the button below to choose a new password:",
+    "resetButton": "Reset password",
+    "linkExpires": "This link expires in 1 hour."
+  },
+  "push": {
+    "subscriptionSaved": "Push subscription saved",
+    "subscriptionRemoved": "Push subscription removed"
+  }
+}

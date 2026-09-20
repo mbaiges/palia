@@ -1,0 +1,16 @@
+---
+description: Load agent skills from .agentic/open-agent-skills; apply shared guardrails
+alwaysApply: true
+---
+
+Apply [guardrails](.agentic/open-agent-skills/skills/_shared/guardrails.md) on every skill use.
+
+| Skill | Path |
+|------|------|
+| functional-spec | .agentic/open-agent-skills/skills/functional-spec/SKILL.md |
+| technical-spec | .agentic/open-agent-skills/skills/technical-spec/SKILL.md |
+| loop-build | .agentic/open-agent-skills/skills/loop-build/SKILL.md |
+
+Pipeline order: functional-spec → technical-spec → loop-build.
+
+Setup: see [docs/open-agent-skills-setup.md](../../docs/open-agent-skills-setup.md).

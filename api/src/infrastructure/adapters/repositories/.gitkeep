@@ -1,0 +1,11 @@
+# Infrastructure Repository Implementations
+
+This directory contains concrete implementations of domain repository interfaces.
+
+## Google Sheets Integration (Future)
+
+Repository implementations will:
+- Implement domain repository interfaces
+- Connect to Google Sheets API
+- Handle data transformation between sheets and domain models
+- Manage authentication and API rate limiting

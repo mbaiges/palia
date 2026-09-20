@@ -1,0 +1,9 @@
+# Application Services
+
+This directory contains application services (use cases) that orchestrate domain logic and coordinate with infrastructure.
+
+Application services should:
+- Orchestrate domain services and repositories
+- Handle application-specific logic
+- Manage transactions and cross-cutting concerns
+- Serve as the facade for the domain layer

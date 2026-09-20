@@ -1,26 +1,15 @@
 {
-  "name": "medice-app",
+  "name": "medice-monorepo",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "oxlint",
-    "preview": "vite preview",
-    "test:unit": "node --test src/**/*.test.js",
-    "test:e2e": "playwright test"
-  },
-  "dependencies": {
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.61.1",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.3",
-    "oxlint": "^1.71.0",
-    "vite": "^8.1.1"
+    "dev": "node scripts/dev.js",
+    "front:dev": "npm run dev --prefix front",
+    "api:dev": "npm run dev --prefix api",
+    "front:build": "npm run build --prefix front",
+    "api:build": "npm run build --prefix api",
+    "front:test:unit": "npm run test:unit --prefix front",
+    "front:test:e2e": "npm run test:e2e --prefix front",
+    "api:test": "npm test --prefix api"
   }
 }

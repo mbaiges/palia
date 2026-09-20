@@ -1,0 +1,11 @@
+# Domain Repository Interfaces
+
+This directory contains repository interfaces that define the contracts for data access.
+The actual implementations will be in `infrastructure/adapters/repositories/`.
+
+## Future Google Sheets Integration
+
+Repository implementations will connect to Google Sheets as the data source:
+- Each sheet will represent a table/entity
+- Repositories will handle CRUD operations via Google Sheets API
+- Data validation and business rules will be enforced in domain services

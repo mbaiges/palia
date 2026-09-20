@@ -1,0 +1,21 @@
+{
+  "app": { "tagline": "Una base reutilizable para aplicaciones autenticadas" },
+  "email": {
+    "verifySubject": "Verificá tu cuenta",
+    "resetSubject": "Restablecé tu contraseña",
+    "verifyTitle": "Verificá tu email",
+    "useCode": "Usá este código para verificar tu cuenta:",
+    "orClick": "O hacé clic en el botón de abajo:",
+    "verifyButton": "Verificar mi email",
+    "codesExpire": "Los códigos caducan en 15 minutos.",
+    "ignoreIfNotRequested": "Si no pediste esto, podés ignorarlo.",
+    "resetTitle": "Restablecé tu contraseña",
+    "resetClick": "Hacé clic en el botón de abajo para elegir una nueva contraseña:",
+    "resetButton": "Restablecer contraseña",
+    "linkExpires": "Este enlace caduca en 1 hora."
+  },
+  "push": {
+    "subscriptionSaved": "Suscripción push guardada",
+    "subscriptionRemoved": "Suscripción push eliminada"
+  }
+}

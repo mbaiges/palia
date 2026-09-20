@@ -1,0 +1,9 @@
+# Domain Services
+
+This directory contains domain services that encapsulate business logic that doesn't naturally fit within a single entity.
+
+Domain services should:
+- Contain pure business logic
+- Be stateless
+- Coordinate between multiple entities
+- Enforce business rules and invariants

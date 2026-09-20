@@ -1,0 +1,8 @@
+# Domain Models
+
+This directory contains domain entities and value objects that represent the core business concepts.
+
+Models should be:
+- Framework-agnostic
+- Rich in behavior (not just data containers)
+- Focused on business rules and invariants

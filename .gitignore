@@ -1,38 +1,31 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Playwright Test Outputs
-test-results/
-playwright-report/
-blob-report/
-playwright/.cache/
-tests/screenshots/
-public/logo_manifest_512_preview.png
-
-# Local Environment Configs
+# Local configuration and secrets
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!env.example
 
+# Dependencies and generated output
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+**/test-results/
+**/playwright-report/
+**/.vite/
+**/target/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.db-journal
+
+# Local agent/editor/runtime files
+.aider*
+.agentic/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+tmp/
+temp/
+.cache/
