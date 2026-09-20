@@ -20,7 +20,7 @@
 
 # Local agent/editor/runtime files
 .aider*
-.agentic/
+.agentic/open-agent-skills/
 .vscode/
 .idea/
 .DS_Store
