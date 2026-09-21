@@ -20,13 +20,38 @@ async function bootstrap() {
   const port = parseInt(process.env.PORT || '3000', 10);
   const server = new Server(port);
   const httpServer = createServer(server.getApp());
-  container.resolve(SocketIORealtimeGateway).attach(httpServer);
+  const realtimeGateway = container.resolve(SocketIORealtimeGateway);
+  realtimeGateway.attach(httpServer);
 
   httpServer.listen(port, () => {
     server.logReady();
   });
 
-  startMediaAssetCleanupJob();
+  const stopMediaAssetCleanupJob = startMediaAssetCleanupJob();
+  let shutdownPromise: Promise<void> | undefined;
+  const shutdown = (signal: NodeJS.Signals) => {
+    if (shutdownPromise) return shutdownPromise;
+    console.log(`[Shutdown] Received ${signal}; closing server gracefully.`);
+    stopMediaAssetCleanupJob();
+    const forceCloseTimer = setTimeout(() => {
+      httpServer.closeAllConnections();
+    }, Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 10_000));
+    forceCloseTimer.unref();
+    shutdownPromise = (async () => {
+      try {
+        await realtimeGateway.close();
+        await DatabaseConfig.close();
+      } catch (error) {
+        console.error('[Shutdown] Graceful shutdown failed:', error);
+        process.exitCode = 1;
+      } finally {
+        clearTimeout(forceCloseTimer);
+      }
+    })();
+    return shutdownPromise;
+  };
+  process.once('SIGTERM', () => void shutdown('SIGTERM'));
+  process.once('SIGINT', () => void shutdown('SIGINT'));
 }
 
 bootstrap().catch(err => {

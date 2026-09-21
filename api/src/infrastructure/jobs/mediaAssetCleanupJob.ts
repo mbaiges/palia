@@ -5,7 +5,7 @@ export async function runMediaAssetCleanupOnce(): Promise<number> {
   return container.resolve<MediaAssetService>('MediaAssetService').cleanupExpired();
 }
 
-export function startMediaAssetCleanupJob(): void {
+export function startMediaAssetCleanupJob(): () => void {
   const intervalMs = Number(process.env.MEDIA_CLEANUP_INTERVAL_MS ?? 60 * 60 * 1000);
   const run = async () => {
     try {
@@ -16,5 +16,7 @@ export function startMediaAssetCleanupJob(): void {
     }
   };
   void run();
-  setInterval(run, intervalMs);
+  const interval = setInterval(run, intervalMs);
+  interval.unref();
+  return () => clearInterval(interval);
 }

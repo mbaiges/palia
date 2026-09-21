@@ -30,6 +30,25 @@ export class MediceController {
     return (req as AuthenticatedRequest).user!.id;
   }
 
+  private async recordAudit(
+    trx: Knex.Transaction,
+    actorId: string,
+    action: string,
+    entityType: string,
+    entityId: string | null,
+    metadata: Record<string, unknown> = {},
+  ): Promise<void> {
+    await trx('audit_events').insert({
+      id: randomUUID(),
+      actor_id: actorId,
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      metadata_json: JSON.stringify(metadata),
+      created_at: now(),
+    });
+  }
+
   private async notifyAssignedTeam(
     patientId: string,
     alertId: string,
@@ -416,6 +435,20 @@ export class MediceController {
           throw Object.assign(new Error('Paciente no encontrado'), {
             status: 404,
           });
+        if (existing) {
+          const expectedUpdatedAt = Date.parse(String(body.updatedAt ?? ''));
+          const currentUpdatedAt = Date.parse(String(existing.updated_at));
+          if (
+            !Number.isFinite(expectedUpdatedAt) ||
+            expectedUpdatedAt !== currentUpdatedAt
+          )
+            throw Object.assign(
+              new Error(
+                'La ficha cambió desde que la abriste. Recargá los datos antes de guardar.',
+              ),
+              { status: 409 }
+            );
+        }
         if (body.hospitalId) {
           const hospitalQuery = trx('hospitals').where({ id: body.hospitalId });
           if (existing?.hospital_id !== body.hospitalId)
@@ -463,6 +496,14 @@ export class MediceController {
             ...caregiver,
             created_at: timestamp,
           });
+        await this.recordAudit(
+          trx,
+          this.userId(req),
+          existing ? 'patient.updated' : 'patient.created',
+          'patient',
+          id,
+          { fields: ['patient', 'caregiver'] },
+        );
       });
     } catch (error: any) {
       if (
@@ -487,9 +528,20 @@ export class MediceController {
 
   async setPatientArchive(req: Request, res: Response): Promise<void> {
     const at = req.path.endsWith('/restore') ? null : now();
-    const count = await this.db('patients')
-      .where({ id: req.params.patientId })
-      .update({ archived_at: at, updated_at: now() });
+    const count = await this.db.transaction(async trx => {
+      const affected = await trx('patients')
+        .where({ id: req.params.patientId })
+        .update({ archived_at: at, updated_at: now() });
+      if (affected)
+        await this.recordAudit(
+          trx,
+          this.userId(req),
+          at ? 'patient.archived' : 'patient.restored',
+          'patient',
+          req.params.patientId,
+        );
+      return affected;
+    });
     if (!count) {
       res.status(404).json({ error: 'Paciente no encontrado' });
       return;
@@ -540,6 +592,9 @@ export class MediceController {
             created_at: now(),
           }))
         );
+      await this.recordAudit(trx, this.userId(req), 'patient.assignments_updated', 'patient', patientId, {
+        assignmentCount: userIds.length,
+      });
     });
     res.json({ data: userIds });
   }
@@ -745,6 +800,15 @@ export class MediceController {
             created_at: timestamp,
           });
         }
+        await this.recordAudit(trx, authorId, 'follow_up.created', 'follow_up', id, {
+          patientId: patient.id,
+          alertCreated: Boolean(createdAlertId),
+        });
+        if (createdAlertId)
+          await this.recordAudit(trx, authorId, 'alert.created', 'alert', createdAlertId, {
+            patientId: patient.id,
+            source: 'follow_up',
+          });
       });
     } catch (error: any) {
       if (error?.code === 'SQLITE_CONSTRAINT_UNIQUE') {
@@ -871,7 +935,13 @@ export class MediceController {
       resolved_at: null,
       resolution_note: null,
     };
-    await this.db('alerts').insert(alert);
+    await this.db.transaction(async trx => {
+      await trx('alerts').insert(alert);
+      await this.recordAudit(trx, alert.created_by, 'alert.created', 'alert', alert.id, {
+        patientId: patient.id,
+        source: 'standalone',
+      });
+    });
     try {
       await this.notifyAssignedTeam(patient.id, alert.id, alert.created_by);
     } catch (error) {
@@ -884,14 +954,26 @@ export class MediceController {
   }
 
   async resolveAlert(req: Request, res: Response): Promise<void> {
-    const count = await this.db('alerts')
-      .where({ id: req.params.alertId, status: 'active' })
-      .update({
-        status: 'resolved',
-        resolved_by: this.userId(req),
-        resolved_at: now(),
-        resolution_note: req.body?.note?.trim() || null,
-      });
+    const count = await this.db.transaction(async trx => {
+      const alert = await trx('alerts')
+        .where({ id: req.params.alertId, status: 'active' })
+        .first('patient_id');
+      if (!alert) return 0;
+      const affected = await trx('alerts')
+        .where({ id: req.params.alertId, status: 'active' })
+        .update({
+          status: 'resolved',
+          resolved_by: this.userId(req),
+          resolved_at: now(),
+          resolution_note: req.body?.note?.trim() || null,
+        });
+      if (affected)
+        await this.recordAudit(trx, this.userId(req), 'alert.resolved', 'alert', req.params.alertId, {
+          patientId: alert.patient_id,
+          resolutionNoteProvided: Boolean(req.body?.note?.trim()),
+        });
+      return affected;
+    });
     if (!count) {
       res.status(404).json({ error: 'Alerta activa no encontrada' });
       return;
@@ -1048,12 +1130,26 @@ export class MediceController {
       return;
     }
     try {
-      await this.db('app_settings_allowed_users').insert({
-        email,
-        created_at: now(),
+      await this.db.transaction(async trx => {
+        await trx('app_settings_allowed_users').insert({
+          email,
+          created_at: now(),
+        });
+        await this.recordAudit(
+          trx,
+          this.userId(req),
+          'access.allowlist_added',
+          'allowlist',
+          null,
+        );
       });
     } catch (error: any) {
-      if (error?.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      const databaseCode = String(error?.code ?? '');
+      const databaseMessage = String(error?.message ?? '').toLowerCase();
+      if (
+        databaseCode.includes('CONSTRAINT') &&
+        databaseMessage.includes('app_settings_allowed_users.email')
+      ) {
         res.status(409).json({ error: 'Ese correo ya está autorizado.' });
         return;
       }

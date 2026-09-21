@@ -53,6 +53,23 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
           }
         }
       `;
+      style.innerHTML += `
+        @media screen and (max-width: 600px) {
+          .print-preview-overlay { padding: 8px !important; align-items: stretch !important; }
+          .print-preview-modal { height: 100% !important; max-height: 100% !important; border-radius: 12px !important; }
+          .print-preview-toolbar { flex-wrap: wrap; gap: 12px; padding: 12px !important; }
+          .print-preview-toolbar-title { flex: 1 1 100%; }
+          .print-preview-toolbar-actions { width: 100%; }
+          .print-preview-toolbar-actions > button { flex: 1 1 auto; min-width: 0; height: auto !important; min-height: 40px; padding: 8px !important; }
+          #print-preview-modal-root { padding: 20px !important; min-width: 0; }
+          .print-preview-clinical-header { flex-wrap: wrap; gap: 16px; }
+          .print-preview-clinical-header > div:last-child { text-align: left !important; }
+          .print-preview-data-grid { grid-template-columns: minmax(0, 1fr) !important; }
+          .print-preview-data-grid > div[style*="grid-column"] { grid-column: auto !important; }
+          .print-preview-table-wrap { overflow-x: auto; max-width: 100%; }
+          .print-preview-table { min-width: 620px; }
+        }
+      `;
       document.head.appendChild(style);
     } else {
       const existing = document.getElementById('print-report-preview-styles');
@@ -115,7 +132,8 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
     }} onClick={onClose}>
       
       {/* Scrollable Container */}
-      <div 
+      <div
+        className="print-preview-modal"
         style={{
           backgroundColor: 'white',
           width: '100%',
@@ -131,7 +149,7 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
       >
         
         {/* Sticky Action Toolbar */}
-        <div className="no-print" style={{
+        <div className="no-print print-preview-toolbar" style={{
           padding: '16px 24px',
           borderBottom: '1.5px solid var(--color-outline-variant)',
           display: 'flex',
@@ -139,11 +157,11 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
           alignItems: 'center',
           backgroundColor: 'var(--color-surface-container-low)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="print-preview-toolbar-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>print</span>
             <strong style={{ fontSize: '15px', color: 'var(--color-on-surface)' }}>Vista Previa de Impresión</strong>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="print-preview-toolbar-actions" style={{ display: 'flex', gap: '8px' }}>
             <button className="btn btn-secondary" onClick={onClose} style={{ height: '36px', padding: '0 16px', fontSize: '13px' }}>
               Cerrar
             </button>
@@ -165,7 +183,7 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
         }}>
           
           {/* Clinical Header */}
-          <div style={{
+          <div className="print-preview-clinical-header" style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
@@ -200,7 +218,7 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
               <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, textTransform: 'uppercase', color: 'var(--color-primary)' }}>1. Información del Paciente</h2>
             </div>
 
-            <div style={{
+            <div className="print-preview-data-grid" style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr 1fr',
               gap: '20px',
@@ -251,7 +269,7 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
               <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, textTransform: 'uppercase', color: 'var(--color-primary)' }}>2. Contacto de Referencia / Cuidador</h2>
             </div>
 
-            <div style={{
+            <div className="print-preview-data-grid" style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr 1fr',
               gap: '20px',
@@ -290,8 +308,8 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
               <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, textTransform: 'uppercase', color: 'var(--color-primary)' }}>3. Historial de Visitas de Seguimiento</h2>
             </div>
 
-            <div style={{ border: '1px solid var(--color-outline-variant)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <div className="print-preview-table-wrap" style={{ border: '1px solid var(--color-outline-variant)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+              <table className="print-preview-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f8f9ff', borderBottom: '1.5px solid var(--color-outline-variant)' }}>
                     <th style={{ padding: '10px 16px', color: 'var(--color-on-surface-variant)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', width: '120px' }}>Fecha</th>

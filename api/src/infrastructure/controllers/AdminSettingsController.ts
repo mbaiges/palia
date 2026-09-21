@@ -5,6 +5,7 @@ import { ErrorCode } from '@/domain/errors/ErrorCodes';
 import { AdminSettingsHandler } from '@/application/handlers/AdminSettingsHandler';
 import { logger } from '@/domain/utils/logger';
 import { DatabaseConfig } from '@/infrastructure/config/database';
+import { auditEventService } from '@/infrastructure/services/AuditEventService';
 
 const sendError = (res: Response, status: number, error: unknown) => {
   const e = error as Error;
@@ -62,6 +63,13 @@ export class AdminSettingsController {
       }
 
       await this.adminSettingsHandler.addAllowedUser(email);
+      await auditEventService.record({
+        actorId: (req as any).user?.id ?? null,
+        action: 'access.allowlist_added',
+        entityType: 'allowlist',
+        entityId: null,
+        metadata: {},
+      });
 
       res.status(201).json({
         success: true,
@@ -107,6 +115,13 @@ export class AdminSettingsController {
       await this.adminSettingsHandler.removeAllowedUser(decodedEmail);
 
       if (user) await DatabaseConfig.getKnex()('auth_sessions').where({ user_id: user.id }).delete();
+      await auditEventService.record({
+        actorId: (req as any).user?.id ?? null,
+        action: 'access.allowlist_removed',
+        entityType: 'allowlist',
+        entityId: null,
+        metadata: { sessionsRevoked: Boolean(user) },
+      });
 
       res.status(200).json({
         success: true,

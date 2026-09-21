@@ -356,6 +356,24 @@ p, label, input, textarea, select, button {
 }
 
 @media (max-width: 768px) {
+  .patient-detail-header {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px;
+  }
+
+  .patient-detail-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .patient-detail-actions > .btn {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+    justify-content: center;
+  }
+
   .user-name, .header-divider, .icon-btn[aria-label="Ayuda"] {
     display: none;
   }
@@ -1422,7 +1440,7 @@ p, label, input, textarea, select, button {
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     padding: var(--margin-mobile);
-    padding-bottom: var(--margin-mobile);
+    padding-bottom: var(--mobile-bottom-inset);
     scroll-padding-bottom: var(--mobile-bottom-inset);
   }
 

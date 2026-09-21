@@ -180,6 +180,42 @@ test("admin connects to the API, creates a patient, records a follow-up and open
   ).toBeVisible();
   await capture(page, "05-patient-created-detail.png");
 
+  await page.getByRole("button", { name: /Pacientes/ }).first().click();
+  await page.getByRole("button", { name: "Nuevo Paciente" }).click();
+  await page
+    .getByPlaceholder("Ej: María García López")
+    .fill("Paciente con DNI duplicado");
+  await page.getByPlaceholder("Ej: 32.144.555").fill("10.234.567");
+  await page.locator('input[type="date"]').fill("1960-02-03");
+  await page
+    .getByPlaceholder("Calle, Número, Piso, Ciudad/Localidad (Argentina)...")
+    .fill("Dirección que debe conservarse");
+  await page
+    .getByPlaceholder("Ej: Neoplasia de pulmón estadio IV")
+    .fill("Diagnóstico que debe conservarse");
+  await page
+    .getByPlaceholder("Ej: Elena Mendoza R.")
+    .fill("Cuidador que debe conservarse");
+  await page
+    .getByPlaceholder("Ej: +54 9 11 5555 6666")
+    .fill("+54 11 5555 7777");
+  await page.getByRole("button", { name: "Guardar Registro" }).click();
+  await expect(page.getByText(/El DNI ya está registrado/)).toBeVisible();
+  await expect(page.getByPlaceholder("Ej: María García López")).toHaveValue(
+    "Paciente con DNI duplicado",
+  );
+  await expect(
+    page.getByPlaceholder(
+      "Calle, Número, Piso, Ciudad/Localidad (Argentina)...",
+    ),
+  ).toHaveValue("Dirección que debe conservarse");
+  await expect(
+    page.getByPlaceholder("Ej: Elena Mendoza R."),
+  ).toHaveValue("Cuidador que debe conservarse");
+  await capture(page, "43-patient-duplicate-dni.png");
+  await page.getByRole("button", { name: "Cancelar" }).click();
+  await page.getByText("Paciente de prueba API", { exact: true }).click();
+
   await page
     .getByRole("button", { name: "Registrar Seguimiento" })
     .first()
@@ -333,6 +369,18 @@ test("admin connects to the API, creates a patient, records a follow-up and open
   await expect(
     page.getByText("Centro de prueba API · Archivado", { exact: true }),
   ).toBeVisible();
+  await page.getByRole("button", { name: /Pacientes/ }).first().click();
+  await page.getByRole("button", { name: "Nuevo Paciente" }).click();
+  const hospitalSelector = page.getByLabel("Hospital de Referencia");
+  await expect(
+    hospitalSelector.locator("option", { hasText: "Centro de prueba API" }),
+  ).toHaveCount(0);
+  await capture(page, "44-archived-hospital-excluded-from-new-patient.png");
+  await page.getByRole("button", { name: "Cancelar" }).click();
+  await page
+    .getByRole("button", { name: /Administración/ })
+    .first()
+    .click();
   await page.getByRole("button", { name: "Restaurar" }).click();
   await expect(
     page.getByText("Centro de prueba API · Archivado", { exact: true }),
@@ -449,6 +497,47 @@ test("admin connects to the API, creates a patient, records a follow-up and open
     const volunteer = await signIn(
       "volunteer@medice.test",
       "Voluntario de prueba",
+    );
+    const patientRecord = await fetch(`/api/patients/${id}`, {
+      credentials: "include",
+    }).then((response) => response.json());
+    const patientEditBody = {
+      name: patientRecord.data.name,
+      dni: patientRecord.data.dni,
+      dob: patientRecord.data.dob,
+      updatedAt: patientRecord.data.updated_at,
+      address: "Dirección actualizada por coordinación",
+      diagnosis: patientRecord.data.diagnosis,
+      hospitalId: patientRecord.data.hospital_id,
+      complexSituation: patientRecord.data.complex_situation,
+      caregiver: {
+        name: patientRecord.data.caregiver.name,
+        relation: "Hija",
+        phone: patientRecord.data.caregiver.phone,
+        livesWithPatient: patientRecord.data.caregiver.lives_with_patient,
+        burdenLevel: patientRecord.data.caregiver.burden_level,
+      },
+    };
+    const volunteerEditPatient = await fetch(`/api/patients/${id}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+      body: JSON.stringify({}),
+    });
+    const hospitalList = await fetch("/api/hospitals?includeArchived=true", {
+      credentials: "include",
+    }).then((response) => response.json());
+    const hospital = hospitalList.data.find(
+      (item) => item.name === "Centro de prueba API",
+    );
+    if (!hospital) throw new Error("E2E hospital not found");
+    const volunteerArchiveHospital = await fetch(
+      `/api/hospitals/${hospital.id}/archive`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "X-CSRF-Token": csrf },
+      },
     );
     const followUpPayload = {
       occurredAt: new Date().toISOString(),
@@ -570,6 +659,50 @@ test("admin connects to the API, creates a patient, records a follow-up and open
     if (!roleResponse.ok)
       throw new Error(`role update failed: ${roleResponse.status}`);
     await signIn("volunteer@medice.test", "Voluntario de prueba");
+    const coordinatorIdentity = await fetch("/api/auth/me", {
+      credentials: "include",
+    }).then((response) => response.json());
+    const coordinatorEditPatient = await fetch(`/api/patients/${id}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+      body: JSON.stringify(patientEditBody),
+    });
+    const staleCoordinatorEdit = await fetch(`/api/patients/${id}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+      body: JSON.stringify(patientEditBody),
+    });
+    const editConflictState = await fetch(`/api/patients/${id}`, {
+      credentials: "include",
+    }).then((response) => response.json());
+    const coordinatorArchiveHospital = await fetch(
+      `/api/hospitals/${hospital.id}/archive`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "X-CSRF-Token": csrf },
+      },
+    );
+    const hospitalsWhileArchived = await fetch(
+      "/api/hospitals?includeArchived=true",
+      { credentials: "include" },
+    ).then((response) => response.json());
+    const activeHospitals = await fetch("/api/hospitals", {
+      credentials: "include",
+    }).then((response) => response.json());
+    const archivedHospital = hospitalsWhileArchived.data.find(
+      (item) => item.id === hospital.id,
+    );
+    const coordinatorRestoreHospital = await fetch(
+      `/api/hospitals/${hospital.id}/restore`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "X-CSRF-Token": csrf },
+      },
+    );
     const feed = await fetch("/api/notifications/me", {
       credentials: "include",
     }).then((response) => response.json());
@@ -617,6 +750,19 @@ test("admin connects to the API, creates a patient, records a follow-up and open
       durationStatuses,
       defaultDurations,
       missingGoogleRequestMarkerStatus: missingGoogleRequestMarker.status,
+      volunteerArchiveHospitalStatus: volunteerArchiveHospital.status,
+      coordinatorArchiveHospitalStatus: coordinatorArchiveHospital.status,
+      coordinatorRestoreHospitalStatus: coordinatorRestoreHospital.status,
+      archivedHospitalVisible: Boolean(archivedHospital?.archived_at),
+      archivedHospitalInActiveList: activeHospitals.data.some(
+        (item) => item.id === hospital.id,
+      ),
+      volunteerEditPatientStatus: volunteerEditPatient.status,
+      coordinatorEditPatientStatus: coordinatorEditPatient.status,
+      staleCoordinatorEditStatus: staleCoordinatorEdit.status,
+      editConflictAddress: editConflictState.data.address,
+      editConflictCaregiverRelation: editConflictState.data.caregiver.relation,
+      assignedVolunteerRole: coordinatorIdentity.data.role,
     };
   }, patientId);
   const volunteerCookie = (await context.cookies()).find(
@@ -648,6 +794,133 @@ test("admin connects to the API, creates a patient, records a follow-up and open
   expect(alertNotice.missingGoogleRequestMarkerStatus).toBe(400);
   expect(alertNotice.coordinatorRemoveStatus).toBe(403);
   expect(alertNotice.coordinatorDeleteAdminStatus).toBe(403);
+  expect(alertNotice.volunteerArchiveHospitalStatus).toBe(403);
+  expect(alertNotice.coordinatorArchiveHospitalStatus).toBe(200);
+  expect(alertNotice.coordinatorRestoreHospitalStatus).toBe(200);
+  expect(alertNotice.archivedHospitalVisible).toBe(true);
+  expect(alertNotice.archivedHospitalInActiveList).toBe(false);
+  expect(alertNotice.volunteerEditPatientStatus).toBe(403);
+  expect(alertNotice.coordinatorEditPatientStatus).toBe(200);
+  expect(alertNotice.staleCoordinatorEditStatus).toBe(409);
+  expect(alertNotice.editConflictAddress).toBe(
+    "Dirección actualizada por coordinación",
+  );
+  expect(alertNotice.editConflictCaregiverRelation).toBe("Hija");
+  expect(alertNotice.assignedVolunteerRole).toBe("coordinator");
+  await page.reload();
+  await page.getByRole("button", { name: "Pacientes" }).first().click();
+  await page.getByText("Paciente de prueba API", { exact: true }).click();
+  await page.getByRole("button", { name: "Registrar Seguimiento" }).click();
+  await page.context().setOffline(true);
+  await page
+    .getByPlaceholder(/Describa el estado de ánimo, fatiga/)
+    .fill("Seguimiento offline de coordinadora asignada.");
+  await page
+    .getByPlaceholder(/Describa detalladamente las acciones tomadas/)
+    .fill("Sincronización offline con rol coordinador.");
+  await page.getByRole("button", { name: "Guardar Seguimiento" }).click();
+  await expect(page.getByText("Pendiente de sincronización")).toBeVisible();
+  await capture(page, "41-coordinator-offline-queued.png");
+  await page.context().setOffline(false);
+  await page.getByRole("button", { name: "Configuración" }).first().click();
+  await page.getByRole("button", { name: "Centro de Sincronización" }).click();
+  await expect(page.getByText("Cola local (0)")).toBeVisible({ timeout: 15000 });
+  await capture(page, "42-coordinator-offline-synced.png");
+  const readerAllowlistStatus = await page.evaluate(async () => {
+    const csrf = decodeURIComponent(
+      document.cookie
+        .split("; ")
+        .find((item) => item.startsWith("medice_csrf="))
+        ?.split("=")[1] ?? "",
+    );
+    return (
+      await fetch("/api/coordinator/allowed-users", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+        body: JSON.stringify({ email: "archived-reader@medice.test" }),
+      })
+    ).status;
+  });
+  expect([201, 409]).toContain(readerAllowlistStatus);
+  await page.evaluate(async () => {
+    const csrf = decodeURIComponent(
+      document.cookie
+        .split("; ")
+        .find((item) => item.startsWith("medice_csrf="))
+        ?.split("=")[1] ?? "",
+    );
+    const response = await fetch("/api/auth/dev/bypass", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+      body: JSON.stringify({
+        email: "archived-reader@medice.test",
+        name: "Voluntario lector",
+      }),
+    });
+    if (!response.ok)
+      throw new Error(`unassigned volunteer sign in failed: ${response.status}`);
+  });
+  await page.reload();
+  const readerIdentity = await page.evaluate(async () => {
+    const response = await fetch("/api/auth/me", {
+      credentials: "include",
+    }).then((result) => result.json());
+    return { role: response.data.role, userId: response.data.user.id };
+  });
+  expect(readerIdentity.role).toBe("volunteer");
+  await page.getByRole("button", { name: "Pacientes" }).first().click();
+  await page.getByText("Paciente de prueba API", { exact: true }).click();
+  await page.getByRole("button", { name: "Registrar Seguimiento" }).click();
+  await page.context().setOffline(true);
+  await page
+    .getByPlaceholder(/Describa el estado de ánimo, fatiga/)
+    .fill("Este seguimiento no debe entrar en la cola local.");
+  await page
+    .getByPlaceholder(/Describa detalladamente las acciones tomadas/)
+    .fill("La ficha no está asignada ni cacheada.");
+  await page.getByRole("button", { name: "Guardar Seguimiento" }).click();
+  await expect(
+    page.getByText(
+      /Error al guardar: Para guardar sin conexión, primero abrí la ficha de un paciente que tengas asignado\./,
+    ),
+  ).toBeVisible();
+  const unassignedOfflineQueue = await page.evaluate(async (userId) => {
+    const database = await new Promise((resolve, reject) => {
+      const request = indexedDB.open("palia-offline-v1", 2);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const items = await new Promise((resolve, reject) => {
+      const transaction = database.transaction("outbox", "readonly");
+      const request = transaction
+        .objectStore("outbox")
+        .index("userId")
+        .getAll(userId);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    database.close();
+    return items.length;
+  }, readerIdentity.userId);
+  expect(unassignedOfflineQueue).toBe(0);
+  await page.context().setOffline(false);
+  await page.evaluate(async () => {
+    const csrf = decodeURIComponent(
+      document.cookie
+        .split("; ")
+        .find((item) => item.startsWith("medice_csrf="))
+        ?.split("=")[1] ?? "",
+    );
+    await fetch("/api/auth/dev/bypass", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+      body: JSON.stringify({ email: "admin@medice.test", name: "Admin de prueba" }),
+    });
+  });
+  await page.reload();
   await page.evaluate(async () => {
     const csrf = decodeURIComponent(
       document.cookie
@@ -775,41 +1048,90 @@ test("admin connects to the API, creates a patient, records a follow-up and open
     ).status;
   }, patientId);
   expect(restoreStatus).toBe(403);
-  const coordinatorRestoreStatus = await page.evaluate(async (id) => {
+  const archivedRoleAccess = await page.evaluate(async (id) => {
     const csrf = decodeURIComponent(
       document.cookie
         .split("; ")
         .find((item) => item.startsWith("medice_csrf="))
         ?.split("=")[1] ?? "",
     );
-    const login = await fetch("/api/auth/dev/bypass", {
-      method: "POST",
+    const signIn = (email, name) =>
+      fetch("/api/auth/dev/bypass", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrf,
+        },
+        body: JSON.stringify({ email, name }),
+      });
+    const adminLogin = await signIn("admin@medice.test", "Admin de prueba");
+    if (!adminLogin.ok)
+      throw new Error(`admin sign in failed: ${adminLogin.status}`);
+    const adminRead = await fetch(`/api/patients/${id}`, {
       credentials: "include",
-      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
-      body: JSON.stringify({
-        email: "volunteer@medice.test",
-        name: "Coordinadora de prueba",
-      }),
-    });
-    if (!login.ok)
-      throw new Error(`coordinator sign in failed: ${login.status}`);
-    const restore = await fetch(`/api/patients/${id}/restore`, {
+    }).then((response) => response.json());
+    const adminRestore = await fetch(`/api/patients/${id}/restore`, {
       method: "POST",
       credentials: "include",
       headers: { "X-CSRF-Token": csrf },
     });
-    await fetch("/api/auth/dev/bypass", {
+    const allowReader = await fetch("/api/coordinator/allowed-users", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
       body: JSON.stringify({
-        email: "admin@medice.test",
-        name: "Admin de prueba",
+        email: "archived-reader@medice.test",
       }),
     });
-    return restore.status;
+    if (![201, 409].includes(allowReader.status))
+      throw new Error(`reader allow-list failed: ${allowReader.status}`);
+    const readerLogin = await signIn(
+      "archived-reader@medice.test",
+      "Voluntario lector",
+    );
+    if (!readerLogin.ok)
+      throw new Error(`reader sign in failed: ${readerLogin.status}`);
+    const volunteerRead = await fetch(`/api/patients/${id}`, {
+      credentials: "include",
+    }).then((response) => response.json());
+    const volunteerRestore = await fetch(`/api/patients/${id}/restore`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "X-CSRF-Token": csrf },
+    });
+    const coordinatorLogin = await signIn(
+      "volunteer@medice.test",
+      "Coordinadora de prueba",
+    );
+    if (!coordinatorLogin.ok)
+      throw new Error(`coordinator sign in failed: ${coordinatorLogin.status}`);
+    const coordinatorRead = await fetch(`/api/patients/${id}`, {
+      credentials: "include",
+    }).then((response) => response.json());
+    const coordinatorRestore = await fetch(`/api/patients/${id}/restore`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "X-CSRF-Token": csrf },
+    });
+    const returnToAdmin = await signIn("admin@medice.test", "Admin de prueba");
+    if (!returnToAdmin.ok)
+      throw new Error(`admin reentry failed: ${returnToAdmin.status}`);
+    return {
+      adminRead: adminRead.data.archived_at,
+      volunteerRead: volunteerRead.data.archived_at,
+      coordinatorRead: coordinatorRead.data.archived_at,
+      volunteerRestoreStatus: volunteerRestore.status,
+      adminRestoreStatus: adminRestore.status,
+      coordinatorRestoreStatus: coordinatorRestore.status,
+    };
   }, patientId);
-  expect(coordinatorRestoreStatus).toBe(200);
+  expect(archivedRoleAccess.adminRead).toBeTruthy();
+  expect(archivedRoleAccess.volunteerRead).toBeTruthy();
+  expect(archivedRoleAccess.coordinatorRead).toBeTruthy();
+  expect(archivedRoleAccess.volunteerRestoreStatus).toBe(403);
+  expect(archivedRoleAccess.adminRestoreStatus).toBe(403);
+  expect(archivedRoleAccess.coordinatorRestoreStatus).toBe(200);
 
   await page
     .getByRole("button", { name: /Administración/ })
@@ -864,6 +1186,84 @@ test("admin connects to the API, creates a patient, records a follow-up and open
     },
   );
   expect(revokedWriteResponse.status()).toBe(401);
+  const revokedPage = await volunteerContext.newPage();
+  await revokedPage.goto("/");
+  await expect(
+    revokedPage.getByRole("heading", { name: "Portal de Acompañamiento" }),
+  ).toBeVisible();
+  const retainedAfterRevocation = await revokedPage.evaluate(async (ownerId) => {
+    const database = await new Promise((resolve, reject) => {
+      const request = indexedDB.open("palia-offline-v1", 2);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains("patients"))
+          db.createObjectStore("patients", { keyPath: ["userId", "id"] });
+        if (!db.objectStoreNames.contains("profiles"))
+          db.createObjectStore("profiles", { keyPath: "id" });
+        if (!db.objectStoreNames.contains("outbox")) {
+          const store = db.createObjectStore("outbox", {
+            keyPath: ["userId", "id"],
+          });
+          store.createIndex("userId", "userId", { unique: false });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const queuedId = `revoked-pending-${crypto.randomUUID()}`;
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction(
+        ["profiles", "outbox"],
+        "readwrite",
+      );
+      transaction.objectStore("profiles").put({
+        id: ownerId,
+        name: "Voluntario revocado",
+        role: "volunteer",
+        savedAt: Date.now(),
+      });
+      transaction.objectStore("outbox").put({
+        id: queuedId,
+        userId: ownerId,
+        patientId: "revoked-patient",
+        payload: { clientMutationId: queuedId },
+        status: "pending",
+        attempts: 0,
+        createdAt: new Date().toISOString(),
+        lastError: null,
+      });
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+    });
+    database.close();
+    return queuedId;
+  }, alertNotice.volunteerId);
+  await revokedPage.reload();
+  await expect(
+    revokedPage.getByRole("heading", { name: "Portal de Acompañamiento" }),
+  ).toBeVisible();
+  const retainedQueue = await revokedPage.evaluate(async (ownerId) => {
+    const database = await new Promise((resolve, reject) => {
+      const request = indexedDB.open("palia-offline-v1", 2);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const queued = await new Promise((resolve, reject) => {
+      const transaction = database.transaction("outbox", "readonly");
+      const request = transaction
+        .objectStore("outbox")
+        .index("userId")
+        .getAll(ownerId);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    database.close();
+    return queued.map((item) => ({ id: item.id, status: item.status }));
+  }, alertNotice.volunteerId);
+  expect(retainedQueue).toEqual([
+    { id: retainedAfterRevocation, status: "pending" },
+  ]);
+  await revokedPage.close();
   await volunteerContext.close();
 
   await context.grantPermissions(["notifications"]);
@@ -1172,17 +1572,67 @@ test("admin connects to the API, creates a patient, records a follow-up and open
       name: "Unknown",
       sub: "google-test-unknown",
     });
+    const audit = await fetch("/api/admin/audit-events?limit=500", {
+      credentials: "include",
+    }).then((response) => response.json());
     return {
       allowedStatus: allowed.status,
       role: current.data.role,
       normalizedEmail: current.data.user.email,
       deniedStatus: denied.status,
+      auditEvents: audit.events,
     };
   });
-  expect(googleAuthResults).toEqual({
+  expect(googleAuthResults).toMatchObject({
     allowedStatus: 200,
     role: "admin",
     normalizedEmail: "matiasbaiges@gmail.com",
     deniedStatus: 403,
   });
+  const auditJson = JSON.stringify(googleAuthResults.auditEvents);
+  expect(googleAuthResults.auditEvents).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ action: "patient.updated", entity_type: "patient" }),
+      expect.objectContaining({ action: "patient.created", entity_type: "patient" }),
+      expect.objectContaining({ action: "follow_up.created", entity_type: "follow_up" }),
+      expect.objectContaining({ action: "alert.created", entity_type: "alert" }),
+      expect.objectContaining({ action: "alert.resolved", entity_type: "alert" }),
+      expect.objectContaining({ action: "user.role_updated", entity_type: "user" }),
+      expect.objectContaining({ action: "access.allowlist_added", entity_type: "allowlist" }),
+    ]),
+  );
+  expect(auditJson).not.toContain("Diagnóstico de prueba");
+  expect(auditJson).not.toContain("Detalle clínico confidencial");
+  expect(auditJson).not.toContain("10.234.567");
+
+  await page.goto("/");
+  await page.locator(".user-profile-menu").click();
+  await page
+    .locator(".profile-popover")
+    .getByRole("button", { name: /Cerrar Sesión/ })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Portal de Acompañamiento" }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/?alertId=${encodeURIComponent(alertNotice.alertId)}`);
+  await expect(
+    page.getByRole("heading", { name: "Portal de Acompañamiento" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Acceso de prueba admin" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Paciente de prueba API" }),
+  ).toBeVisible();
+  expect(new URL(page.url()).search).toBe("");
+  const mobileActionWidths = await page
+    .locator(".patient-detail-actions > .btn")
+    .evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().width));
+  expect(mobileActionWidths.length).toBeGreaterThanOrEqual(4);
+  expect(Math.min(...mobileActionWidths)).toBeGreaterThanOrEqual(320);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+    ),
+  ).toBe(true);
+  await capture(page, "53-mobile-push-alert-destination.png");
 });

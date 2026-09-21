@@ -33,6 +33,7 @@ export default function NewPatient({ onCancel, onSaveSuccess, patient = null }) 
 
     const patientData = {
       ...(patient ? { id: patient.id } : {}),
+      ...(patient?.updatedAt ? { updatedAt: patient.updatedAt } : {}),
       name,
       dni,
       dob,

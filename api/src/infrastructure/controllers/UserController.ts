@@ -8,6 +8,7 @@ import { AuthenticatedRequest } from '@/infrastructure/middleware/authMiddleware
 import { AppError } from '@/domain/errors/AppError';
 import { ErrorCode } from '@/domain/errors/ErrorCodes';
 import { PermissionRequiredError } from '@/domain/errors/PermissionRequiredError';
+import { auditEventService } from '@/infrastructure/services/AuditEventService';
 
 const SUPPORTED_LOCALES = ['en', 'es', 'es_AR'];
 
@@ -89,6 +90,7 @@ export class UserController {
   public async deleteUser(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      const actorId = (req as AuthenticatedRequest).user!.id;
       const roles = await this.userRepository.getUserRoles(id);
       if (roles.includes('admin')) {
         res.status(409).json({
@@ -103,6 +105,14 @@ export class UserController {
         res.status(404).json({ message: 'User not found' });
         return;
       }
+
+      await auditEventService.record({
+        actorId,
+        action: 'user.deleted',
+        entityType: 'user',
+        entityId: id,
+        metadata: {},
+      });
 
       res.status(204).send();
     } catch (error: any) {
@@ -333,6 +343,13 @@ export class UserController {
       }
 
       await this.userService.updateUserRole(requestingUserId, userId, role);
+      await auditEventService.record({
+        actorId: requestingUserId,
+        action: 'user.role_updated',
+        entityType: 'user',
+        entityId: userId,
+        metadata: { role },
+      });
 
       res.status(200).json({
         success: true,

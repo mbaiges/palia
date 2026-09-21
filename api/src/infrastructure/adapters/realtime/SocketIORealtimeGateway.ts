@@ -37,6 +37,15 @@ export class SocketIORealtimeGateway {
     namespace.on('connection', (socket) => this.handleConnection(socket));
   }
 
+  close(): Promise<void> {
+    const io = this.io;
+    this.io = null;
+    if (!io) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      io.close((error?: Error) => (error ? reject(error) : resolve()));
+    });
+  }
+
   private handleConnection(socket: Socket): void {
     socket.emit('REALTIME_READY', { userId: socket.data.userId });
     socket.on('PING', (payload: unknown, ack?: (value: unknown) => void) => {

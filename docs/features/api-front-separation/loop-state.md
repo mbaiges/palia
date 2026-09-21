@@ -1,7 +1,7 @@
 # Loop state: api-front-separation
 
 Updated: 2026-09-21
-Iteration: 18 (permisos, runner E2E dinámico y QA móvil/desktop)
+Iteration: 33 (proxy confiable, apagado seguro y estabilización visual)
 Status: IN PROGRESS
 
 ## Fuente de verdad
@@ -14,6 +14,30 @@ Status: IN PROGRESS
 
 ## Estado de esta iteración
 
+- La vista previa imprimible ahora responde a viewport móvil: toolbar en dos filas, datos de paciente/cuidador en una columna, encabezado envuelto y tabla dentro de un scroller propio. Playwright comprueba que no haya solapamiento, recorte del contenido principal ni overflow de página.
+- Capturas 45 (`45-mobile-alert-modal.png`) y 46 (`46-mobile-print-preview.png`) se generaron a 390 px y fueron abiertas/revisadas: el diálogo de alerta es legible, los botones de impresión no chocan y los datos de la ficha se apilan dentro del ancho.
+- La API agrega eventos de auditoría para creación/edición/archivo/restauración de pacientes, cambios de asignación, seguimientos, alertas, allow-list y roles. Las mutaciones clínicas y de asignación escriben dentro de su transacción; identidad/roles y allow-list se auditan tras confirmar el cambio. No se incluyen nombre, DNI, domicilio, diagnóstico, observaciones clínicas o nota de resolución.
+- E2E de aceptación verifica eventos de paciente, seguimiento, alerta, rol y allow-list, y confirma que el volcado de auditoría no contiene diagnóstico, DNI ni detalle clínico. Primera ejecución corrigió la expectativa del test para el contrato snake_case; ejecución enfocada posterior pasó.
+- E2E responsive aislado pasó 2/2; E2E API/front aislado pasó 1/1. `npm test` pasó antes del último corte de auditoría; build API pasó y se repetirá la suite completa al cerrar.
+- Se amplió el smoke a 390 px para comunidad de voluntarios, administración de asignaciones/centros y allow-list; la prueba semilla su propio paciente por API y corre sola sin depender del test de aceptación.
+- E2E de la tercera pantalla pasó después de corregir el selector de navegación inferior `Admin`; las capturas 47–49 se abrieron y revisaron. El directorio de comunidad, selects/formularios y tarjetas de autorización caben horizontalmente; la allow-list se presenta en tarjetas apiladas.
+- Configuración móvil encontró que “Guardar perfil” podía quedar debajo de la navegación inferior al final del formulario. Se aumentó el espacio de scroll al alto de barra/safe area; E2E desplaza el botón al viewport y verifica que su borde inferior quede arriba de la barra.
+- Capturas 50/51 revisadas: el perfil no se corta horizontalmente y en la captura desplazada el botón Guardar queda libre, seguido por las secciones visuales/persistencia sin ocultarse por navegación.
+- Smoke móvil ahora busca un miembro de comunidad y prueba resultado vacío; en administración desplaza hasta el formulario de centros y verifica que “Agregar Hospital” termina arriba de la barra inferior. E2E responsive aislado pasó 3/3; captura 52 revisada con la tarjeta de centros y la acción completa en pantalla.
+
+- Iteración 32: la auditoría de cambios API se amplió a mutaciones de usuarios (roles/bajas) y allow-list genérica; pruebas de notificación push cubren endpoint expirado (410, baja automática) y error transitorio (notificación in-app conservada).
+- El E2E de aceptación incluye el destino del click push después de cerrar sesión: abre `/?alertId=...`, exige volver a autenticarse, navega a la ficha y limpia el query. La captura 53 revisada a 390 px confirma acciones de ficha a ancho completo y navegación visible.
+- La primera revisión visual de capturas 54–55 mostró el estado intermedio de la animación de popover. Se añadió espera E2E por opacidad completa, se regeneraron y abrieron ambas: menú de alertas y menú de perfil opacos, legibles y dentro de los límites del móvil.
+- El E2E raíz detectó una aserción frágil: desplazaba el encabezado de hospitales, pero no el botón sujeto a la verificación. Ahora desplaza el propio botón “Agregar Hospital”; E2E responsive pasó 3/3 y la captura 52 regenerada se revisó visualmente.
+- Gate final repetido: `npm test` pasó (API 46 suites/346 tests y front 19 tests), `npm run api:build`, `npm run front:build`, `npm run lint --prefix front` y `git diff --check` pasaron. El lint conserva warnings de hooks/imports/variables sin uso ya presentes; el check Prettier dirigido aún reporta formato heredado en 11 archivos modificados, por lo que no se aplicó reformat masivo.
+- E2E feature `npm run test:e2e:api-front-separation` pasó 1/1; suite completa `npm run test:e2e` pasó 4/4 (aceptación desktop/API + tres escenarios responsive 390/344 px). No se llamó Turso.
+- Docker `medice-app:local` se reconstruyó; el smoke con SQLite efímera devolvió 200 para readiness, `/` y ruta SPA `/patients/123`; la ruta de login email permanece ausente en producción. El contenedor temporal se retiró.
+
+- Iteración 33: `TRUST_PROXY_HOPS` queda sin confianza por defecto (`0`), acepta solo enteros explícitos de 0–10 y rechaza `true`/valores malformados; se documenta no exponer el puerto de la API cuando se habilitan saltos confiables. Tests unitarios 7/7.
+- API captura SIGTERM/SIGINT para parar el job periódico, cerrar Socket.IO/HTTP y cerrar conexiones SQLite/Knex. Se probó el apagado en contenedor con `docker stop`: log de SIGTERM presente y salida limpia; readiness, `/` y ruta SPA devolvieron 200.
+- La revisión visual de captura 49 había detectado transición incompleta del color activo de pestaña: el contenido ya mostraba allow-list, pero el screenshot se tomó durante los 200 ms de cambio. El E2E ahora espera el color final derivado de los tokens; en captura 49 actual “Invitaciones y Accesos” aparece activa. Capturas 49 y 52–55 se reabrieron tras el gate raíz; también se releen 39–40, 43–48 y 50–51. Todas muestran controles/contenido íntegros y navegación móvil sin tapar acciones.
+- `npm test` tras el cambio de proxy/apagado pasó: API 47 suites/353 tests y front 19 tests. API build, test E2E enfocado 1/1, suite E2E completa 4/4, build front, lint y `git diff --check` verdes; Docker + SQLite local smoke y parada ordenada verdes. No se probó Turso.
+
 - El endpoint de baja push ahora elimina por `user_id + endpoint`; evita que un usuario autenticado pueda dar de baja una suscripción ajena. Repositorio y controlador tienen pruebas de aislamiento.
 - Alertas ahora aceptan `limit` y `cursor`, devuelven metadatos de página y conservan filtros por estado/paciente. El E2E verifica el contrato snake_case directamente.
 - El cliente HTTP compartido tiene pruebas unitarias de misma origen/credenciales, JSON, CSRF cacheado, camelización, errores estables y evento de sesión expirada.
@@ -24,6 +48,24 @@ Status: IN PROGRESS
 - `npm test` pasó tras los cambios; API 45 suites y front 19 tests. Builds de ambas apps, lint front y `git diff --check` pasan; lint sigue mostrando warnings preexistentes.
 - E2E enfocado y raíz pasaron (1 caso de aceptación; 3/3 en raíz). Docker build pasó y el smoke SQLite devolvió `/` 200, `/patients/123` 200, readiness 200; login de email y bypass dev dieron 404 en producción.
 - La prueba no llamó a Turso. Se preservó el estilo preexistente en `Settings.jsx` y `UserController.test.ts` para evitar diffs masivos causados por Prettier.
+- Iteración 19: el E2E crea una operación de outbox ligada al usuario antes de reintentar con su sesión revocada. La UI no abre una sesión no autorizada y la operación se conserva bajo el ID del autor; no se elimina ni se reasigna. El E2E de aceptación pasó.
+- La suite raíz pasó 3/3 tras ese caso, incluyendo desktop/API y mobile 390/344 px. Se releen las capturas 14 (directorio), 15 (ajustes offline), 16 (login angosto) y 35 (stats): el texto y controles entran en el viewport móvil.
+- Iteración 20: la suite E2E prueba el archivado de hospital por coordinador/admin, rechazo 403 para voluntario, presencia en el histórico durante archivo, exclusión del listado activo y restauración. El flujo de coordinador retorna todos los estados esperados.
+- El smoke mobile del directorio ahora busca por nombre, confirma que la búsqueda sin resultados no muestra el paciente, limpia el query, filtra “Estables” y verifica el resultado. `npm run test:e2e` pasó 3/3 incluyendo ese flujo y los screenshots mobile.
+- La suite de aceptación verifica que un voluntario no edita pacientes (403) y un coordinador sí (200); el PATCH usa los datos actuales de paciente/cuidador y mantiene los valores. Prueba enfocada pasó.
+- Iteración 22: durante el archivado, E2E consulta la ficha como admin, voluntario y coordinador; todos la ven. Admin y voluntario reciben 403 al restaurar y el coordinador restaura con 200. El caso pasa en `test:e2e:api-front-separation`.
+- Iteración 23: el recorrido E2E móvil encontró que `PatientDetail` ocultaba Registrar Seguimiento en viewport móvil. La acción ahora aparece a ancho completo para pacientes activos y no en archivados. E2E raíz pasa 3/3 sin overflow; las capturas 39/40 de ficha y formulario se abrieron y leyeron.
+- `BrowserSession.test.ts` carga el módulo con `NODE_ENV=production` y comprueba cookies `__Host-`, `Secure`, `HttpOnly` para sesión, `SameSite=Lax`, `Path=/` y CSRF accesible al frontend. La prueba focal pasó sin requerir HTTPS/Turso.
+- La suite unitaria completa pasó: API 46 suites/344 tests; front 19 tests. Build API/front y lint front terminan con código 0; permanecen warnings de lint ya existentes.
+- `docker build -t medice-app:local .` y smoke con SQLite pasaron: `/`, ruta profunda SPA y `/api/health/ready` devuelven 200; email auth y bypass dev devuelven 404 en producción. Turso sigue sin tocarse.
+- La revisión visual de las nuevas imágenes 39–40 confirmó ficha clínica legible y CTA visible a ancho completo, además del formulario con alerta, tipo de visita y duración personalizada en 390 px.
+- Iteración 25: E2E comprueba seguimiento offline para coordinador asignado, incluyendo sincronización/ACK; otro voluntario no asignado no puede encolarlo y no deja outbox. `41-coordinator-offline-queued.png` y `42-coordinator-offline-synced.png` se abrieron y leyeron.
+- El mismo correo autorizado agregado dos veces ahora devuelve 409, no 500: la respuesta SQLite de restricción UNIQUE usa `SQLITE_CONSTRAINT` con mensaje de índice, que no coincidía con la detección previa. E2E cubre la inserción inicial y el duplicado.
+- El E2E de alta repite un DNI ya existente y comprueba 409 legible sin perder nombre, domicilio ni cuidador; `43-patient-duplicate-dni.png` muestra mensaje y formulario conservado.
+- El flujo hospital archivado confirma que desaparece del selector de nuevas fichas mientras permanece en el histórico; al restaurarlo regresa al flujo activo. `44-archived-hospital-excluded-from-new-patient.png` se inspeccionó.
+- La edición de ficha usa control optimista por `updatedAt`: PATCH coordinador guarda dirección/relación de cuidador, un segundo PATCH con valor obsoleto recibe 409 y no pisa lo último. Voluntario recibe 403. El front envía el token de versión y conserva contenido ante errores.
+- Iteración 27: la prueba focused y la raíz E2E pasan después de incluir el control optimista; la suite completa pasó (API 46 suites/344 tests; front 19), builds API/front y lint exit 0.
+- El contenedor combinado volvió a construirse y el smoke SQLite devuelve 200 para `/`, `/patients/123` y readiness; endpoints de email auth y bypass dev dan 404 en producción.
 - `front/README.md` y `api/README.md` describen el runtime Medice actual (API canónica, SQLite local, cliente centralizado, sesión cookie y pruebas locales); se quitaron indicaciones obsoletas de Firebase/LocalStorage como backend.
 - Último `npm test`: API 45 suites/342 tests y front 19 tests; builds API/front pasaron; lint front terminó con warnings existentes. Docker build y smoke SQLite: `/`, ruta profunda y readiness devolvieron 200. El E2E enfocado sigue en ejecución al comenzar la documentación de esta iteración.
 
@@ -115,6 +157,23 @@ Todas están en `e2e/artifacts/screenshots/api-front-separation/` (artefactos ig
 | 36  | `36-mobile-stats-charts.png`        | Serie mensual visible y encabezado/control de la serie semanal legibles en móvil; inspeccionada.                                                                  |
 | 37  | `37-mobile-weekly-chart.png`        | Gráfica semanal móvil y control de ventana completamente visibles; inspeccionada.                                                                                 |
 | 38  | `38-offline-account-isolation.png`  | Tras logout/login, UI presenta solo la operación de la cuenta activa; dos cuentas con el mismo ID conservan entradas aisladas. Inspeccionada.                     |
+| 39  | `39-mobile-patient-detail.png`      | Ficha médica móvil con CTA de seguimiento presente, detalle legible y navegación sin overflow; inspeccionada en iteración 24.                                    |
+| 40  | `40-mobile-follow-up-form.png`      | Formulario clínico móvil con título, alerta, tipo/duración y campos visibles; sin overflow; inspeccionada en iteración 24.                                         |
+| 41  | `41-coordinator-offline-queued.png` | Seguimiento pendiente creado offline por una coordinadora asignada; historial conserva texto y muestra estado pendiente. Inspeccionada en iteración 25.             |
+| 42  | `42-coordinator-offline-synced.png` | Cola de coordinación vacía después del ACK; estado de sincronización legible. Inspeccionada en iteración 25.                                                       |
+| 43  | `43-patient-duplicate-dni.png`      | Error 409 de DNI duplicado; formulario mantiene nombre, domicilio y cuidador introducidos. Inspeccionada en iteración 26.                                            |
+| 44  | `44-archived-hospital-excluded-from-new-patient.png` | Formulario de alta sin opciones de hospital archivado y con controles legibles. Inspeccionada en iteración 26.                                                |
+| 45  | `45-mobile-alert-modal.png` | Modal de alerta clínica en 390 px, campos y acciones completos sin overflow. Inspeccionada en iteración 28. |
+| 46  | `46-mobile-print-preview.png` | Vista imprimible en 390 px: acciones separadas, información del paciente en una columna y documento sin recorte horizontal. Inspeccionada en iteración 28. |
+| 47  | `47-mobile-volunteer-community.png` | Comunidad de voluntariado, búsqueda y perfil visible dentro de 390 px. Inspeccionada en iteración 29. |
+| 48  | `48-mobile-administration-assignments.png` | Asignación, centros y listado en viewport móvil; el listado continúa desplazable verticalmente. Inspeccionada en iteración 29. |
+| 49  | `49-mobile-administration-access.png` | Formulario de allow-list y tarjetas de correos autorizados en mobile. Inspeccionada en iteración 29. |
+| 50  | `50-mobile-volunteer-profile.png` | Perfil de voluntariado y formulario en mobile 390 px; ancho de controles y encabezados legible. Inspeccionada en iteración 30. |
+| 51  | `51-mobile-profile-save.png` | Final del perfil desplazado: botón Guardar queda por encima de la navegación inferior. Inspeccionada en iteración 30. |
+| 52  | `52-mobile-administration-hospitals.png` | Formulario para agregar centro en el panel de administración; botón visible arriba de la navegación inferior. Inspeccionada en iteración 31. |
+| 53  | `53-mobile-push-alert-destination.png` | Click push tras reautenticar abre la ficha objetivo; botones de acción apilados a ancho completo y navegación inferior visible a 390 px. Inspeccionada en iteración 32. |
+| 54  | `54-mobile-notification-popover.png` | Popover de alertas vacío; panel opaco, texto centrado y contenido dentro del viewport móvil. Inspeccionada tras esperar el final de la animación en iteración 32. |
+| 55  | `55-mobile-profile-popover.png` | Popover con identidad, configuración y cierre de sesión; panel opaco, acciones legibles y dentro del viewport móvil. Inspeccionada en iteración 32. |
 
 ## Verificación más reciente
 
@@ -146,12 +205,8 @@ Todas están en `e2e/artifacts/screenshots/api-front-separation/` (artefactos ig
 
 ## Siguiente iteración
 
-1. Completar E2E de outbox en escenario de asignación retirada y asegurar que no se permite sincronizar tras desasignación; cubrir retry UI con sesión expirada.
-2. Ampliar pruebas E2E de archivado/restauración (pacientes y hospitales) y matriz de permisos coordinador/admin/voluntario, incluyendo respuestas 403 y referencias archivadas.
-3. Probar callback/expiración OAuth y cookie/CSRF; OAuth real queda limitado a credenciales de despliegue, usar fake solo en test.
-4. Probar push con proveedor fake: subscripción inválida, envío al equipo excluyendo autor, click con sesión vencida y fallback in-app.
-5. Migrar o reemplazar con cobertura equivalente los 13 specs Playwright legacy excluidos; ampliar reporte imprimible y perfil/comunidad con roles.
-6. Mapear cada criterio de aceptación pendiente, revisar auditoría/concurrencia/idempotencia y repetir la matriz final (unitarias, builds, lint, E2E móvil/desktop y Docker SQLite).
-7. Mantener Turso explícitamente fuera de pruebas; no marcar COMPLETE hasta cerrar criterios/gates restantes.
+1. Resolver el gap arquitectónico acordado en el technical spec: extraer queries/reglas del controlador Medice a servicios/repositorios por dominio, manteniendo contrato y transacciones; añadir tests de repositorio/servicio y repetir E2E feature + root. `MediceController.ts` todavía consulta Knex directamente.
+2. Antes de declarar operación productiva, configurar credenciales OAuth reales y el proxy/HTTPS del host; no se pueden validar sin esas credenciales/infraestructura externa. No validar Turso.
+3. Solo tras resolver 1 y tener gates verdes, actualizar checklist/AC y cambiar `Next iteration focus` a `COMPLETE`.
 
 No marcar COMPLETE mientras queden criterios relevantes o gates sin evidencia.

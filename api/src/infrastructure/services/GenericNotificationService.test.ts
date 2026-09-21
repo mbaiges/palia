@@ -2,6 +2,7 @@ import { GenericNotificationService } from './GenericNotificationService';
 import type { NotificationRepository } from '@/domain/repositories/NotificationRepository';
 import type { PushSubscriptionRepository } from '@/domain/repositories/PushSubscriptionRepository';
 import webpush from 'web-push';
+import { logger } from '@/domain/utils/logger';
 
 jest.mock('web-push', () => ({
   setVapidDetails: jest.fn(),
@@ -126,6 +127,111 @@ describe('GenericNotificationService', () => {
         delete process.env.VAPID_PRIVATE_KEY;
       else process.env.VAPID_PRIVATE_KEY = previous.privateKey;
       (webpush.sendNotification as jest.Mock).mockClear();
+    }
+  });
+
+  it('removes expired push subscriptions when the provider returns 404 or 410', async () => {
+    const repository: jest.Mocked<NotificationRepository> = {
+      findByUserId: jest.fn().mockResolvedValue([]),
+      create: jest.fn(),
+      createOnce: jest.fn().mockResolvedValue(undefined),
+    };
+    const expiredSubscription: jest.Mocked<PushSubscriptionRepository> = {
+      save: jest.fn(),
+      findByUserId: jest.fn().mockResolvedValue([
+        {
+          id: 'expired-sub',
+          userId: 'user-3',
+          endpoint: 'https://push.example/expired',
+          p256dh: 'p256dh',
+          auth: 'auth',
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+      ]),
+      deleteByUserAndEndpoint: jest.fn(),
+      deleteByEndpoint: jest.fn(),
+      deleteByEndpointIfExists: jest.fn().mockResolvedValue(undefined),
+    };
+    const previous = {
+      enabled: process.env.PUSH_ENABLED,
+      publicKey: process.env.VAPID_PUBLIC_KEY,
+      privateKey: process.env.VAPID_PRIVATE_KEY,
+    };
+    const loggerSpy = jest.spyOn(logger, 'error').mockImplementation();
+    process.env.PUSH_ENABLED = 'true';
+    process.env.VAPID_PUBLIC_KEY = 'public-test-key';
+    process.env.VAPID_PRIVATE_KEY = 'private-test-key';
+    (webpush.sendNotification as jest.Mock).mockRejectedValueOnce(
+      Object.assign(new Error('gone'), { statusCode: 410 }),
+    );
+    try {
+      await new GenericNotificationService(repository, expiredSubscription)
+        .sendGenericClinicalAlert('user-3', 'alert-3');
+      expect(expiredSubscription.deleteByEndpointIfExists).toHaveBeenCalledWith(
+        'https://push.example/expired',
+      );
+      expect(repository.createOnce).toHaveBeenCalled();
+    } finally {
+      loggerSpy.mockRestore();
+      if (previous.enabled === undefined) delete process.env.PUSH_ENABLED;
+      else process.env.PUSH_ENABLED = previous.enabled;
+      if (previous.publicKey === undefined) delete process.env.VAPID_PUBLIC_KEY;
+      else process.env.VAPID_PUBLIC_KEY = previous.publicKey;
+      if (previous.privateKey === undefined)
+        delete process.env.VAPID_PRIVATE_KEY;
+      else process.env.VAPID_PRIVATE_KEY = previous.privateKey;
+      (webpush.sendNotification as jest.Mock).mockReset().mockResolvedValue(undefined);
+    }
+  });
+
+  it('keeps the in-app notification when the push provider fails transiently', async () => {
+    const repository: jest.Mocked<NotificationRepository> = {
+      findByUserId: jest.fn().mockResolvedValue([]),
+      create: jest.fn(),
+      createOnce: jest.fn().mockResolvedValue(undefined),
+    };
+    const subscribedPush: jest.Mocked<PushSubscriptionRepository> = {
+      ...pushRepository,
+      findByUserId: jest.fn().mockResolvedValue([
+        {
+          id: 'sub-transient',
+          userId: 'user-4',
+          endpoint: 'https://push.example/transient',
+          p256dh: 'p256dh',
+          auth: 'auth',
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+      ]),
+    };
+    const previous = {
+      enabled: process.env.PUSH_ENABLED,
+      publicKey: process.env.VAPID_PUBLIC_KEY,
+      privateKey: process.env.VAPID_PRIVATE_KEY,
+    };
+    const loggerSpy = jest.spyOn(logger, 'error').mockImplementation();
+    process.env.PUSH_ENABLED = 'true';
+    process.env.VAPID_PUBLIC_KEY = 'public-test-key';
+    process.env.VAPID_PRIVATE_KEY = 'private-test-key';
+    (webpush.sendNotification as jest.Mock).mockRejectedValueOnce(
+      new Error('temporary provider failure'),
+    );
+    try {
+      await new GenericNotificationService(repository, subscribedPush)
+        .sendGenericClinicalAlert('user-4', 'alert-4');
+      expect(repository.createOnce).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'alert-alert-4-user-4' }),
+      );
+      expect(subscribedPush.deleteByEndpointIfExists).not.toHaveBeenCalled();
+    } finally {
+      loggerSpy.mockRestore();
+      if (previous.enabled === undefined) delete process.env.PUSH_ENABLED;
+      else process.env.PUSH_ENABLED = previous.enabled;
+      if (previous.publicKey === undefined) delete process.env.VAPID_PUBLIC_KEY;
+      else process.env.VAPID_PUBLIC_KEY = previous.publicKey;
+      if (previous.privateKey === undefined)
+        delete process.env.VAPID_PRIVATE_KEY;
+      else process.env.VAPID_PRIVATE_KEY = previous.privateKey;
+      (webpush.sendNotification as jest.Mock).mockReset().mockResolvedValue(undefined);
     }
   });
 

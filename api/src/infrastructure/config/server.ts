@@ -12,6 +12,19 @@ import { AppError } from '@/domain/errors/AppError';
 import { appErrorStatus } from '@/infrastructure/config/appErrorStatus';
 import path from 'path';
 
+export function parseTrustProxyHops(value: string | undefined): number {
+  const normalized = value?.trim();
+  if (!normalized) return 0;
+  if (!/^\d+$/.test(normalized)) {
+    throw new Error('TRUST_PROXY_HOPS must be a non-negative integer');
+  }
+  const hops = Number(normalized);
+  if (!Number.isSafeInteger(hops) || hops > 10) {
+    throw new Error('TRUST_PROXY_HOPS must be between 0 and 10');
+  }
+  return hops;
+}
+
 export class Server {
   private app: Application;
   private port: number;
@@ -25,6 +38,7 @@ export class Server {
   }
 
   private setupMiddleware(): void {
+    this.app.set('trust proxy', parseTrustProxyHops(process.env.TRUST_PROXY_HOPS));
     const allowedOrigins = parseAllowedOrigins(process.env.CLIENT_URL);
 
     const corsOptions = {

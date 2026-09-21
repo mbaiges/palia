@@ -92,7 +92,7 @@ export default function PatientDetail({ patientId, user, onBack, onNewFollowUp, 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-stack-lg)' }}>
       {/* Header Navigation */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-outline-variant)', paddingBottom: '16px' }}>
+      <div className="patient-detail-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-outline-variant)', paddingBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button className="icon-btn" onClick={onBack} aria-label="Volver al listado">
             <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>arrow_back</span>
@@ -105,11 +105,11 @@ export default function PatientDetail({ patientId, user, onBack, onNewFollowUp, 
             </nav>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
+        <div className="patient-detail-actions" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
           {(user?.role === 'admin' || user?.role === 'coordinator') && <button className="btn btn-secondary" onClick={onEdit}>Editar ficha</button>}
           {(user?.role === 'admin' || user?.role === 'coordinator') && (!patient.archivedAt || user?.role === 'coordinator') && <button className="btn btn-secondary" onClick={toggleArchive}>{patient.archivedAt ? 'Restaurar paciente' : 'Archivar paciente'}</button>}
-          {!patient.archivedAt && !isMobile && (
-            <button className="btn btn-primary" onClick={onNewFollowUp} style={{ gap: '6px' }}>
+          {!patient.archivedAt && (
+            <button className="btn btn-primary" onClick={onNewFollowUp} style={{ gap: '6px', flex: isMobile ? '1 1 100%' : 'none' }}>
               <span className="material-symbols-outlined">edit_note</span>
               Registrar Seguimiento
             </button>
@@ -125,7 +125,7 @@ export default function PatientDetail({ patientId, user, onBack, onNewFollowUp, 
               alignItems: 'center',
               gap: '6px',
               fontWeight: 700,
-              flex: isMobile ? '1 1 0' : 'none',
+              flex: isMobile ? '1 1 auto' : 'none',
               justifyContent: 'center'
             }}
           >
@@ -139,7 +139,7 @@ export default function PatientDetail({ patientId, user, onBack, onNewFollowUp, 
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              flex: isMobile ? '1 1 0' : 'none',
+              flex: isMobile ? '1 1 auto' : 'none',
               justifyContent: 'center'
             }}
           >
