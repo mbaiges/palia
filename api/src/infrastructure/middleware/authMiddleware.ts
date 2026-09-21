@@ -27,29 +27,26 @@ export class AuthMiddleware {
    * Middleware function to verify JWT token and user existence
    */
   authenticate() {
-    return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-      let token = this.extractToken(req);
-      let sessionUserId: string | undefined;
-
-      if (!token) {
-        try {
-          const session = await resolveBrowserSession(req);
-          token = session?.jwt ?? null;
-          sessionUserId = session?.userId;
-        } catch {
-          token = null;
-        }
+    return async (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ): Promise<void> => {
+      let session: Awaited<ReturnType<typeof resolveBrowserSession>> = null;
+      try {
+        session = await resolveBrowserSession(req);
+      } catch {
+        session = null;
       }
 
-      if (!token) {
-        res.status(401).json({ message: 'No token provided' });
+      if (!session) {
+        res.status(401).json({ message: 'No browser session provided' });
         return;
       }
 
       try {
-        const decoded = this.tokenProvider.verifyToken(token);
-        const userId = sessionUserId ?? decoded.userId;
-        const user = await this.userRepository.findById(userId);
+        this.tokenProvider.verifyToken(session.jwt);
+        const user = await this.userRepository.findById(session.userId);
 
         if (!user) {
           res.status(401).json({ message: 'User not found' });
@@ -57,7 +54,9 @@ export class AuthMiddleware {
         }
 
         // Load user permissions
-        const permissions = await this.permissionRepository.findByUserId(user.id);
+        const permissions = await this.permissionRepository.findByUserId(
+          user.id
+        );
 
         // Attach user and permissions to request
         (req as AuthenticatedRequest).user = user;
@@ -79,11 +78,10 @@ export class AuthMiddleware {
       next: NextFunction
     ): Promise<void> => {
       try {
-        const token = this.extractToken(req);
-
-        if (token) {
-          const decoded = this.tokenProvider.verifyToken(token);
-          const user = await this.userRepository.findById(decoded.userId);
+        const session = await resolveBrowserSession(req);
+        if (session) {
+          this.tokenProvider.verifyToken(session.jwt);
+          const user = await this.userRepository.findById(session.userId);
           if (user) {
             req.user = user;
           }
@@ -95,16 +93,5 @@ export class AuthMiddleware {
         next();
       }
     };
-  }
-
-  /**
-   * Extract JWT token from Authorization header
-   */
-  private extractToken(req: Request): string | null {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      return authHeader.substring(7);
-    }
-    return null;
   }
 }

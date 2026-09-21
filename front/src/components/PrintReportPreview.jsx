@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 
-export default function PrintReportPreview({ isOpen, onClose, patient, caregiver, followUps, getHospitalName }) {
+export default function PrintReportPreview({ isOpen, onClose, patient, caregiver, followUps, alerts = [], getHospitalName }) {
+  const display = (value) => value === null || value === undefined || value === '' ? 'No registrado' : value;
+  const equipmentLabel = (item) => typeof item === 'string' ? item : item?.label ?? item?.name ?? item?.value ?? '';
   
   useEffect(() => {
     if (isOpen) {
@@ -15,20 +17,36 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
             background: none !important;
             box-shadow: none !important;
           }
+          #root * {
+            visibility: hidden !important;
+          }
           #print-preview-modal-root, #print-preview-modal-root * {
-            visibility: visible;
+            visibility: visible !important;
           }
           #print-preview-modal-root {
-            position: absolute;
-            left: 0;
-            top: 0;
+            position: static;
             width: 100%;
             height: auto;
             margin: 0;
             padding: 0;
+            overflow: visible !important;
             box-shadow: none !important;
             border: none !important;
             background-color: white !important;
+          }
+          .print-preview-overlay {
+            position: static !important;
+            display: block !important;
+            padding: 0 !important;
+            background: none !important;
+            backdrop-filter: none !important;
+          }
+          .print-preview-overlay > div {
+            width: 100% !important;
+            max-width: none !important;
+            height: auto !important;
+            overflow: visible !important;
+            border-radius: 0 !important;
           }
           .no-print {
             display: none !important;
@@ -80,7 +98,7 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
   };
 
   return (
-    <div className="no-print" style={{
+    <div className="print-preview-overlay" style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -204,6 +222,15 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
                 <span style={{ display: 'block', color: 'var(--color-outline)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase' }}>Fecha de Nacimiento</span>
                 <strong style={{ fontSize: '14px', color: '#1a1c1e' }}>{patient?.dob} ({calculateAge(patient?.dob)} años)</strong>
               </div>
+
+              <div>
+                <span style={{ display: 'block', color: 'var(--color-outline)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase' }}>Hospital de Referencia</span>
+                <strong style={{ fontSize: '14px', color: '#1a1c1e' }}>{getHospitalName?.(patient?.hospitalId) || patient?.hospitalName || 'Sin hospital asignado'}</strong>
+              </div>
+              <div>
+                <span style={{ display: 'block', color: 'var(--color-outline)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase' }}>Estado de Seguimiento</span>
+                <strong style={{ fontSize: '14px', color: '#1a1c1e' }}>{patient?.currentStatus || 'No registrado'}</strong>
+              </div>
               
               <div style={{ gridColumn: 'span 3' }}>
                 <span style={{ display: 'block', color: 'var(--color-outline)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase' }}>Diagnóstico Principal</span>
@@ -245,6 +272,14 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
                 <span style={{ display: 'block', color: 'var(--color-outline)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase' }}>Teléfono de Contacto</span>
                 <strong style={{ fontSize: '14px', color: '#1a1c1e' }}>{caregiver?.phone || '—'}</strong>
               </div>
+              <div>
+                <span style={{ display: 'block', color: 'var(--color-outline)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase' }}>Convive con el paciente</span>
+                <strong style={{ fontSize: '14px', color: '#1a1c1e' }}>{caregiver?.livesWithPatient ? 'Sí' : caregiver?.livesWithPatient === false ? 'No' : 'No registrado'}</strong>
+              </div>
+              <div>
+                <span style={{ display: 'block', color: 'var(--color-outline)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase' }}>Nivel de sobrecarga</span>
+                <strong style={{ fontSize: '14px', color: '#1a1c1e' }}>{caregiver?.burdenLevel || 'No registrado'}</strong>
+              </div>
             </div>
           </section>
 
@@ -261,7 +296,7 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
                   <tr style={{ backgroundColor: '#f8f9ff', borderBottom: '1.5px solid var(--color-outline-variant)' }}>
                     <th style={{ padding: '10px 16px', color: 'var(--color-on-surface-variant)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', width: '120px' }}>Fecha</th>
                     <th style={{ padding: '10px 16px', color: 'var(--color-on-surface-variant)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', width: '150px' }}>Voluntario</th>
-                    <th style={{ padding: '10px 16px', color: 'var(--color-on-surface-variant)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase' }}>Resumen de Intervención</th>
+                    <th style={{ padding: '10px 16px', color: 'var(--color-on-surface-variant)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase' }}>Registro clínico completo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -273,26 +308,33 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
                     </tr>
                   ) : (
                     followUps.map(event => (
-                      <tr key={event.id} style={{ borderBottom: '1px solid var(--color-outline-variant)' }}>
+                      <tr key={event.id} aria-label={`Seguimiento ${event.id}`} style={{ borderBottom: '1px solid var(--color-outline-variant)' }}>
                         <td style={{ padding: '12px 16px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                          <strong style={{ display: 'block' }}>{formatPrintDate(event.date)}</strong>
-                          <span style={{ fontSize: '11px', color: 'var(--color-outline)' }}>{formatPrintTime(event.date)}</span>
+                          <strong style={{ display: 'block' }}>{formatPrintDate(event.occurredAt || event.date)}</strong>
+                          <span style={{ fontSize: '11px', color: 'var(--color-outline)' }}>{formatPrintTime(event.occurredAt || event.date)}</span>
+                          <span style={{ display: 'block', fontSize: '10px', marginTop: 6 }}>Confirmado: {formatPrintDate(event.recordedAt)} {formatPrintTime(event.recordedAt)}</span>
                         </td>
                         <td style={{ padding: '12px 16px', verticalAlign: 'top', fontWeight: 600 }}>
                           {event.authorName}
                         </td>
                         <td style={{ padding: '12px 16px', verticalAlign: 'top', lineHeight: '1.5', fontSize: '12px' }}>
-                          {event.alertActivated && (
-                            <span style={{ color: 'var(--color-error)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                              Situación Compleja / Alerta
-                            </span>
-                          )}
-                          {event.symptomObservations}
-                          {event.interventions && (
-                            <div style={{ marginTop: '6px', color: 'var(--color-outline)' }}>
-                              <strong>Intervenciones:</strong> {event.interventions}
-                            </div>
-                          )}
+                          <div style={{ display: 'grid', gap: 5 }}>
+                            <div><strong>Modalidad y duración:</strong> {display(event.contactType)} · {event.durationMinutes ? `${event.durationMinutes} min` : 'Duración no registrada'}</div>
+                            <div><strong>Síntomas:</strong> Dolor {display(event.symptoms?.pain)} · Náuseas {display(event.symptoms?.nausea)} · Disnea {display(event.symptoms?.dyspnea)}</div>
+                            <div><strong>Observaciones de síntomas:</strong> {display(event.symptomObservations)}</div>
+                            <div><strong>Apoyo familiar:</strong> {display(event.socialRisk?.familySupport)}</div>
+                            <div><strong>Notas del entorno:</strong> {display(event.socialRisk?.environmentNotes)}</div>
+                            <div><strong>Equipamiento:</strong> {event.equipmentNeeds?.length ? event.equipmentNeeds.map(equipmentLabel).filter(Boolean).join(', ') : 'No registrado'}{event.equipmentOther ? ` · Otro: ${event.equipmentOther}` : ''}</div>
+                            <div><strong>Intervenciones:</strong> {display(event.interventions)}</div>
+                            {event.alert ? (
+                              <div style={{ borderLeft: '3px solid #d93025', paddingLeft: 8, marginTop: 4 }}>
+                                <strong>Alerta {event.alert.level === 'complex' ? 'compleja' : 'estándar'} · {event.alert.status === 'resolved' ? 'Resuelta' : 'Activa'}</strong>
+                                <div><strong>Motivo:</strong> {display(event.alert.motive)}</div>
+                                <div><strong>Observaciones clínicas:</strong> {display(event.alert.observations)}</div>
+                                {event.alert.resolutionNote && <div><strong>Nota de resolución:</strong> {event.alert.resolutionNote}</div>}
+                              </div>
+                            ) : event.alertActivated ? <strong>Alerta registrada (detalle no disponible en esta respuesta).</strong> : null}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -300,6 +342,29 @@ export default function PrintReportPreview({ isOpen, onClose, patient, caregiver
                 </tbody>
               </table>
             </div>
+          </section>
+
+          <section style={{ marginTop: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1.5px solid var(--color-outline-variant)', paddingBottom: '6px' }}>
+              <span className="material-symbols-outlined text-primary" style={{ fontSize: '18px' }}>warning</span>
+              <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, textTransform: 'uppercase', color: 'var(--color-primary)' }}>4. Historial de alertas clínicas</h2>
+            </div>
+            {alerts.length === 0 ? (
+              <p>No se registraron alertas clínicas.</p>
+            ) : (
+              <div style={{ display: 'grid', gap: 10 }}>
+                {alerts.map((alert) => (
+                  <article key={alert.id} aria-label={`Alerta clínica ${alert.id}`} style={{ border: '1px solid var(--color-outline-variant)', borderLeft: `4px solid ${alert.status === 'active' ? '#d93025' : '#6f787d'}`, borderRadius: 'var(--radius-md)', padding: 12, fontSize: 12, lineHeight: 1.5 }}>
+                    <strong>{alert.level === 'complex' ? 'Crisis Compleja' : 'Seguimiento Estándar'} · {alert.status === 'resolved' ? 'Resuelta' : 'Activa'}</strong>
+                    <div><strong>Fecha:</strong> {formatPrintDate(alert.createdAt)} {formatPrintTime(alert.createdAt)}</div>
+                    <div><strong>Motivo:</strong> {display(alert.motive)}</div>
+                    <div><strong>Observaciones clínicas:</strong> {display(alert.observations)}</div>
+                    <div><strong>Registrada por:</strong> {display(alert.authorName)}</div>
+                    {alert.status === 'resolved' && <div><strong>Resolución:</strong> {formatPrintDate(alert.resolvedAt)} {formatPrintTime(alert.resolvedAt)} · {display(alert.resolvedByName)}{alert.resolutionNote ? ` · Nota: ${alert.resolutionNote}` : ''}</div>}
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
 
         </div>

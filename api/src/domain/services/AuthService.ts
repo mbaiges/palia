@@ -57,8 +57,13 @@ export class AuthService {
       }
     }
 
-    const initialAdminEmails = (process.env.INITIAL_ADMIN_EMAILS ?? '').split(',').map((value) => value.trim().toLowerCase()).filter(Boolean);
-    const isInitialAdmin = initialAdminEmails.includes(email.trim().toLowerCase());
+    const initialAdminEmails = (process.env.INITIAL_ADMIN_EMAILS ?? '')
+      .split(',')
+      .map(value => value.trim().toLowerCase())
+      .filter(Boolean);
+    const isInitialAdmin = initialAdminEmails.includes(
+      email.trim().toLowerCase()
+    );
 
     // Check if user exists by Google ID
     let user = await this.userRepository.findByGoogleId(googleId);
@@ -85,7 +90,6 @@ export class AuthService {
         user = await this.userRepository.save(updatedUser);
       }
 
-      if (isInitialAdmin) await this.userRepository.replaceUserRole(user.id, 'admin');
       return {
         user,
         isNewUser: false,
@@ -109,7 +113,10 @@ export class AuthService {
     const savedUser = await this.userRepository.save(newUser);
 
     // Assign default 'user' role to new user
-    await this.userRepository.assignRole(savedUser.id, isInitialAdmin ? 'admin' : 'volunteer');
+    await this.userRepository.assignRole(
+      savedUser.id,
+      isInitialAdmin ? 'admin' : 'volunteer'
+    );
 
     // Create default settings for the new user
     await this.userSettingsRepository.update(savedUser.id, { theme: 'light' });
@@ -225,7 +232,10 @@ export class AuthService {
         return { user: user ?? result.user, isNewUser: result.isNewUser };
       } catch (err: any) {
         // If admin role doesn't exist (e.g. FK constraint), log and ensure user has user role
-        if (err?.code === 'SQLITE_CONSTRAINT' || err?.message?.includes('FOREIGN KEY')) {
+        if (
+          err?.code === 'SQLITE_CONSTRAINT' ||
+          err?.message?.includes('FOREIGN KEY')
+        ) {
           const { logger } = await import('@/domain/utils/logger');
           logger.info(
             'Dev bypass: could not assign admin role (role may not exist). Run migrations. Signing in with user role.'
@@ -312,17 +322,33 @@ export class AuthService {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await this.userRepository.findByEmail(normalizedEmail);
     if (!user) {
-      throw new AppError('Invalid or expired verification code', ErrorCode.INVALID_VERIFICATION_CODE);
+      throw new AppError(
+        'Invalid or expired verification code',
+        ErrorCode.INVALID_VERIFICATION_CODE
+      );
     }
 
-    const storedCode = await this.emailVerificationRepository.findValidByUserId(user.id);
+    const storedCode = await this.emailVerificationRepository.findValidByUserId(
+      user.id
+    );
     if (!storedCode) {
-      throw new AppError('Invalid or expired verification code', ErrorCode.INVALID_VERIFICATION_CODE);
+      throw new AppError(
+        'Invalid or expired verification code',
+        ErrorCode.INVALID_VERIFICATION_CODE
+      );
     }
 
     const codeHash = this.hashVerificationCode(code);
-    if (!crypto.timingSafeEqual(Buffer.from(storedCode.codeHash, 'hex'), Buffer.from(codeHash, 'hex'))) {
-      throw new AppError('Invalid or expired verification code', ErrorCode.INVALID_VERIFICATION_CODE);
+    if (
+      !crypto.timingSafeEqual(
+        Buffer.from(storedCode.codeHash, 'hex'),
+        Buffer.from(codeHash, 'hex')
+      )
+    ) {
+      throw new AppError(
+        'Invalid or expired verification code',
+        ErrorCode.INVALID_VERIFICATION_CODE
+      );
     }
 
     await this.emailVerificationRepository.invalidateForUser(user.id);
@@ -339,25 +365,40 @@ export class AuthService {
   /**
    * Sign in with email and password.
    */
-  async signInWithEmailPassword(email: string, password: string): Promise<User> {
+  async signInWithEmailPassword(
+    email: string,
+    password: string
+  ): Promise<User> {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await this.userRepository.findByEmail(normalizedEmail);
 
     if (!user) {
-      throw new AppError('Invalid email or password', ErrorCode.INVALID_CREDENTIALS);
+      throw new AppError(
+        'Invalid email or password',
+        ErrorCode.INVALID_CREDENTIALS
+      );
     }
 
     if (!user.isEmailUser() || !user.passwordHash) {
-      throw new AppError('Invalid email or password', ErrorCode.INVALID_CREDENTIALS);
+      throw new AppError(
+        'Invalid email or password',
+        ErrorCode.INVALID_CREDENTIALS
+      );
     }
 
     const valid = await this.passwordHasher.verify(password, user.passwordHash);
     if (!valid) {
-      throw new AppError('Invalid email or password', ErrorCode.INVALID_CREDENTIALS);
+      throw new AppError(
+        'Invalid email or password',
+        ErrorCode.INVALID_CREDENTIALS
+      );
     }
 
     if (!user.emailVerified) {
-      throw new AppError('Please verify your email before signing in', ErrorCode.EMAIL_NOT_VERIFIED);
+      throw new AppError(
+        'Please verify your email before signing in',
+        ErrorCode.EMAIL_NOT_VERIFIED
+      );
     }
 
     return user;
@@ -366,7 +407,11 @@ export class AuthService {
   /**
    * Create and return a verification code for a user (hashed for storage).
    */
-  createVerificationCode(userId: string): { code: string; codeHash: string; expiresAt: Date } {
+  createVerificationCode(userId: string): {
+    code: string;
+    codeHash: string;
+    expiresAt: Date;
+  } {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
     const codeHash = this.hashVerificationCode(code);
@@ -377,7 +422,10 @@ export class AuthService {
    * Request password reset. Sends reset email if user exists and is email/password user.
    * Always returns generic success to avoid enumeration.
    */
-  async requestPasswordReset(email: string, locale?: string | null): Promise<void> {
+  async requestPasswordReset(
+    email: string,
+    locale?: string | null
+  ): Promise<void> {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await this.userRepository.findByEmail(normalizedEmail);
 
@@ -394,23 +442,40 @@ export class AuthService {
     const baseUrl = getFrontendBaseUrl();
     const resetUrl = `${baseUrl}/login/reset-password?email=${encodeURIComponent(normalizedEmail)}&token=${token}`;
 
-    await this.emailSender.sendPasswordReset(normalizedEmail, resetUrl, undefined, locale);
+    await this.emailSender.sendPasswordReset(
+      normalizedEmail,
+      resetUrl,
+      undefined,
+      locale
+    );
   }
 
   /**
    * Reset password using token from email link.
    */
-  async resetPassword(email: string, token: string, newPassword: string): Promise<void> {
+  async resetPassword(
+    email: string,
+    token: string,
+    newPassword: string
+  ): Promise<void> {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await this.userRepository.findByEmail(normalizedEmail);
 
     if (!user || !user.isEmailUser() || !user.passwordHash) {
-      throw new AppError('Invalid or expired reset link', ErrorCode.INVALID_RESET_TOKEN);
+      throw new AppError(
+        'Invalid or expired reset link',
+        ErrorCode.INVALID_RESET_TOKEN
+      );
     }
 
-    const storedToken = await this.passwordResetRepository.findValidByUserId(user.id);
+    const storedToken = await this.passwordResetRepository.findValidByUserId(
+      user.id
+    );
     if (!storedToken) {
-      throw new AppError('Invalid or expired reset link', ErrorCode.INVALID_RESET_TOKEN);
+      throw new AppError(
+        'Invalid or expired reset link',
+        ErrorCode.INVALID_RESET_TOKEN
+      );
     }
 
     const tokenHash = this.hashVerificationCode(token);
@@ -420,7 +485,10 @@ export class AuthService {
         Buffer.from(tokenHash, 'hex')
       )
     ) {
-      throw new AppError('Invalid or expired reset link', ErrorCode.INVALID_RESET_TOKEN);
+      throw new AppError(
+        'Invalid or expired reset link',
+        ErrorCode.INVALID_RESET_TOKEN
+      );
     }
 
     const passwordHash = await this.passwordHasher.hash(newPassword);

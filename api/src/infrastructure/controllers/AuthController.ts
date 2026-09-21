@@ -6,7 +6,12 @@ import { AppError } from '@/domain/errors/AppError';
 import { ErrorCode } from '@/domain/errors/ErrorCodes';
 import { parseAcceptLanguage } from '@/infrastructure/i18n';
 import { configService } from '@/infrastructure/config/config';
-import { createBrowserSession, revokeBrowserSession, clearBrowserSession, resolveBrowserSession } from '@/infrastructure/services/BrowserSession';
+import {
+  createBrowserSession,
+  revokeBrowserSession,
+  clearBrowserSession,
+  resolveBrowserSession,
+} from '@/infrastructure/services/BrowserSession';
 
 /**
  * Authentication Controller
@@ -36,9 +41,21 @@ export class AuthController {
         return;
       }
 
-      if (!configService.config.googleClientId || !configService.config.googleClientSecret) {
-        res.status(503).json({ success: false, error: 'Google authentication is not configured', errorCode: 'SERVICE_UNAVAILABLE' });
-        return;
+      if (
+        !configService.config.googleClientId ||
+        !configService.config.googleClientSecret
+      ) {
+        const fakeGoogleAuthEnabled =
+          process.env.NODE_ENV === 'test' &&
+          process.env.TEST_GOOGLE_AUTH === 'true';
+        if (!fakeGoogleAuthEnabled) {
+          res.status(503).json({
+            success: false,
+            error: 'Google authentication is not configured',
+            errorCode: 'SERVICE_UNAVAILABLE',
+          });
+          return;
+        }
       }
 
       const result = await this.authHandler.handleGoogleSignIn(authCode);
@@ -51,7 +68,11 @@ export class AuthController {
           : 'Signed in successfully',
         data: {
           user: result.user.toJSON(),
-          role: result.permissions.includes('admin:manage_roles') ? 'admin' : result.permissions.includes('medice:manage_domain') ? 'coordinator' : 'volunteer',
+          role: result.permissions.includes('admin:manage_roles')
+            ? 'admin'
+            : result.permissions.includes('medice:manage_domain')
+              ? 'coordinator'
+              : 'volunteer',
           isNewUser: result.isNewUser,
           permissions: result.permissions,
         },
@@ -66,7 +87,7 @@ export class AuthController {
         });
         return;
       }
-      
+
       res.status(401).json({
         success: false,
         error: 'Authentication failed',
@@ -81,7 +102,10 @@ export class AuthController {
    * Body: { email: string, name: string }
    */
   async signInWithDevBypass(req: Request, res: Response): Promise<void> {
-    if (process.env.DEV_AUTH_BYPASS !== 'true') {
+    if (
+      process.env.NODE_ENV === 'production' ||
+      process.env.DEV_AUTH_BYPASS !== 'true'
+    ) {
       res.status(404).json({
         success: false,
         error: 'Not found',
@@ -110,7 +134,11 @@ export class AuthController {
           : 'Signed in successfully',
         data: {
           user: result.user.toJSON(),
-          role: result.permissions.includes('admin:manage_roles') ? 'admin' : result.permissions.includes('medice:manage_domain') ? 'coordinator' : 'volunteer',
+          role: result.permissions.includes('admin:manage_roles')
+            ? 'admin'
+            : result.permissions.includes('medice:manage_domain')
+              ? 'coordinator'
+              : 'volunteer',
           isNewUser: result.isNewUser,
           permissions: result.permissions,
         },
@@ -129,7 +157,7 @@ export class AuthController {
    * Upgrade Google authentication with new scopes
    * POST /api/auth/google/upgrade
    * Body: { authCode: string }
-   * Headers: Authorization: Bearer <token>
+   * Browser session cookie + CSRF token
    */
   async upgradeGoogleAuth(req: Request, res: Response): Promise<void> {
     try {
@@ -144,8 +172,15 @@ export class AuthController {
         return;
       }
 
-      if (!configService.config.googleClientId || !configService.config.googleClientSecret) {
-        res.status(503).json({ success: false, error: 'Google authentication is not configured', errorCode: 'SERVICE_UNAVAILABLE' });
+      if (
+        !configService.config.googleClientId ||
+        !configService.config.googleClientSecret
+      ) {
+        res.status(503).json({
+          success: false,
+          error: 'Google authentication is not configured',
+          errorCode: 'SERVICE_UNAVAILABLE',
+        });
         return;
       }
 
@@ -220,21 +255,19 @@ export class AuthController {
   async refreshToken(req: Request, res: Response): Promise<void> {
     try {
       const session = await resolveBrowserSession(req);
-      const token = this.extractToken(req) ?? session?.jwt ?? null;
-      if (!token) {
+      if (!session) {
         res.status(401).json({
           success: false,
-          error: 'No token provided',
+          error: 'No browser session provided',
         });
         return;
       }
 
-      const decoded = this.authHandler.handleTokenVerification(token);
       const newToken = await this.authHandler.handleTokenRefresh(
-        decoded.userId
+        session.userId
       );
       await revokeBrowserSession(req);
-      await createBrowserSession(res, decoded.userId, newToken);
+      await createBrowserSession(res, session.userId, newToken);
 
       res.status(200).json({
         success: true,
@@ -258,8 +291,15 @@ export class AuthController {
    */
   async refreshGoogleAccessToken(req: Request, res: Response): Promise<void> {
     try {
-      if (!configService.config.googleClientId || !configService.config.googleClientSecret) {
-        res.status(503).json({ success: false, error: 'Google authentication is not configured', errorCode: 'SERVICE_UNAVAILABLE' });
+      if (
+        !configService.config.googleClientId ||
+        !configService.config.googleClientSecret
+      ) {
+        res.status(503).json({
+          success: false,
+          error: 'Google authentication is not configured',
+          errorCode: 'SERVICE_UNAVAILABLE',
+        });
         return;
       }
       if (!req.user) {
@@ -318,7 +358,11 @@ export class AuthController {
         success: true,
         data: {
           user: result.user.toJSON(),
-          role: result.permissions.includes('admin:manage_roles') ? 'admin' : result.permissions.includes('medice:manage_domain') ? 'coordinator' : 'volunteer',
+          role: result.permissions.includes('admin:manage_roles')
+            ? 'admin'
+            : result.permissions.includes('medice:manage_domain')
+              ? 'coordinator'
+              : 'volunteer',
           permissions: result.permissions,
         },
       });
@@ -351,7 +395,7 @@ export class AuthController {
    * Body: { email: string, password: string, name: string }
    */
   async signUpWithEmail(req: Request, res: Response): Promise<void> {
-    if (process.env.EMAIL_AUTH_ENABLED === 'false') {
+    if (process.env.EMAIL_AUTH_ENABLED !== 'true') {
       res.status(404).json({ success: false, error: 'Not found' });
       return;
     }
@@ -405,7 +449,7 @@ export class AuthController {
    * Body: { email: string, code: string }
    */
   async verifyEmail(req: Request, res: Response): Promise<void> {
-    if (process.env.EMAIL_AUTH_ENABLED === 'false') {
+    if (process.env.EMAIL_AUTH_ENABLED !== 'true') {
       res.status(404).json({ success: false, error: 'Not found' });
       return;
     }
@@ -453,7 +497,7 @@ export class AuthController {
    * Body: { email: string, password: string }
    */
   async signInWithEmail(req: Request, res: Response): Promise<void> {
-    if (process.env.EMAIL_AUTH_ENABLED === 'false') {
+    if (process.env.EMAIL_AUTH_ENABLED !== 'true') {
       res.status(404).json({ success: false, error: 'Not found' });
       return;
     }
@@ -501,7 +545,7 @@ export class AuthController {
    * Body: { email: string }
    */
   async requestPasswordReset(req: Request, res: Response): Promise<void> {
-    if (process.env.EMAIL_AUTH_ENABLED === 'false') {
+    if (process.env.EMAIL_AUTH_ENABLED !== 'true') {
       res.status(404).json({ success: false, error: 'Not found' });
       return;
     }
@@ -518,7 +562,10 @@ export class AuthController {
       }
 
       const locale = parseAcceptLanguage(req.headers?.['accept-language']);
-      const result = await this.authHandler.handleRequestPasswordReset(email.trim(), locale);
+      const result = await this.authHandler.handleRequestPasswordReset(
+        email.trim(),
+        locale
+      );
 
       res.status(200).json({
         success: true,
@@ -539,7 +586,7 @@ export class AuthController {
    * Body: { email: string, token: string, newPassword: string }
    */
   async resetPassword(req: Request, res: Response): Promise<void> {
-    if (process.env.EMAIL_AUTH_ENABLED === 'false') {
+    if (process.env.EMAIL_AUTH_ENABLED !== 'true') {
       res.status(404).json({ success: false, error: 'Not found' });
       return;
     }
@@ -591,7 +638,7 @@ export class AuthController {
    * Body: { email: string }
    */
   async resendVerificationCode(req: Request, res: Response): Promise<void> {
-    if (process.env.EMAIL_AUTH_ENABLED === 'false') {
+    if (process.env.EMAIL_AUTH_ENABLED !== 'true') {
       res.status(404).json({ success: false, error: 'Not found' });
       return;
     }
@@ -608,7 +655,10 @@ export class AuthController {
       }
 
       const locale = parseAcceptLanguage(req.headers?.['accept-language']);
-      const result = await this.authHandler.handleEmailResendCode(email.trim(), locale);
+      const result = await this.authHandler.handleEmailResendCode(
+        email.trim(),
+        locale
+      );
 
       res.status(200).json({
         success: true,

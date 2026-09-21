@@ -3,10 +3,14 @@ import cors from 'cors';
 import { createRoutes } from '@/infrastructure/routes';
 import { responseLoggingMiddleware } from '@/infrastructure/middleware/responseLoggingMiddleware';
 import { snakeCaseMiddleware } from '@/infrastructure/middleware/snakeCaseMiddleware';
-import { isOriginAllowed, parseAllowedOrigins } from '@/domain/utils/corsOrigins';
+import {
+  isOriginAllowed,
+  parseAllowedOrigins,
+} from '@/domain/utils/corsOrigins';
 import { requestIdMiddleware } from '@/infrastructure/middleware/requestIdMiddleware';
 import { AppError } from '@/domain/errors/AppError';
 import { appErrorStatus } from '@/infrastructure/config/appErrorStatus';
+import path from 'path';
 
 export class Server {
   private app: Application;
@@ -24,7 +28,10 @@ export class Server {
     const allowedOrigins = parseAllowedOrigins(process.env.CLIENT_URL);
 
     const corsOptions = {
-      origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      origin: (
+        origin: string | undefined,
+        callback: (err: Error | null, allow?: boolean) => void
+      ) => {
         if (isOriginAllowed(origin, allowedOrigins)) {
           callback(null, true);
         } else {
@@ -51,8 +58,18 @@ export class Server {
     // API routes
     this.app.use('/api', createRoutes());
 
+    const frontendDirectory = process.env.FRONT_DIST_DIR;
+    if (frontendDirectory)
+      this.app.use(
+        express.static(frontendDirectory, { index: false, fallthrough: true })
+      );
+
     // Root route
     this.app.get('/', (_req: Request, res: Response) => {
+      if (frontendDirectory) {
+        res.sendFile(path.join(frontendDirectory, 'index.html'));
+        return;
+      }
       res.json({
         message: 'Welcome to the application scaffold API',
         version: '1.0.0',
@@ -61,7 +78,16 @@ export class Server {
     });
 
     // 404 handler
-    this.app.use('*', (req: Request, res: Response) => {
+    this.app.use((req: Request, res: Response) => {
+      if (
+        frontendDirectory &&
+        req.method === 'GET' &&
+        !req.path.startsWith('/api/') &&
+        req.accepts('html')
+      ) {
+        res.sendFile(path.join(frontendDirectory, 'index.html'));
+        return;
+      }
       res.status(404).json({
         error: 'Route not found',
         path: req.originalUrl,

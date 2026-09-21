@@ -390,6 +390,7 @@ export default function PatientDetail({ patientId, user, onBack, onNewFollowUp, 
         patient={patient}
         caregiver={caregiver}
         followUps={followUps}
+        alerts={alerts}
         getHospitalName={getHospitalName}
       />
     </div>

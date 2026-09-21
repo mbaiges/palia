@@ -8,6 +8,10 @@ import { disablePushNotifications, enablePushNotifications, getPushSubscription 
 export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) {
   const [theme, setTheme] = useState(() => getStoredTheme());
   const isCloud = dbService.isCloudBackend();
+  const profile = dbService.getProfile() ?? {};
+  const [profileForm, setProfileForm] = useState({ phone: '', specialtyAvailability: '', tenure: '', avatarUrl: '' });
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileMessage, setProfileMessage] = useState('');
   const [swStatus, setSwStatus] = useState('Registrado y Activo');
   const [notifPermission, setNotifPermission] = useState(() => 'Notification' in window ? Notification.permission : 'No compatible');
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -21,6 +25,15 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
     getPushSubscription().then((subscription) => { if (active) setPushEnabled(Boolean(subscription)); }).catch(() => undefined);
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    setProfileForm({
+      phone: profile.phone ?? '',
+      specialtyAvailability: profile.specialtyAvailability ?? '',
+      tenure: profile.tenure ?? '',
+      avatarUrl: profile.avatarUrl ?? '',
+    });
+  }, [profile.phone, profile.specialtyAvailability, profile.tenure, profile.avatarUrl]);
 
   useEffect(() => {
     if (!initialFocus) return;
@@ -51,29 +64,43 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
     finally { setPushBusy(false); }
   };
 
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    setProfileBusy(true);
+    setProfileMessage('');
+    try {
+      await dbService.saveVolunteer(profileForm);
+      setProfileMessage('Perfil guardado.');
+    } catch (error) {
+      setProfileMessage(error.message || 'No se pudo guardar el perfil.');
+    } finally {
+      setProfileBusy(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-stack-lg)' }}>
       {/* Header */}
       <div>
-        <h1 style={{ color: 'var(--color-on-background)', margin: 0 }}>Configuración de Palia</h1>
-        <p style={{ color: 'var(--color-on-surface-variant)', marginTop: '4px', margin: 0 }}>
+        <h1 style={{ color: 'var(--color-on-background)', margin: 0, fontSize: 'clamp(24px, 7vw, 32px)', lineHeight: 1.2, overflowWrap: 'anywhere' }}>Configuración de Palia</h1>
+        <p style={{ color: 'var(--color-on-surface-variant)', marginTop: '4px', margin: 0, maxWidth: '100%', overflowWrap: 'anywhere' }}>
           Gestione las preferencias de la aplicación, la sincronización offline y accesos.
         </p>
       </div>
 
       {/* Tabs Menu */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--color-outline-variant)', paddingBottom: '8px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderBottom: '1px solid var(--color-outline-variant)', paddingBottom: '8px' }}>
         <button
           className={`btn ${activeSubTab === 'preferencias' ? 'btn-primary' : 'btn-tertiary'}`}
           onClick={() => setActiveSubTab('preferencias')}
-          style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: 'var(--radius-full)' }}
+          style={{ flex: '1 1 150px', minWidth: 0, minHeight: '36px', height: 'auto', padding: '8px 10px', lineHeight: 1.2, fontSize: '13px', borderRadius: 'var(--radius-full)' }}
         >
           Preferencias de Usuario
         </button>
         <button
           className={`btn ${activeSubTab === 'sincronizacion' ? 'btn-primary' : 'btn-tertiary'}`}
           onClick={() => setActiveSubTab('sincronizacion')}
-          style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: 'var(--radius-full)' }}
+          style={{ flex: '1 1 150px', minWidth: 0, minHeight: '36px', height: 'auto', padding: '8px 10px', lineHeight: 1.2, fontSize: '13px', borderRadius: 'var(--radius-full)' }}
         >
           Centro de Sincronización
         </button>
@@ -81,6 +108,35 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
 
       {activeSubTab === 'preferencias' && (
         <div className="bento-grid">
+          <form className="card" onSubmit={saveProfile} style={{ gridColumn: 'span 12', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--color-primary)' }}>
+              <span className="material-symbols-outlined" style={{ backgroundColor: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)', padding: '8px', borderRadius: 'var(--radius-md)' }}>person</span>
+              <div>
+                <h2 style={{ fontSize: '20px', margin: 0 }}>Mi perfil de voluntariado</h2>
+                <p style={{ fontSize: '13px', color: 'var(--color-on-surface-variant)', margin: '4px 0 0' }}>La identidad y el rol se administran desde el acceso autorizado.</p>
+              </div>
+            </div>
+            <div className="bento-grid">
+              <label className="form-group" style={{ gridColumn: 'span 6' }}>Teléfono
+                <input autoComplete="tel" value={profileForm.phone} onChange={(event) => setProfileForm({ ...profileForm, phone: event.target.value })} maxLength={40} />
+              </label>
+              <label className="form-group" style={{ gridColumn: 'span 6' }}>Especialidad y disponibilidad
+                <input value={profileForm.specialtyAvailability} onChange={(event) => setProfileForm({ ...profileForm, specialtyAvailability: event.target.value })} maxLength={240} />
+              </label>
+              <label className="form-group" style={{ gridColumn: 'span 6' }}>Trayectoria
+                <input value={profileForm.tenure} onChange={(event) => setProfileForm({ ...profileForm, tenure: event.target.value })} maxLength={240} />
+              </label>
+              <label className="form-group" style={{ gridColumn: 'span 6' }}>URL de imagen de perfil
+                <input type="url" value={profileForm.avatarUrl} onChange={(event) => setProfileForm({ ...profileForm, avatarUrl: event.target.value })} maxLength={2048} />
+              </label>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderTop: '1px solid var(--color-outline-variant)', paddingTop: 12 }}>
+              <span style={{ color: 'var(--color-on-surface-variant)', fontSize: 13 }}>Pacientes asignados: <strong>{dbService.getVolunteers().find((volunteer) => volunteer.id === dbService.getCurrentUserId())?.activePatients ?? 0}</strong> · Rol: <strong>{dbService.getRole()}</strong></span>
+              <button type="submit" className="btn btn-primary" disabled={profileBusy}>{profileBusy ? 'Guardando…' : 'Guardar perfil'}</button>
+            </div>
+            {profileMessage && <p role="status" aria-live="polite" style={{ margin: 0, color: profileMessage === 'Perfil guardado.' ? 'var(--color-success)' : 'var(--color-error)' }}>{profileMessage}</p>}
+          </form>
+
           {/* Visual Preferences */}
           <div className="card" style={{ gridColumn: 'span 6', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--color-primary)' }}>

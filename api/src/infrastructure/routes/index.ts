@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { RequestHandler, Router } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { container } from '@/infrastructure/config/container';
 import { PingController } from '@/infrastructure/controllers/PingController';
@@ -16,14 +16,19 @@ import { clientDiagnosticsController } from '@/infrastructure/controllers/Client
 import { AuditEventController } from '@/infrastructure/controllers/AuditEventController';
 import { isMediaEnabled } from '@/domain/utils/mediaConfig';
 import { apiDocsHtml, apiOpenApiDocument } from '@/infrastructure/openapi';
-import { csrfProtection, issueCsrfToken } from '@/infrastructure/services/BrowserSession';
+import {
+  csrfProtection,
+  issueCsrfToken,
+} from '@/infrastructure/services/BrowserSession';
 import { MediceController } from '@/infrastructure/controllers/MediceController';
 
 export function createRoutes(): Router {
   const router = Router();
 
   router.use(csrfProtection);
-  router.get('/auth/csrf', (req, res) => res.json({ token: issueCsrfToken(req, res) }));
+  router.get('/auth/csrf', (req, res) =>
+    res.json({ token: issueCsrfToken(req, res) })
+  );
 
   router.get('/openapi.json', (_req, res) => res.json(apiOpenApiDocument));
   router.get('/docs', (_req, res) => res.type('html').send(apiDocsHtml));
@@ -44,7 +49,7 @@ export function createRoutes(): Router {
   const diagnosticsLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 30,
-    keyGenerator: (req) => ipKeyGenerator(req.ip ?? 'unknown'),
+    keyGenerator: req => ipKeyGenerator(req.ip ?? 'unknown'),
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -56,8 +61,11 @@ export function createRoutes(): Router {
     next();
   };
 
-  router.post('/diagnostics/client-errors', diagnosticsLimiter, diagnosticsBodyLimit, (req, res) =>
-    clientDiagnosticsController.receive(req, res)
+  router.post(
+    '/diagnostics/client-errors',
+    diagnosticsLimiter,
+    diagnosticsBodyLimit,
+    (req, res) => clientDiagnosticsController.receive(req, res)
   );
   router.get(
     '/admin/diagnostics/client-errors',
@@ -65,8 +73,18 @@ export function createRoutes(): Router {
     permissionMiddleware.requirePermission('admin:manage_settings'),
     (req, res) => clientDiagnosticsController.list(req, res)
   );
-  router.get('/admin/audit-events', auth.authenticate(), permissionMiddleware.requirePermission('admin:manage_settings'), (req, res, next) => auditEventController.list(req, res).catch(next));
-  router.get('/admin/audit-events/export', auth.authenticate(), permissionMiddleware.requirePermission('admin:manage_settings'), (req, res, next) => auditEventController.export(req, res).catch(next));
+  router.get(
+    '/admin/audit-events',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('admin:manage_settings'),
+    (req, res, next) => auditEventController.list(req, res).catch(next)
+  );
+  router.get(
+    '/admin/audit-events/export',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('admin:manage_settings'),
+    (req, res, next) => auditEventController.export(req, res).catch(next)
+  );
 
   // Health & Status (public)
   router.get('/ping', (req, res) => pingController.ping(req, res));
@@ -92,24 +110,44 @@ export function createRoutes(): Router {
   // Generic media surface: both upload modes are intentionally domain-neutral.
   const mediaUpload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: Number(process.env.MEDIA_MAX_UPLOAD_BYTES ?? 10 * 1024 * 1024) },
+    limits: {
+      fileSize: Number(process.env.MEDIA_MAX_UPLOAD_BYTES ?? 10 * 1024 * 1024),
+    },
   });
   const mediaEnabled = (_req: any, res: any, next: any) => {
     if (!isMediaEnabled()) {
-      res.status(503).json({ success: false, error: 'Media feature is disabled', errorCode: 'SERVICE_UNAVAILABLE' });
+      res.status(503).json({
+        success: false,
+        error: 'Media feature is disabled',
+        errorCode: 'SERVICE_UNAVAILABLE',
+      });
       return;
     }
     next();
   };
-  router.get('/media/assets', auth.authenticate(), mediaEnabled, (req, res) => mediaAssetController.listMine(req as any, res));
-  router.post('/media/assets/multipart', auth.authenticate(), mediaEnabled, mediaUpload.single('file'), (req, res, next) =>
-    mediaAssetController.uploadMultipart(req as any, res).catch(next)
+  router.get('/media/assets', auth.authenticate(), mediaEnabled, (req, res) =>
+    mediaAssetController.listMine(req as any, res)
   );
-  router.post('/media/assets/data-url', auth.authenticate(), mediaEnabled, (req, res, next) =>
-    mediaAssetController.uploadDataUrl(req as any, res).catch(next)
+  router.post(
+    '/media/assets/multipart',
+    auth.authenticate(),
+    mediaEnabled,
+    mediaUpload.single('file'),
+    (req, res, next) =>
+      mediaAssetController.uploadMultipart(req as any, res).catch(next)
   );
-  router.get('/media/assets/:id', auth.authenticate(), mediaEnabled, (req, res, next) =>
-    mediaAssetController.get(req as any, res).catch(next)
+  router.post(
+    '/media/assets/data-url',
+    auth.authenticate(),
+    mediaEnabled,
+    (req, res, next) =>
+      mediaAssetController.uploadDataUrl(req as any, res).catch(next)
+  );
+  router.get(
+    '/media/assets/:id',
+    auth.authenticate(),
+    mediaEnabled,
+    (req, res, next) => mediaAssetController.get(req as any, res).catch(next)
   );
   router.post(
     '/admin/media/assets/multipart',
@@ -117,14 +155,16 @@ export function createRoutes(): Router {
     permissionMiddleware.requirePermission('admin:manage_settings'),
     mediaEnabled,
     mediaUpload.single('file'),
-    (req, res, next) => mediaAssetController.uploadMultipartAdmin(req as any, res).catch(next)
+    (req, res, next) =>
+      mediaAssetController.uploadMultipartAdmin(req as any, res).catch(next)
   );
   router.post(
     '/admin/media/assets/data-url',
     auth.authenticate(),
     permissionMiddleware.requirePermission('admin:manage_settings'),
     mediaEnabled,
-    (req, res, next) => mediaAssetController.uploadDataUrlAdmin(req as any, res).catch(next)
+    (req, res, next) =>
+      mediaAssetController.uploadDataUrlAdmin(req as any, res).catch(next)
   );
   router.get(
     '/admin/media/assets',
@@ -135,27 +175,48 @@ export function createRoutes(): Router {
   );
 
   // Authentication (public)
-  router.post('/auth/google', async (req, res, next) => {
-    try {
-      await authController.signInWithGoogle(req, res);
-    } catch (error) {
-      next(error);
+  router.post(
+    '/auth/google',
+    (req, res, next) => {
+      if (req.header('X-Requested-With') !== 'XmlHttpRequest') {
+        res.status(400).json({
+          success: false,
+          error: 'Google popup request validation failed',
+        });
+        return;
+      }
+      next();
+    },
+    async (req, res, next) => {
+      try {
+        await authController.signInWithGoogle(req, res);
+      } catch (error) {
+        next(error);
+      }
     }
-  });
-  router.post('/auth/google/upgrade', auth.authenticate(), async (req, res, next) => {
-    try {
-      await authController.upgradeGoogleAuth(req, res);
-    } catch (error) {
-      next(error);
+  );
+  router.post(
+    '/auth/google/upgrade',
+    auth.authenticate(),
+    async (req, res, next) => {
+      try {
+        await authController.upgradeGoogleAuth(req, res);
+      } catch (error) {
+        next(error);
+      }
     }
-  });
-  router.get('/auth/google/refresh-token', auth.authenticate(), async (req, res, next) => {
-    try {
-      await authController.refreshGoogleAccessToken(req, res);
-    } catch (error) {
-      next(error);
+  );
+  router.get(
+    '/auth/google/refresh-token',
+    auth.authenticate(),
+    async (req, res, next) => {
+      try {
+        await authController.refreshGoogleAccessToken(req, res);
+      } catch (error) {
+        next(error);
+      }
     }
-  });
+  );
   router.post('/auth/dev/bypass', async (req, res, next) => {
     try {
       await authController.signInWithDevBypass(req, res);
@@ -163,85 +224,212 @@ export function createRoutes(): Router {
       next(error);
     }
   });
-  router.post('/auth/email/sign-up', async (req, res, next) => {
-    try {
-      await authController.signUpWithEmail(req, res);
-    } catch (error) {
-      next(error);
+  const emailAuthEnabled: RequestHandler = (_req, res, next) => {
+    if (process.env.EMAIL_AUTH_ENABLED === 'true') return next();
+    res.status(404).json({ success: false, error: 'Not found' });
+  };
+  router.post(
+    '/auth/email/sign-up',
+    emailAuthEnabled,
+    async (req, res, next) => {
+      try {
+        await authController.signUpWithEmail(req, res);
+      } catch (error) {
+        next(error);
+      }
     }
-  });
-  router.post('/auth/email/verify', async (req, res, next) => {
-    try {
-      await authController.verifyEmail(req, res);
-    } catch (error) {
-      next(error);
+  );
+  router.post(
+    '/auth/email/verify',
+    emailAuthEnabled,
+    async (req, res, next) => {
+      try {
+        await authController.verifyEmail(req, res);
+      } catch (error) {
+        next(error);
+      }
     }
-  });
-  router.post('/auth/email/sign-in', async (req, res, next) => {
-    try {
-      await authController.signInWithEmail(req, res);
-    } catch (error) {
-      next(error);
+  );
+  router.post(
+    '/auth/email/sign-in',
+    emailAuthEnabled,
+    async (req, res, next) => {
+      try {
+        await authController.signInWithEmail(req, res);
+      } catch (error) {
+        next(error);
+      }
     }
-  });
-  router.post('/auth/email/resend-code', async (req, res, next) => {
-    try {
-      await authController.resendVerificationCode(req, res);
-    } catch (error) {
-      next(error);
+  );
+  router.post(
+    '/auth/email/resend-code',
+    emailAuthEnabled,
+    async (req, res, next) => {
+      try {
+        await authController.resendVerificationCode(req, res);
+      } catch (error) {
+        next(error);
+      }
     }
-  });
-  router.post('/auth/email/forgot-password', async (req, res, next) => {
-    try {
-      await authController.requestPasswordReset(req, res);
-    } catch (error) {
-      next(error);
+  );
+  router.post(
+    '/auth/email/forgot-password',
+    emailAuthEnabled,
+    async (req, res, next) => {
+      try {
+        await authController.requestPasswordReset(req, res);
+      } catch (error) {
+        next(error);
+      }
     }
-  });
-  router.post('/auth/email/reset-password', async (req, res, next) => {
-    try {
-      await authController.resetPassword(req, res);
-    } catch (error) {
-      next(error);
+  );
+  router.post(
+    '/auth/email/reset-password',
+    emailAuthEnabled,
+    async (req, res, next) => {
+      try {
+        await authController.resetPassword(req, res);
+      } catch (error) {
+        next(error);
+      }
     }
-  });
-  router.get('/auth/verify', (req, res) => authController.verifyToken(req, res));
-  router.post('/auth/refresh', (req, res) => authController.refreshToken(req, res));
+  );
+  router.get('/auth/verify', (req, res) =>
+    authController.verifyToken(req, res)
+  );
+  router.post('/auth/refresh', (req, res) =>
+    authController.refreshToken(req, res)
+  );
   router.post('/auth/signout', (req, res) => authController.signOut(req, res));
   router.get('/auth/me', auth.authenticate(), (req, res) =>
     authController.getCurrentUser(req, res)
   );
 
   // Medice domain: all clinical reads require an authenticated, allow-listed account.
-  router.get('/bootstrap', auth.authenticate(), (req, res, next) => medice.bootstrap(req, res).catch(next));
-  router.get('/patients', auth.authenticate(), (req, res, next) => medice.listPatients(req, res).catch(next));
-  router.post('/patients', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.savePatient(req, res).catch(next));
-  router.get('/patients/:patientId', auth.authenticate(), (req, res, next) => medice.getPatient(req, res).catch(next));
-  router.patch('/patients/:patientId', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.savePatient(req, res).catch(next));
-  router.post('/patients/:patientId/archive', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.setPatientArchive(req, res).catch(next));
-  router.post('/patients/:patientId/restore', auth.authenticate(), async (req, res, next) => {
-    try {
-      await medice.restorePatient(req, res);
-    } catch (error) { next(error); }
-  });
-  router.put('/patients/:patientId/assignments', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.assignPatient(req, res).catch(next));
-  router.get('/patients/:patientId/follow-ups', auth.authenticate(), (req, res, next) => medice.listFollowUps(req, res).catch(next));
-  router.post('/patients/:patientId/follow-ups', auth.authenticate(), (req, res, next) => medice.createFollowUp(req, res).catch(next));
-  router.get('/alerts', auth.authenticate(), (req, res, next) => medice.listAlerts(req, res).catch(next));
-  router.post('/patients/:patientId/alerts', auth.authenticate(), (req, res, next) => medice.createAlert(req, res).catch(next));
-  router.post('/alerts/:alertId/resolve', auth.authenticate(), (req, res, next) => medice.resolveAlert(req, res).catch(next));
-  router.get('/hospitals', auth.authenticate(), (req, res, next) => medice.listHospitals(req, res).catch(next));
-  router.post('/hospitals', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.saveHospital(req, res).catch(next));
-  router.patch('/hospitals/:hospitalId', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.saveHospital(req, res).catch(next));
-  router.post('/hospitals/:hospitalId/archive', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.setHospitalArchive(req, res).catch(next));
-  router.post('/hospitals/:hospitalId/restore', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.setHospitalArchive(req, res).catch(next));
-  router.get('/volunteers', auth.authenticate(), (req, res, next) => medice.listVolunteers(req, res).catch(next));
-  router.get('/users/me/profile', auth.authenticate(), (req, res, next) => medice.getMyProfile(req, res).catch(next));
-  router.patch('/users/me/profile', auth.authenticate(), (req, res, next) => medice.updateMyProfile(req, res).catch(next));
-  router.post('/coordinator/allowed-users', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_allowlist'), (req, res, next) => medice.addVolunteerAllowlist(req, res).catch(next));
-  router.get('/coordinator/allowed-users', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_allowlist'), (req, res, next) => medice.listVolunteerAllowlist(req, res).catch(next));
-  router.get('/stats/me', auth.authenticate(), (req, res, next) => medice.getStats(req, res).catch(next));
-  router.get('/stats/global', auth.authenticate(), permissionMiddleware.requirePermission('medice:global_stats'), (req, res, next) => medice.getStats(req, res).catch(next));
+  router.get('/bootstrap', auth.authenticate(), (req, res, next) =>
+    medice.bootstrap(req, res).catch(next)
+  );
+  router.get('/patients', auth.authenticate(), (req, res, next) =>
+    medice.listPatients(req, res).catch(next)
+  );
+  router.post(
+    '/patients',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('medice:manage_domain'),
+    (req, res, next) => medice.savePatient(req, res).catch(next)
+  );
+  router.get('/patients/:patientId', auth.authenticate(), (req, res, next) =>
+    medice.getPatient(req, res).catch(next)
+  );
+  router.patch(
+    '/patients/:patientId',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('medice:manage_domain'),
+    (req, res, next) => medice.savePatient(req, res).catch(next)
+  );
+  router.post(
+    '/patients/:patientId/archive',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('medice:manage_domain'),
+    (req, res, next) => medice.setPatientArchive(req, res).catch(next)
+  );
+  router.post(
+    '/patients/:patientId/restore',
+    auth.authenticate(),
+    async (req, res, next) => {
+      try {
+        await medice.restorePatient(req, res);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+  router.put(
+    '/patients/:patientId/assignments',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('medice:manage_domain'),
+    (req, res, next) => medice.assignPatient(req, res).catch(next)
+  );
+  router.get(
+    '/patients/:patientId/follow-ups',
+    auth.authenticate(),
+    (req, res, next) => medice.listFollowUps(req, res).catch(next)
+  );
+  router.post(
+    '/patients/:patientId/follow-ups',
+    auth.authenticate(),
+    (req, res, next) => medice.createFollowUp(req, res).catch(next)
+  );
+  router.get('/alerts', auth.authenticate(), (req, res, next) =>
+    medice.listAlerts(req, res).catch(next)
+  );
+  router.post(
+    '/patients/:patientId/alerts',
+    auth.authenticate(),
+    (req, res, next) => medice.createAlert(req, res).catch(next)
+  );
+  router.post(
+    '/alerts/:alertId/resolve',
+    auth.authenticate(),
+    (req, res, next) => medice.resolveAlert(req, res).catch(next)
+  );
+  router.get('/hospitals', auth.authenticate(), (req, res, next) =>
+    medice.listHospitals(req, res).catch(next)
+  );
+  router.post(
+    '/hospitals',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('medice:manage_domain'),
+    (req, res, next) => medice.saveHospital(req, res).catch(next)
+  );
+  router.patch(
+    '/hospitals/:hospitalId',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('medice:manage_domain'),
+    (req, res, next) => medice.saveHospital(req, res).catch(next)
+  );
+  router.post(
+    '/hospitals/:hospitalId/archive',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('medice:manage_domain'),
+    (req, res, next) => medice.setHospitalArchive(req, res).catch(next)
+  );
+  router.post(
+    '/hospitals/:hospitalId/restore',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('medice:manage_domain'),
+    (req, res, next) => medice.setHospitalArchive(req, res).catch(next)
+  );
+  router.get('/volunteers', auth.authenticate(), (req, res, next) =>
+    medice.listVolunteers(req, res).catch(next)
+  );
+  router.get('/users/me/profile', auth.authenticate(), (req, res, next) =>
+    medice.getMyProfile(req, res).catch(next)
+  );
+  router.patch('/users/me/profile', auth.authenticate(), (req, res, next) =>
+    medice.updateMyProfile(req, res).catch(next)
+  );
+  router.post(
+    '/coordinator/allowed-users',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('medice:manage_allowlist'),
+    (req, res, next) => medice.addVolunteerAllowlist(req, res).catch(next)
+  );
+  router.get(
+    '/coordinator/allowed-users',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('medice:manage_allowlist'),
+    (req, res, next) => medice.listVolunteerAllowlist(req, res).catch(next)
+  );
+  router.get('/stats/me', auth.authenticate(), (req, res, next) =>
+    medice.getStats(req, res).catch(next)
+  );
+  router.get(
+    '/stats/global',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('medice:global_stats'),
+    (req, res, next) => medice.getStats(req, res).catch(next)
+  );
 
   // Current user settings (protected)
   router.get('/users/me/settings', auth.authenticate(), (req, res, next) => {

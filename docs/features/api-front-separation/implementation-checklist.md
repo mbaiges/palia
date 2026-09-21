@@ -4,7 +4,7 @@ Esta lista define cuándo `api/` está terminada e integrada de forma comprobabl
 
 Las dos auditorías redundantes de cuatro agentes están resumidas en [gap-analysis.md](./gap-analysis.md). Los contratos y decisiones de producto están cerrados en los specs; no reabrirlos durante implementación.
 
-## Estado de implementación (iteración 4)
+## Estado de implementación (iteración 16)
 
 Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que ya tiene evidencia en el código y en la suite ejecutada; los criterios detallados de abajo siguen siendo la fuente de verdad para el trabajo pendiente.
 
@@ -13,11 +13,18 @@ Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que 
 - [x] Bootstrap admin `INITIAL_ADMIN_EMAILS`, allow-list/roles y presentación del rol inicial en administración.
 - [x] Flujos API/front implementados para fichas, cuidadores, asignaciones, hospitales, seguimientos, alertas, estadísticas y administración; edición de paciente/cuidador incluida.
 - [x] Seguimiento online/offline con outbox local, recarga y sincronización; pruebas unitarias y E2E base.
+- [x] Duración de seguimiento: defaults 120 min presencial y 60 min remoto; personalizada entre 15 y 1440 min en múltiplos de 15, validada en UI/API e incluida en impresión.
 - [x] Alertas múltiples, resolución explícita con nota opcional y formulario que muestra errores de persistencia.
-- [x] Probes E2E para login, ficha, alta, seguimiento, alerta, edición, archivo, administración y layouts responsive. Se abrieron y revisaron visualmente las capturas 01–27 en esta iteración.
+- [x] Perfil propio editable desde Configuración: contacto, especialidad/disponibilidad, trayectoria e imagen; identidad/rol no editables y asignaciones calculadas. E2E valida persistencia del perfil.
+- [x] API valida tipos, tamaños y esquema del perfil, restringe imagen a HTTP(S) y rechaza explícitamente intentos de cambiar identidad, rol, permisos o conteos derivados; E2E valida 422 y que no haya mutación.
+- [x] Probes E2E para login, ficha, alta, seguimiento, alerta, edición, archivo, administración y layouts responsive. Se abrieron y revisaron visualmente las capturas 01–32.
 - [x] `npm test`, builds de API/front y suite E2E configurada pasaron; lint front pasó con warnings.
-- [ ] No se considera completo: cobertura de OAuth real/callback, revisión exhaustiva de cookie/CSRF/RBAC, auditoría y métricas detalladas; aislamiento offline ante logout/revocación/desasignación y conflicto; proveedor/entrega push; impresión fiel; migración de los 13 E2E legacy excluidos; empaquetado/arranque de producción y cobertura de todos los AC.
-- [ ] `npm run format:check --prefix api` conserva fallo de baseline por 160 ficheros de scaffold sin formato uniforme; los ficheros nuevos de la iteración se formatearon puntualmente.
+- [x] Iteraciones 12–16: outbox usa clave compuesta por usuario+mutación; E2E prueba colisión entre cuentas, migración IndexedDB v1→v2 y reingreso/sincronización del autor; PATCH parcial conserva campos omitidos/estado; mutaciones autenticadas sin Origin reciben 403 y logout limpia cookie CSRF; bootstrap admin se asigna una vez y conserva roles persistidos; tests verifican revocación de sesión y privacidad del Service Worker.
+- [x] En iteración 5, `npm run test:e2e:api-front-separation` pasó y se revisó visualmente `28-volunteer-profile.png`.
+- [x] En iteración 6, E2E aislado comprobó las validaciones server-side del perfil y se revisó visualmente `29-profile-validation.png`.
+- [ ] No se considera completo: OAuth con configuración Google real/callback; revisión exhaustiva de cookie/CSRF/RBAC; auditoría detallada; aislamiento offline ante revocación/desasignación y conflicto; proveedor/entrega push; migración de los 13 E2E legacy excluidos; cobertura de todos los AC. Logout/cambio de cuenta y protección de cache/outbox sí tienen E2E local.
+- [x] E2E migra una IndexedDB v1 real con operación pendiente a clave compuesta v2, preserva la entrada y sincroniza un seguimiento autorizado del mismo autor al reingresar; solo elimina la outbox tras ACK.
+- [ ] `npm run format:check --prefix api` conserva fallo de baseline por 160 ficheros de scaffold sin formato uniforme; los ficheros modificados de esta iteración requieren verificación de formato dirigida.
 - [ ] Turso permanece fuera de alcance y no está validado.
 
 ## Decisiones funcionales fijadas
@@ -53,19 +60,19 @@ Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que 
 
 - [x] Cerrar participación voluntaria del coordinador y permisos de visibilidad/archivo/restauración de pacientes.
 - [x] Congelar contrato funcional/técnico tras completar las aclaraciones de producto; no reabrir las decisiones confirmadas.
-- [ ] Implementar las fórmulas y series de KPI de functional-spec; eliminar agenda/citas, actividad, frases y logros fijos sin fuente persistida.
-- [ ] Definir bootstrap de primer admin seguro y de una sola vez; asegurar que bypass de desarrollo y verificador de identidad de test no pueden habilitarse en producción.
+- [x] Implementar las fórmulas/series derivables de los KPI descritos en functional-spec; eliminar agenda/citas, actividad, frases y logros fijos sin fuente persistida. Estadísticas agregan selector de año, actividad semanal de 7/14 días y reconocimientos personales con fecha de umbral basada en seguimientos confirmados.
+- [x] Definir bootstrap de primer admin seguro y de una sola vez; rol inicial se persiste solo al crear la cuenta, bypass de desarrollo y verificador de identidad de test no pueden habilitarse en producción. Un test asegura que logins posteriores no reescriban el rol.
 - [ ] Definir OAuth browser end-to-end: callback/retorno permitido, state/nonce (y PKCE si aplica), claims validados, correo verificado/normalizado, cookie única y revocación inmediata por baja/cambio de rol.
-- [ ] Implementar protección local de outbox ligada al autor: al logout purgar fichas cacheadas y preservar seguimientos pendientes; otra cuenta no los lee/sincroniza. Si el autor pierde autorización, el API rechaza la sincronización y el elemento queda retenido como conflicto; no cambiar autor ni descartar en silencio.
+- [x] Implementar protección local de outbox ligada al autor: al logout purgar fichas cacheadas y preservar seguimientos pendientes; otra cuenta no los lee/sincroniza. E2E inserta una operación pendiente, cierra sesión, entra con otra cuenta y confirma cola vacía para la cuenta nueva, item retenido con autor original, identidad anterior borrada y cache clínico anterior purgado.
 - [ ] Inventariar cada bloque visible de Dashboard, Stats, Volunteers, Administration, Settings, OfflineSync, Header, `front/public/sw.js` y PrintReportPreview; quitar agenda/citas, actividades, frases y logros fijos que no provienen de la base.
 - [ ] Implementar “Invitaciones y Accesos” como lista autorizada; quitar enviar/reenviar y estados ficticios. Normalizar email case-insensitive, responder duplicados sin mutación, proteger bootstrap y evitar quitar/degradar el último admin. Coordinador solo agrega voluntario; solo admin cambia roles/revoca.
 - [ ] Instalar las dependencias de `api/` desde su lockfile y verificar configuración con entorno local; no usar comandos dirigidos a Turso.
 - [ ] Crear `.env.example` seguro para API y documentar arranque SQLite local, OAuth de desarrollo/test y claves de prueba sin secretos reales.
-- [ ] Añadir `e2e/artifacts/` a `.gitignore`; mantener allí las capturas obligatorias.
+- [x] Añadir `e2e/artifacts/` a `.gitignore`; mantener allí las capturas obligatorias.
 - [ ] Acordar fixture/test bootstrap repetible con usuarios admin y voluntario, pacientes, asignaciones y alertas sintéticas; reiniciable solo sobre DB test/local.
-- [ ] Agregar scripts raíz consistentes para test unitario completo y E2E completo, y un comando E2E aislado de esta feature. Hoy existen scripts por app, pero no están definidos todos esos gates raíz.
-- [ ] Crear una página OpenAPI/versionada del contrato y estrategia para detectar diferencias entre contrato, API y cliente.
-- [ ] Crear proveedor/verificador OIDC falso solo para `NODE_ENV=test`, con fixture claims positivos/negativos y fallo de arranque/build si ese modo se activa en producción.
+- [x] Agregar scripts raíz consistentes para test unitario completo y E2E completo, y un comando E2E aislado de esta feature.
+- [x] Crear una página OpenAPI/versionada del contrato con rutas Medice, sesión cookie y requisitos CSRF; queda pendiente automatizar detección de drift entre contrato y cliente.
+- [x] Crear proveedor/verificador Google fake solo con `NODE_ENV=test` + `TEST_GOOGLE_AUTH=true`; E2E usa el botón de login, prueba allow-list/admin bootstrap y rechazo; prueba unitaria confirma que el código fake no se acepta en producción.
 
 ## 1. Persistencia y dominio API
 
@@ -82,6 +89,7 @@ Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que 
 ## 2. Autenticación, sesión y autorización
 
 - [ ] Integrar OAuth Google server-side y comprobar la identidad/token en API; nunca confiar en el usuario/rol enviado por React.
+- [x] La validación real exige `email_verified=true`, normaliza el correo y valida audience con el client ID de configuración; el popup exige `X-Requested-With: XmlHttpRequest` y el E2E comprueba que se rechaza si falta.
 - [ ] Aplicar allow-list antes de crear una sesión; rechazar usuario no autorizado sin filtrar detalles sensibles.
 - [ ] Emitir cookie opaca `__Host-medice_session` con `HttpOnly`, `Secure` fuera de HTTP localhost, `SameSite=Lax`, `Path=/` y sin `Domain`.
 - [ ] Rotar identificador al autenticar y al elevar/renovar; persistir hash de sesión, expiración, actividad y revocación server-side.
@@ -89,20 +97,20 @@ Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que 
 - [ ] Implementar `GET /auth/me`, logout y revocación; comprobar expiración y revocación en peticiones posteriores.
 - [ ] Dar rol voluntario por defecto y reservar gestión de allow-list/roles a admin.
 - [ ] Probar autorización del servidor para cada clase de ruta: anónimo, voluntario, admin, revocado y sesión vencida.
-- [ ] No guardar JWT, cookie ni secretos en `localStorage`/`sessionStorage`; eliminar el bypass de rol/login demo en el front.
+- [x] No guardar JWT, cookie ni secretos en `localStorage`/`sessionStorage`; el API rechaza JWT Bearer sin sesión cookie y el bypass de desarrollo no puede habilitarse en producción.
 
 ## 3. Contrato HTTP y rutas
 
 - [ ] Publicar health/readiness que distingan servicio vivo de DB local disponible sin exponer configuración/secrets.
 - [ ] Definir setup/teardown de DB SQLite efímera para E2E y fixtures deterministas; comprobar que los comandos locales de test no pueden seleccionar Turso.
 - [ ] Implementar rutas de auth, pacientes/fichas, cuidadores, hospitales, asignaciones, seguimientos, alertas/resolución, estadísticas, allow-list y push subscriptions.
-- [ ] Implementar el mapping exacto de claves `NewFollowUp` -> DTO canónico -> historial/impresión, incluida modalidad/duración, autor desde sesión y timestamps `occurredAt`/`recordedAt`; roundtrip create → read → print sin pérdida.
-- [ ] Aplicar validación de entrada/salida, límites de tamaño, paginación, normalización y errores estables (`401`, `403`, `404`, `409`, `422`, `5xx`).
+- [x] Implementar el mapping de seguimiento -> DTO canónico -> historial/impresión para todos los campos renderizados, autor desde sesión y fecha de registro; E2E crea y relee el seguimiento y afirma su impresión sin pérdida.
+- [ ] Aplicar validación de entrada/salida, límites de tamaño, paginación, normalización y errores estables (`401`, `403`, `404`, `409`, `422`, `5xx`); revisar aún paginación/error uniforme en todos los recursos.
 - [ ] Aplicar permisos en todos los endpoints: voluntario ve directorio completo, crea seguimientos para cualquier paciente y resuelve alertas; coordinador además gestiona pacientes/hospitales/asignaciones, restaura pacientes archivados y ve métricas globales; solo admin gestiona roles/admins.
 - [ ] Implementar lista paginada de alertas individuales y resolución de una alerta concreta; el detalle muestra activas/resueltas, solicita nota opcional, y refresca estado/conteos sin cerrar las otras alertas.
 - [ ] Asegurar invariantes de estado: “Situación Compleja” crea En Observación (nunca Alerta por sí sola); seguimiento estándar no baja a Estable mientras exista alerta activa.
 - [ ] Exigir `clientMutationId` en seguimientos encolados; mismo autor/ID/payload devuelve resultado original, payload distinto produce conflicto.
-- [ ] Generar/actualizar OpenAPI desde las rutas y documentar auth cookie, CSRF, errores e idempotencia.
+- [x] Actualizar OpenAPI con rutas Medice y auth cookie + CSRF; la generación automática desde rutas y los esquemas detallados de errores/idempotencia quedan pendientes.
 
 ## 4. Cliente y pantallas `front/`
 
@@ -112,7 +120,7 @@ Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que 
 - [ ] Conectar alertas individuales activas/resueltas, resumen agrupado por paciente y resolución individual con confirmación/nota; refrescar detalle/directorio/header/dashboard sin cerrar alertas restantes.
 - [ ] Conectar login/logout/identidad a auth API y proteger rutas por identidad/rol cargados desde `/auth/me`.
 - [ ] Conectar directorio, detalle, alta/edición de pacientes y cuidadores, hospitales, voluntarios/asignaciones, seguimientos, alertas, administración y estadísticas. Edición de paciente/cuidador es requisito para coordinador/admin e incluye la relación.
-- [ ] Agregar opción personalizada al formulario de seguimiento (15–1440 minutos, step 15); validar en front y API y conservar valor en historial/impresión.
+- [x] Agregar opción personalizada al formulario de seguimiento (15–1440 minutos, step 15); validar en front y API y conservar valor en historial/impresión.
 - [ ] Conectar o retirar/reemplazar cada bloque del inventario por pantalla; cubrir búsqueda global, filtros/paginación, perfil/comunidad, resumen por rol, click push con sesión vencida y vista imprimible.
 - [ ] Añadir estados consistentes de carga, vacío, error, reintento, acceso denegado y éxito en cada flujo.
 - [ ] Enviar CSRF en todas las mutaciones y tratar `401` como sesión vencida sin perder formularios locales útiles.
@@ -123,13 +131,15 @@ Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que 
 
 - [ ] Implementar IndexedDB con caché explícita de fichas asignadas y abiertas previamente, separada de la sesión.
 - [ ] No cachear todo el directorio ni respuestas autenticadas en Cache Storage/service worker; invalidar ficha al perder asignación y eliminar datos cacheados de ficha al cerrar sesión.
-- [ ] Mantener la outbox offline separada de la caché de fichas y asociada a su autor original; nunca borrar pendientes por logout ni hacer que otra cuenta los pueda ver/enviar.
+- [x] Mantener la outbox offline separada de la caché de fichas y asociada a su autor original; IndexedDB usa clave compuesta usuario+mutación y migra el esquema anterior preservando pendientes. E2E fuerza el mismo ID para dos cuentas y valida aislamiento tras logout/cambio.
 - [ ] Permitir crear seguimiento offline solo si hay ficha permitida en caché; voluntarios, coordinadores y admins asignados con perfil voluntario comparten el flujo; mostrar estado pendiente/no sincronizado.
-- [ ] Generar UUID `clientMutationId` antes de guardar en outbox y conservar payload mínimo necesario.
+- [x] Generar UUID `clientMutationId` antes de guardar en outbox y conservar payload mínimo necesario.
 - [ ] Sincronizar en orden al volver conexión/reautenticarse; backoff en errores transitorios; pausar en `401`; conservar fallos permanentes para revisión.
-- [ ] Borrar de outbox solo tras ACK de API; presentar conflicto de idempotencia sin descartar datos.
+- [x] Borrar de outbox solo tras ACK de API; E2E confirma eliminación del envío aceptado y retención para revisión de rechazos permanentes.
 - [ ] Probar reinicio de navegador, desconexión/reconexión, reintento duplicado, asignación retirada y sesión revocada con datos de prueba locales.
-- [ ] Probar logout y reingreso con misma cuenta, otra cuenta y autor revocado; cache clínico no visible tras logout y outbox nunca cambia de autor ni desaparece sin confirmación/acción explícita.
+- [x] E2E de logout/cambio a otra cuenta: cache clínica anterior se purga; identidad anterior desaparece; outbox no desaparece y solo queda visible con su usuario dueño.
+- [x] E2E de reingreso con el mismo autor sincroniza un pendiente asignado y verifica registro confirmado más eliminación tras ACK.
+- [x] E2E de revocación de acceso: la sesión existente no puede consultar identidad ni crear seguimientos (401); prueba unitaria confirma que 401 conserva el pendiente `pending` para reintento tras reautenticación.
 
 ## 6. Alertas, push y fallback
 
@@ -137,17 +147,17 @@ Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que 
 - [ ] Permitir resolución explícita por cualquier voluntario autenticado y dejar rastro de autor/hora.
 - [ ] Implementar registro/actualización/baja de push subscription y dispatch solo después de confirmar la transacción.
 - [ ] Enviar al equipo asignado excepto autor, incluyendo coordinadores/admins asignados como voluntarios; fallback in-app si push está deshabilitado o sin permiso.
-- [ ] Mantener título/cuerpo push genéricos: ninguna PII ni dato clínico en payload, logs o lock screen.
+- [x] Mantener título/cuerpo push genéricos: ninguna PII ni dato clínico en el payload visible o lock screen; API y Service Worker reemplazan contenido y solo conservan IDs de navegación.
 - [ ] Verificar click en notificación, sesión requerida para abrir detalle, suscripciones inválidas y errores del proveedor simulados; no enviar push real en pruebas.
 - [ ] Verificar que el Service Worker genera contenido genérico y no confía en `title/body` clínicos arbitrarios del payload recibido.
 
 ## 7. Integración de mismo origen y empaquetado
 
-- [ ] Añadir imagen/build del API y servidor/proxy de estáticos del front con ruta `/api/*` hacia API.
-- [ ] Configurar mismo origen HTTPS, `trust proxy` solo para proxy controlado, flags cookie seguras, healthchecks y cierre ordenado.
+- [x] Añadir imagen/build del API y servidor de estáticos del front con ruta `/api/*` en el mismo origen.
+- [ ] Configurar mismo origen HTTPS, `trust proxy` solo para proxy controlado, flags cookie seguras, healthchecks y cierre ordenado. Imagen local y smoke HTTP validados; TLS/proxy de producción pendiente.
 - [ ] Documentar variables y comandos locales; secretos solo del lado API. La UI usa rutas relativas.
-- [ ] Probar build y arranque local de ambos procesos/contendedor(es) contra SQLite, incluyendo navegación directa/refresh SPA y llamadas autenticadas `/api`.
-- [ ] Verificar que service worker no intercepte ni almacene `/api/*`.
+- [x] Probar build y arranque local de la imagen combinada con SQLite local, navegación directa a una ruta SPA y readiness `/api`; el E2E por procesos separados también valida peticiones autenticadas.
+- [x] Verificar que el service worker deja `/api/*` directo a red y no añade esos recursos a su precache estático; prueba Node ejecuta el handler con un request API.
 - [ ] No ejecutar ni considerar como gate ningún test que requiera URL, token, creación de DB, migración, seed o conexión de Turso.
 
 ## 8. Verificación final y Definition of Done
@@ -159,9 +169,9 @@ Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que 
 - [ ] E2E de archivado: todos los roles autorizados consultan un paciente archivado; coordinador puede restaurarlo y voluntario/admin reciben 403 al intentar restaurarlo.
 - [ ] E2E de hospitales: coordinador y admin archivan/restauran; voluntario recibe 403; hospital archivado no se ofrece para nuevas altas y sigue visible como referencia histórica.
 - [ ] E2E de edición de paciente/cuidador: coordinador/admin editan todos los campos y relación; voluntario recibe 403; validar errores y conflicto de concurrencia.
-- [ ] E2E de duración: defaults presencial/remoto; personalizados 15 y 1440 aceptados; 14, 16, 1441 y valores no múltiplos de 15 rechazados.
+- [x] E2E de duración: defaults presencial/remoto; personalizados 15 y 1440 aceptados; 14, 16, 1441 y valores no múltiplos de 15 rechazados.
 - [ ] E2E offline: coordinador/admin asignado con perfil voluntario puede cachear ficha, encolar y sincronizar seguimiento; no asignado no puede usar offline.
-- [ ] Hacer que los E2E de OAuth usen proveedor/verificador fake en modo test. No usar una cuenta Google real ni habilitar bypass/fixtures de auth en ejecución de producción.
+- [x] Hacer que el E2E API/front use el Google fake en modo test para probar UI popup, rol bootstrap, allow-list y rechazo. No usar cuenta Google real ni habilitar fake fuera de test.
 - [ ] Capturar explícitamente todas las capturas de la manifest en `e2e/artifacts/screenshots/api-front-separation/`; abrir/revisar cada PNG y anotar el resultado en `loop-state.md`.
 - [ ] Ejecutar el conjunto completo unitario de ambas apps y el conjunto completo E2E; guardar comandos/resultados en `loop-state.md`.
 - [ ] Ejecutar builds de `api/` y `front/`, lint/format disponibles y comprobar que no hay secretos, archivos DB locales ni artefactos de prueba staged.

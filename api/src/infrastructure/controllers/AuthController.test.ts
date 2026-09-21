@@ -6,6 +6,7 @@ import { User } from '@/domain/models/User';
 import { AppError } from '@/domain/errors/AppError';
 import { ErrorCode } from '@/domain/errors/ErrorCodes';
 import { configService } from '@/infrastructure/config/config';
+import { resolveBrowserSession } from '@/infrastructure/services/BrowserSession';
 
 jest.mock('@/application/handlers/AuthHandler');
 jest.mock('@/infrastructure/services/BrowserSession', () => ({
@@ -14,6 +15,7 @@ jest.mock('@/infrastructure/services/BrowserSession', () => ({
   clearBrowserSession: jest.fn(),
   resolveBrowserSession: jest.fn().mockResolvedValue(null),
 }));
+const mockResolveBrowserSession = jest.mocked(resolveBrowserSession);
 
 const mockUser = new User('1', 'google-1', 'a@a.com', 'Test User', '', '');
 const mockAuthenticatedUser = mockUser.toAuthenticatedUser();
@@ -47,10 +49,17 @@ describe('AuthController', () => {
       configService.config.googleClientId = '';
       configService.config.googleClientSecret = '';
       mockRequest = { body: { authCode: 'code' } };
-      await authController.signInWithGoogle(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithGoogle(
+        mockRequest as Request,
+        mockResponse as Response
+      );
       expect(mockAuthHandler.handleGoogleSignIn).not.toHaveBeenCalled();
       expect(mockStatus).toHaveBeenCalledWith(503);
-      expect(mockJson).toHaveBeenCalledWith({ success: false, error: 'Google authentication is not configured', errorCode: 'SERVICE_UNAVAILABLE' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'Google authentication is not configured',
+        errorCode: 'SERVICE_UNAVAILABLE',
+      });
     });
 
     it('should return 201 for a new user', async () => {
@@ -67,7 +76,10 @@ describe('AuthController', () => {
       mockAuthHandler.handleGoogleSignIn.mockResolvedValue(authResult);
 
       // Act
-      await authController.signInWithGoogle(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithGoogle(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockAuthHandler.handleGoogleSignIn).toHaveBeenCalledWith(authCode);
@@ -98,14 +110,17 @@ describe('AuthController', () => {
       mockAuthHandler.handleGoogleSignIn.mockResolvedValue(authResult);
 
       // Act
-      await authController.signInWithGoogle(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithGoogle(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockStatus).toHaveBeenCalledWith(200);
       expect(mockJson).toHaveBeenCalledWith(
         expect.objectContaining({
           message: 'Signed in successfully',
-          data: expect.objectContaining({ 
+          data: expect.objectContaining({
             isNewUser: false,
             permissions: authResult.permissions,
             role: 'volunteer',
@@ -119,7 +134,10 @@ describe('AuthController', () => {
       mockRequest = { body: {} };
 
       // Act
-      await authController.signInWithGoogle(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithGoogle(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockStatus).toHaveBeenCalledWith(400);
@@ -133,12 +151,18 @@ describe('AuthController', () => {
       // Arrange
       const authCode = 'test-auth-code';
       mockRequest = { body: { authCode } };
-      mockAuthHandler.handleGoogleSignIn.mockRejectedValue(new Error('Unauthorized'));
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
+      mockAuthHandler.handleGoogleSignIn.mockRejectedValue(
+        new Error('Unauthorized')
+      );
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       // Act
-      await authController.signInWithGoogle(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithGoogle(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockStatus).toHaveBeenCalledWith(403);
@@ -152,27 +176,54 @@ describe('AuthController', () => {
     });
 
     it('should return 401 for other authentication failures', async () => {
-        // Arrange
-        const authCode = 'test-auth-code';
-        mockRequest = { body: { authCode } };
-        const errorMessage = 'Authentication failed for some other reason';
-        mockAuthHandler.handleGoogleSignIn.mockRejectedValue(new Error(errorMessage));
-        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      // Arrange
+      const authCode = 'test-auth-code';
+      mockRequest = { body: { authCode } };
+      const errorMessage = 'Authentication failed for some other reason';
+      mockAuthHandler.handleGoogleSignIn.mockRejectedValue(
+        new Error(errorMessage)
+      );
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
-  
-        // Act
-        await authController.signInWithGoogle(mockRequest as Request, mockResponse as Response);
-  
-        // Assert
-        expect(mockStatus).toHaveBeenCalledWith(401);
-        expect(mockJson).toHaveBeenCalledWith({
-          success: false,
-          error: 'Authentication failed',
-          message: errorMessage,
-        });
+      // Act
+      await authController.signInWithGoogle(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
-        consoleErrorSpy.mockRestore();
+      // Assert
+      expect(mockStatus).toHaveBeenCalledWith(401);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'Authentication failed',
+        message: errorMessage,
       });
+
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('refreshToken', () => {
+    it('rejects a Bearer token when no browser session cookie is present', async () => {
+      mockRequest = {
+        headers: { authorization: 'Bearer scaffold-jwt' },
+      } as any;
+      mockResolveBrowserSession.mockResolvedValue(null);
+
+      await authController.refreshToken(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(401);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'No browser session provided',
+      });
+      expect(mockAuthHandler.handleTokenRefresh).not.toHaveBeenCalled();
+    });
   });
 
   describe('getCurrentUser', () => {
@@ -187,10 +238,15 @@ describe('AuthController', () => {
       mockAuthHandler.handleGetCurrentUser.mockResolvedValue(handlerResult);
 
       // Act
-      await authController.getCurrentUser(mockRequest as Request, mockResponse as Response);
+      await authController.getCurrentUser(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
-      expect(mockAuthHandler.handleGetCurrentUser).toHaveBeenCalledWith(mockUser.id);
+      expect(mockAuthHandler.handleGetCurrentUser).toHaveBeenCalledWith(
+        mockUser.id
+      );
       expect(mockStatus).toHaveBeenCalledWith(200);
       expect(mockJson).toHaveBeenCalledWith({
         success: true,
@@ -207,7 +263,10 @@ describe('AuthController', () => {
       mockRequest = {};
 
       // Act
-      await authController.getCurrentUser(mockRequest as Request, mockResponse as Response);
+      await authController.getCurrentUser(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockStatus).toHaveBeenCalledWith(401);
@@ -225,7 +284,10 @@ describe('AuthController', () => {
       mockAuthHandler.handleGetCurrentUser.mockResolvedValue(null);
 
       // Act
-      await authController.getCurrentUser(mockRequest as Request, mockResponse as Response);
+      await authController.getCurrentUser(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockStatus).toHaveBeenCalledWith(404);
@@ -241,10 +303,15 @@ describe('AuthController', () => {
       mockRequest = { user: mockUser } as any;
       const error = new Error('Database error');
       mockAuthHandler.handleGetCurrentUser.mockRejectedValue(error);
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       // Act
-      await authController.getCurrentUser(mockRequest as Request, mockResponse as Response);
+      await authController.getCurrentUser(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       // Assert
       expect(mockStatus).toHaveBeenCalledWith(500);
@@ -274,10 +341,16 @@ describe('AuthController', () => {
       process.env.DEV_AUTH_BYPASS = 'false';
       mockRequest = { body: { email: 'alice@test.com', name: 'Alice' } };
 
-      await authController.signInWithDevBypass(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithDevBypass(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(404);
-      expect(mockJson).toHaveBeenCalledWith({ success: false, error: 'Not found' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'Not found',
+      });
       expect(mockAuthHandler.handleDevBypass).not.toHaveBeenCalled();
     });
 
@@ -293,9 +366,15 @@ describe('AuthController', () => {
       };
       mockAuthHandler.handleDevBypass = jest.fn().mockResolvedValue(authResult);
 
-      await authController.signInWithDevBypass(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithDevBypass(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
-      expect(mockAuthHandler.handleDevBypass).toHaveBeenCalledWith('alice@test.com', 'Alice');
+      expect(mockAuthHandler.handleDevBypass).toHaveBeenCalledWith(
+        'alice@test.com',
+        'Alice'
+      );
       expect(mockStatus).toHaveBeenCalledWith(201);
       expect(mockJson).toHaveBeenCalledWith({
         success: true,
@@ -321,7 +400,10 @@ describe('AuthController', () => {
       };
       mockAuthHandler.handleDevBypass = jest.fn().mockResolvedValue(authResult);
 
-      await authController.signInWithDevBypass(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithDevBypass(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(200);
       expect(mockJson).toHaveBeenCalledWith(
@@ -336,7 +418,10 @@ describe('AuthController', () => {
       process.env.DEV_AUTH_BYPASS = 'true';
       mockRequest = { body: { email: 'alice@test.com' } };
 
-      await authController.signInWithDevBypass(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithDevBypass(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({
@@ -349,10 +434,17 @@ describe('AuthController', () => {
     it('should return 401 on handler error', async () => {
       process.env.DEV_AUTH_BYPASS = 'true';
       mockRequest = { body: { email: 'alice@test.com', name: 'Alice' } };
-      mockAuthHandler.handleDevBypass = jest.fn().mockRejectedValue(new Error('Some error'));
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockAuthHandler.handleDevBypass = jest
+        .fn()
+        .mockRejectedValue(new Error('Some error'));
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
-      await authController.signInWithDevBypass(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithDevBypass(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(401);
       expect(mockJson).toHaveBeenCalledWith({
@@ -368,33 +460,62 @@ describe('AuthController', () => {
   describe('signUpWithEmail', () => {
     const originalEmailAuth = process.env.EMAIL_AUTH_ENABLED;
 
+    beforeEach(() => {
+      process.env.EMAIL_AUTH_ENABLED = 'true';
+    });
+
     afterEach(() => {
       process.env.EMAIL_AUTH_ENABLED = originalEmailAuth;
     });
 
     it('should return 200 on success', async () => {
-      mockRequest = { body: { email: 'new@example.com', password: 'password123', name: 'New User' } };
-      mockAuthHandler.handleEmailSignUp.mockResolvedValue({ message: 'Verification code sent to your email' });
+      mockRequest = {
+        body: {
+          email: 'new@example.com',
+          password: 'password123',
+          name: 'New User',
+        },
+      };
+      mockAuthHandler.handleEmailSignUp.mockResolvedValue({
+        message: 'Verification code sent to your email',
+      });
 
-      await authController.signUpWithEmail(mockRequest as Request, mockResponse as Response);
+      await authController.signUpWithEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(200);
-      expect(mockJson).toHaveBeenCalledWith({ success: true, message: 'Verification code sent to your email' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        message: 'Verification code sent to your email',
+      });
     });
 
     it('should return 400 when email, password, or name missing', async () => {
       mockRequest = { body: { email: 'new@example.com' } };
 
-      await authController.signUpWithEmail(mockRequest as Request, mockResponse as Response);
+      await authController.signUpWithEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ success: false, error: 'Email, password, and name are required' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'Email, password, and name are required',
+      });
     });
 
     it('should return 400 when password too short', async () => {
-      mockRequest = { body: { email: 'new@example.com', password: 'short', name: 'User' } };
+      mockRequest = {
+        body: { email: 'new@example.com', password: 'short', name: 'User' },
+      };
 
-      await authController.signUpWithEmail(mockRequest as Request, mockResponse as Response);
+      await authController.signUpWithEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({
@@ -406,39 +527,82 @@ describe('AuthController', () => {
 
     it('should return 404 when EMAIL_AUTH_ENABLED is false', async () => {
       process.env.EMAIL_AUTH_ENABLED = 'false';
-      mockRequest = { body: { email: 'new@example.com', password: 'password123', name: 'User' } };
+      mockRequest = {
+        body: {
+          email: 'new@example.com',
+          password: 'password123',
+          name: 'User',
+        },
+      };
 
-      await authController.signUpWithEmail(mockRequest as Request, mockResponse as Response);
+      await authController.signUpWithEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(404);
-      expect(mockJson).toHaveBeenCalledWith({ success: false, error: 'Not found' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'Not found',
+      });
     });
 
     it('should return 400 on handler error', async () => {
-      mockRequest = { body: { email: 'new@example.com', password: 'password123', name: 'User' } };
-      mockAuthHandler.handleEmailSignUp.mockRejectedValue(new Error('Email already exists'));
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-      await authController.signUpWithEmail(mockRequest as Request, mockResponse as Response);
-
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ success: false, error: 'Email already exists' });
-      consoleErrorSpy.mockRestore();
-    });
-
-    it('should return 400 with errorCode when AppError (USER_EXISTS_NEEDS_VERIFICATION)', async () => {
-      mockRequest = { body: { email: 'existing@example.com', password: 'password123', name: 'User' } };
+      mockRequest = {
+        body: {
+          email: 'new@example.com',
+          password: 'password123',
+          name: 'User',
+        },
+      };
       mockAuthHandler.handleEmailSignUp.mockRejectedValue(
-        new AppError('User already exists with this email. Please verify your account.', ErrorCode.USER_EXISTS_NEEDS_VERIFICATION)
+        new Error('Email already exists')
       );
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
-      await authController.signUpWithEmail(mockRequest as Request, mockResponse as Response);
+      await authController.signUpWithEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({
         success: false,
-        error: 'User already exists with this email. Please verify your account.',
+        error: 'Email already exists',
+      });
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should return 400 with errorCode when AppError (USER_EXISTS_NEEDS_VERIFICATION)', async () => {
+      mockRequest = {
+        body: {
+          email: 'existing@example.com',
+          password: 'password123',
+          name: 'User',
+        },
+      };
+      mockAuthHandler.handleEmailSignUp.mockRejectedValue(
+        new AppError(
+          'User already exists with this email. Please verify your account.',
+          ErrorCode.USER_EXISTS_NEEDS_VERIFICATION
+        )
+      );
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      await authController.signUpWithEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error:
+          'User already exists with this email. Please verify your account.',
         errorCode: ErrorCode.USER_EXISTS_NEEDS_VERIFICATION,
       });
       consoleErrorSpy.mockRestore();
@@ -447,6 +611,10 @@ describe('AuthController', () => {
 
   describe('verifyEmail', () => {
     const originalEmailAuth = process.env.EMAIL_AUTH_ENABLED;
+
+    beforeEach(() => {
+      process.env.EMAIL_AUTH_ENABLED = 'true';
+    });
 
     afterEach(() => {
       process.env.EMAIL_AUTH_ENABLED = originalEmailAuth;
@@ -462,7 +630,10 @@ describe('AuthController', () => {
         permissions: ['example:read'],
       });
 
-      await authController.verifyEmail(mockRequest as Request, mockResponse as Response);
+      await authController.verifyEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(200);
       expect(mockJson).toHaveBeenCalledWith(
@@ -477,17 +648,26 @@ describe('AuthController', () => {
     it('should return 400 when email or code missing', async () => {
       mockRequest = { body: { email: 'verify@example.com' } };
 
-      await authController.verifyEmail(mockRequest as Request, mockResponse as Response);
+      await authController.verifyEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ success: false, error: 'Email and code are required' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'Email and code are required',
+      });
     });
 
     it('should return 404 when EMAIL_AUTH_ENABLED is false', async () => {
       process.env.EMAIL_AUTH_ENABLED = 'false';
       mockRequest = { body: { email: 'verify@example.com', code: '123456' } };
 
-      await authController.verifyEmail(mockRequest as Request, mockResponse as Response);
+      await authController.verifyEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(404);
     });
@@ -495,11 +675,19 @@ describe('AuthController', () => {
     it('should return 401 with errorCode on invalid code', async () => {
       mockRequest = { body: { email: 'verify@example.com', code: '000000' } };
       mockAuthHandler.handleEmailVerify.mockRejectedValue(
-        new AppError('Invalid or expired verification code', ErrorCode.INVALID_VERIFICATION_CODE)
+        new AppError(
+          'Invalid or expired verification code',
+          ErrorCode.INVALID_VERIFICATION_CODE
+        )
       );
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
-      await authController.verifyEmail(mockRequest as Request, mockResponse as Response);
+      await authController.verifyEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(401);
       expect(mockJson).toHaveBeenCalledWith(
@@ -516,12 +704,18 @@ describe('AuthController', () => {
   describe('signInWithEmail', () => {
     const originalEmailAuth = process.env.EMAIL_AUTH_ENABLED;
 
+    beforeEach(() => {
+      process.env.EMAIL_AUTH_ENABLED = 'true';
+    });
+
     afterEach(() => {
       process.env.EMAIL_AUTH_ENABLED = originalEmailAuth;
     });
 
     it('should return 200 on success', async () => {
-      mockRequest = { body: { email: 'signin@example.com', password: 'password123' } };
+      mockRequest = {
+        body: { email: 'signin@example.com', password: 'password123' },
+      };
       mockAuthHandler.handleEmailSignIn.mockResolvedValue({
         user: mockAuthenticatedUser,
         token: 'jwt',
@@ -530,7 +724,10 @@ describe('AuthController', () => {
         permissions: ['example:read'],
       });
 
-      await authController.signInWithEmail(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(200);
       expect(mockJson).toHaveBeenCalledWith(
@@ -545,20 +742,33 @@ describe('AuthController', () => {
     it('should return 400 when email or password missing', async () => {
       mockRequest = { body: { email: 'signin@example.com' } };
 
-      await authController.signInWithEmail(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ success: false, error: 'Email and password are required' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'Email and password are required',
+      });
     });
 
     it('should return 401 with errorCode on invalid credentials', async () => {
-      mockRequest = { body: { email: 'signin@example.com', password: 'wrong' } };
+      mockRequest = {
+        body: { email: 'signin@example.com', password: 'wrong' },
+      };
       mockAuthHandler.handleEmailSignIn.mockRejectedValue(
         new AppError('Invalid email or password', ErrorCode.INVALID_CREDENTIALS)
       );
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
-      await authController.signInWithEmail(mockRequest as Request, mockResponse as Response);
+      await authController.signInWithEmail(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(401);
       expect(mockJson).toHaveBeenCalledWith(
@@ -575,44 +785,76 @@ describe('AuthController', () => {
   describe('resendVerificationCode', () => {
     const originalEmailAuth = process.env.EMAIL_AUTH_ENABLED;
 
+    beforeEach(() => {
+      process.env.EMAIL_AUTH_ENABLED = 'true';
+    });
+
     afterEach(() => {
       process.env.EMAIL_AUTH_ENABLED = originalEmailAuth;
     });
 
     it('should return 200 on success', async () => {
       mockRequest = { body: { email: 'resend@example.com' } };
-      mockAuthHandler.handleEmailResendCode.mockResolvedValue({ message: 'If an account exists, a new code has been sent' });
+      mockAuthHandler.handleEmailResendCode.mockResolvedValue({
+        message: 'If an account exists, a new code has been sent',
+      });
 
-      await authController.resendVerificationCode(mockRequest as Request, mockResponse as Response);
+      await authController.resendVerificationCode(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(200);
-      expect(mockJson).toHaveBeenCalledWith({ success: true, message: 'If an account exists, a new code has been sent' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        message: 'If an account exists, a new code has been sent',
+      });
     });
 
     it('should return 400 when email missing', async () => {
       mockRequest = { body: {} };
 
-      await authController.resendVerificationCode(mockRequest as Request, mockResponse as Response);
+      await authController.resendVerificationCode(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ success: false, error: 'Email is required' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'Email is required',
+      });
     });
 
     it('should return 500 on handler error', async () => {
       mockRequest = { body: { email: 'resend@example.com' } };
-      mockAuthHandler.handleEmailResendCode.mockRejectedValue(new Error('Email service failed'));
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockAuthHandler.handleEmailResendCode.mockRejectedValue(
+        new Error('Email service failed')
+      );
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
-      await authController.resendVerificationCode(mockRequest as Request, mockResponse as Response);
+      await authController.resendVerificationCode(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({ success: false, error: 'Failed to resend code' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'Failed to resend code',
+      });
       consoleErrorSpy.mockRestore();
     });
   });
 
   describe('requestPasswordReset', () => {
     const originalEmailAuth = process.env.EMAIL_AUTH_ENABLED;
+
+    beforeEach(() => {
+      process.env.EMAIL_AUTH_ENABLED = 'true';
+    });
 
     afterEach(() => {
       process.env.EMAIL_AUTH_ENABLED = originalEmailAuth;
@@ -621,45 +863,69 @@ describe('AuthController', () => {
     it('should return 200 on success', async () => {
       mockRequest = { body: { email: 'reset@example.com' } };
       mockAuthHandler.handleRequestPasswordReset.mockResolvedValue({
-        message: 'If an account exists, a reset link has been sent to your email',
+        message:
+          'If an account exists, a reset link has been sent to your email',
       });
 
-      await authController.requestPasswordReset(mockRequest as Request, mockResponse as Response);
+      await authController.requestPasswordReset(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(200);
       expect(mockJson).toHaveBeenCalledWith({
         success: true,
-        message: 'If an account exists, a reset link has been sent to your email',
+        message:
+          'If an account exists, a reset link has been sent to your email',
       });
     });
 
     it('should return 400 when email missing', async () => {
       mockRequest = { body: {} };
 
-      await authController.requestPasswordReset(mockRequest as Request, mockResponse as Response);
+      await authController.requestPasswordReset(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({ success: false, error: 'Email is required' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'Email is required',
+      });
     });
 
     it('should return 404 when EMAIL_AUTH_ENABLED is false', async () => {
       process.env.EMAIL_AUTH_ENABLED = 'false';
       mockRequest = { body: { email: 'reset@example.com' } };
 
-      await authController.requestPasswordReset(mockRequest as Request, mockResponse as Response);
+      await authController.requestPasswordReset(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(404);
     });
 
     it('should return 500 on handler error', async () => {
       mockRequest = { body: { email: 'reset@example.com' } };
-      mockAuthHandler.handleRequestPasswordReset.mockRejectedValue(new Error('Email failed'));
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockAuthHandler.handleRequestPasswordReset.mockRejectedValue(
+        new Error('Email failed')
+      );
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
-      await authController.requestPasswordReset(mockRequest as Request, mockResponse as Response);
+      await authController.requestPasswordReset(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({ success: false, error: 'Failed to send reset link' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: false,
+        error: 'Failed to send reset link',
+      });
       consoleErrorSpy.mockRestore();
     });
   });
@@ -667,24 +933,43 @@ describe('AuthController', () => {
   describe('resetPassword', () => {
     const originalEmailAuth = process.env.EMAIL_AUTH_ENABLED;
 
+    beforeEach(() => {
+      process.env.EMAIL_AUTH_ENABLED = 'true';
+    });
+
     afterEach(() => {
       process.env.EMAIL_AUTH_ENABLED = originalEmailAuth;
     });
 
     it('should return 200 on success', async () => {
-      mockRequest = { body: { email: 'reset@example.com', token: 'token123', newPassword: 'newpassword123' } };
+      mockRequest = {
+        body: {
+          email: 'reset@example.com',
+          token: 'token123',
+          newPassword: 'newpassword123',
+        },
+      };
       mockAuthHandler.handleResetPassword.mockResolvedValue(undefined);
 
-      await authController.resetPassword(mockRequest as Request, mockResponse as Response);
+      await authController.resetPassword(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(200);
-      expect(mockJson).toHaveBeenCalledWith({ success: true, message: 'Password reset successfully' });
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        message: 'Password reset successfully',
+      });
     });
 
     it('should return 400 when email, token, or newPassword missing', async () => {
       mockRequest = { body: { email: 'reset@example.com', token: 'token123' } };
 
-      await authController.resetPassword(mockRequest as Request, mockResponse as Response);
+      await authController.resetPassword(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({
@@ -694,9 +979,18 @@ describe('AuthController', () => {
     });
 
     it('should return 400 when newPassword too short', async () => {
-      mockRequest = { body: { email: 'reset@example.com', token: 'token123', newPassword: 'short' } };
+      mockRequest = {
+        body: {
+          email: 'reset@example.com',
+          token: 'token123',
+          newPassword: 'short',
+        },
+      };
 
-      await authController.resetPassword(mockRequest as Request, mockResponse as Response);
+      await authController.resetPassword(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({
@@ -707,13 +1001,27 @@ describe('AuthController', () => {
     });
 
     it('should return 400 with errorCode on invalid token', async () => {
-      mockRequest = { body: { email: 'reset@example.com', token: 'invalid', newPassword: 'newpassword123' } };
+      mockRequest = {
+        body: {
+          email: 'reset@example.com',
+          token: 'invalid',
+          newPassword: 'newpassword123',
+        },
+      };
       mockAuthHandler.handleResetPassword.mockRejectedValue(
-        new AppError('Invalid or expired reset link', ErrorCode.INVALID_RESET_TOKEN)
+        new AppError(
+          'Invalid or expired reset link',
+          ErrorCode.INVALID_RESET_TOKEN
+        )
       );
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
-      await authController.resetPassword(mockRequest as Request, mockResponse as Response);
+      await authController.resetPassword(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith(

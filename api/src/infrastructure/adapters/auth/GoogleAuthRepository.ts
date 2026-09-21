@@ -25,17 +25,52 @@ export class GoogleAuthRepository implements AuthRepository {
    * Exchange authorization code for tokens and extract user information
    */
   async authenticateWithCode(code: string): Promise<AuthenticationResult> {
+    if (
+      process.env.NODE_ENV === 'test' &&
+      process.env.TEST_GOOGLE_AUTH === 'true'
+    ) {
+      if (!code.startsWith('test-google:')) {
+        throw new Error('Invalid test Google authorization code');
+      }
+      try {
+        const claims = JSON.parse(
+          Buffer.from(code.slice('test-google:'.length), 'base64url').toString(
+            'utf8'
+          )
+        ) as { email?: string; name?: string; sub?: string };
+        if (!claims.email || !claims.name || !claims.sub) {
+          throw new Error('Test Google claims are incomplete');
+        }
+        return {
+          account: {
+            provider: 'google',
+            providerId: claims.sub,
+            email: claims.email.trim().toLowerCase(),
+            name: claims.name,
+          },
+          accessToken: 'test-google-access-token',
+          refreshToken: undefined,
+          scopes: ['openid', 'email', 'profile'],
+        };
+      } catch (error: any) {
+        throw new Error(
+          `Invalid test Google authorization code: ${error.message}`
+        );
+      }
+    }
     try {
       const { tokens } = await this.googleClient.getToken(code);
       this.googleClient.setCredentials(tokens);
 
       if (!tokens.id_token || !tokens.access_token) {
-        throw new Error('ID token or access token not found in Google response');
+        throw new Error(
+          'ID token or access token not found in Google response'
+        );
       }
 
       const ticket = await this.googleClient.verifyIdToken({
         idToken: tokens.id_token,
-        audience: process.env.GOOGLE_CLIENT_ID || '',
+        audience: configService.config.googleClientId,
       });
 
       const payload = ticket.getPayload();
@@ -44,9 +79,9 @@ export class GoogleAuthRepository implements AuthRepository {
         throw new Error('No payload found in Google ID token');
       }
 
-      const { sub: googleId, email, name, picture } = payload;
+      const { sub: googleId, email, email_verified, name, picture } = payload;
 
-      if (!email || !name || !googleId) {
+      if (!email || email_verified !== true || !name || !googleId) {
         throw new Error('Email, name, and Google ID are required from Google');
       }
 
@@ -54,7 +89,7 @@ export class GoogleAuthRepository implements AuthRepository {
         account: {
           provider: 'google',
           providerId: googleId,
-          email,
+          email: email.trim().toLowerCase(),
           name,
           picture: picture || undefined,
         },
@@ -84,7 +119,9 @@ export class GoogleAuthRepository implements AuthRepository {
         expiryDate: credentials.expiry_date,
       };
     } catch (error: any) {
-      throw new Error(`Failed to refresh Google access token: ${error.message}`);
+      throw new Error(
+        `Failed to refresh Google access token: ${error.message}`
+      );
     }
   }
 
@@ -101,16 +138,16 @@ export class GoogleAuthRepository implements AuthRepository {
         throw new Error('No payload found in Google ID token');
       }
 
-      const { sub: googleId, email, name, picture } = payload;
+      const { sub: googleId, email, email_verified, name, picture } = payload;
 
-      if (!googleId || !email || !name) {
+      if (!googleId || !email || email_verified !== true || !name) {
         throw new Error('googleId, email and name are required from Google');
       }
 
       return {
         provider: 'google',
         providerId: googleId,
-        email,
+        email: email.trim().toLowerCase(),
         name,
         picture: picture || undefined,
       };

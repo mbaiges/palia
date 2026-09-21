@@ -71,6 +71,7 @@ export const dbService = {
   getRole: () => state.role,
   getCurrentUserId: () => state.userId,
   getStats: () => state.stats,
+  getProfile: () => state.profile,
   getPatient: (id) => state.patients.find((patient) => patient.id === id) ?? null,
   async savePatient(patientData, caregiverData) {
     const body = { ...patientData, caregiver: caregiverData };
@@ -116,7 +117,12 @@ export const dbService = {
   },
   getVolunteers: () => state.volunteers,
   async saveVolunteer(volunteer) {
-    const result = await api.volunteers.updateProfile({ phone: volunteer.phone, specialtyAvailability: volunteer.specialty, tenure: volunteer.tenure, avatarUrl: volunteer.avatar });
+    const result = await api.volunteers.updateProfile({
+      phone: volunteer.phone,
+      specialtyAvailability: volunteer.specialtyAvailability ?? volunteer.specialty,
+      tenure: volunteer.tenure,
+      avatarUrl: volunteer.avatarUrl ?? volunteer.avatar,
+    });
     await refresh();
     return result.data;
   },

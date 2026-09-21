@@ -8,8 +8,10 @@ import { DatabaseConfig } from './infrastructure/config/database';
 import { Server } from './infrastructure/config/server';
 import { startMediaAssetCleanupJob } from './infrastructure/jobs/mediaAssetCleanupJob';
 import { SocketIORealtimeGateway } from './infrastructure/adapters/realtime/SocketIORealtimeGateway';
+import { validateAuthRuntimeConfig } from './domain/utils/authRuntimeConfig';
 
 async function bootstrap() {
+  validateAuthRuntimeConfig();
   // Run migrations before accepting requests (skip for in-memory test DB)
   if (process.env.DB_CONNECTION_STR !== ':memory:') {
     await DatabaseConfig.initializeTables();
@@ -27,7 +29,7 @@ async function bootstrap() {
   startMediaAssetCleanupJob();
 }
 
-bootstrap().catch((err) => {
+bootstrap().catch(err => {
   console.error('❌ Failed to start server:', err);
   process.exit(1);
 });

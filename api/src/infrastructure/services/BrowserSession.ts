@@ -84,6 +84,10 @@ export function clearBrowserSession(res: Response): void {
     path: '/',
   };
   res.clearCookie(SESSION_COOKIE, options);
+  res.clearCookie(CSRF_COOKIE, {
+    ...options,
+    httpOnly: false,
+  });
 }
 
 export function issueCsrfToken(_req: Request, res: Response): string {
@@ -111,13 +115,15 @@ export function csrfProtection(
   const header = req.header('x-csrf-token') ?? '';
   const a = Buffer.from(cookie);
   const b = Buffer.from(header);
-  const sameOrigin =
-    !req.header('origin') ||
-    req.header('origin') === `${req.protocol}://${req.get('host')}` ||
-    (process.env.CLIENT_URL ?? '')
+  const origin = req.header('origin');
+  const expectedOrigins = [
+    `${req.protocol}://${req.get('host')}`,
+    ...(process.env.CLIENT_URL ?? '')
       .split(',')
       .map(value => value.trim())
-      .includes(req.header('origin')!);
+      .filter(Boolean),
+  ];
+  const sameOrigin = Boolean(origin && expectedOrigins.includes(origin));
   if (
     !sameOrigin ||
     !cookie ||

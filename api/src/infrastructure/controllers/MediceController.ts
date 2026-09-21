@@ -124,7 +124,13 @@ export class MediceController {
       this.db('alerts as a')
         .join('patients as p', 'p.id', 'a.patient_id')
         .join('users as u', 'u.id', 'a.created_by')
-        .select('a.*', 'p.name as patient_name', 'u.name as author_name')
+        .leftJoin('users as resolver', 'resolver.id', 'a.resolved_by')
+        .select(
+          'a.*',
+          'p.name as patient_name',
+          'u.name as author_name',
+          'resolver.name as resolved_by_name'
+        )
         .orderBy('a.created_at', 'desc'),
       this.db('volunteer_profiles as vp')
         .join('users as u', 'u.id', 'vp.user_id')
@@ -139,27 +145,42 @@ export class MediceController {
     const patients = await Promise.all(
       patientRows.map((row: any) => this.patientDto(row))
     );
-    const followUps = followUpRows.map((row: any) => ({
-      id: row.id,
-      patientId: row.patient_id,
-      authorId: row.author_id,
-      authorName: row.author_name,
-      occurredAt: row.occurred_at,
-      recordedAt: row.recorded_at,
-      date: row.occurred_at,
-      contactType: row.contact_type === 'in_person' ? 'Presencial' : 'Remoto',
-      durationMinutes: row.duration_minutes,
-      durationHours: row.duration_minutes / 60,
-      symptoms: parseJson(row.symptoms, {}),
-      symptomObservations: row.symptom_observations,
-      socialRisk: parseJson(row.social_risk, {}),
-      equipmentNeeds: parseJson(row.equipment_needs, []),
-      equipmentOther: row.equipment_other,
-      interventions: row.interventions,
-      alertActivated: Boolean(
-        alertRows.find((alert: any) => alert.follow_up_id === row.id)
-      ),
-    }));
+    const followUps = followUpRows.map((row: any) => {
+      const linkedAlert = alertRows.find(
+        (alert: any) => alert.follow_up_id === row.id
+      );
+      return {
+        id: row.id,
+        patientId: row.patient_id,
+        authorId: row.author_id,
+        authorName: row.author_name,
+        occurredAt: row.occurred_at,
+        recordedAt: row.recorded_at,
+        date: row.occurred_at,
+        contactType: row.contact_type === 'in_person' ? 'Presencial' : 'Remoto',
+        durationMinutes: row.duration_minutes,
+        durationHours: row.duration_minutes / 60,
+        symptoms: parseJson(row.symptoms, {}),
+        symptomObservations: row.symptom_observations,
+        socialRisk: parseJson(row.social_risk, {}),
+        equipmentNeeds: parseJson(row.equipment_needs, []),
+        equipmentOther: row.equipment_other,
+        interventions: row.interventions,
+        alertActivated: Boolean(linkedAlert),
+        alert: linkedAlert
+          ? {
+              id: linkedAlert.id,
+              level: linkedAlert.level,
+              motive: linkedAlert.motive,
+              observations: linkedAlert.observations,
+              status: linkedAlert.status,
+              createdAt: linkedAlert.created_at,
+              resolvedAt: linkedAlert.resolved_at,
+              resolutionNote: linkedAlert.resolution_note,
+            }
+          : null,
+      };
+    });
     const volunteers = await Promise.all(
       volunteerRows.map(async (row: any) => ({
         id: row.user_id,
@@ -194,6 +215,7 @@ export class MediceController {
       authorName: row.author_name,
       createdAt: row.created_at,
       resolvedBy: row.resolved_by,
+      resolvedByName: row.resolved_by_name,
       resolvedAt: row.resolved_at,
       resolutionNote: row.resolution_note,
     }));
@@ -378,11 +400,9 @@ export class MediceController {
       !body.caregiver?.phone?.trim() ||
       !body.caregiver?.relation?.trim()
     ) {
-      res
-        .status(422)
-        .json({
-          error: 'Complete los datos requeridos del paciente y cuidador.',
-        });
+      res.status(422).json({
+        error: 'Complete los datos requeridos del paciente y cuidador.',
+      });
       return;
     }
     const id = req.params.patientId ?? randomUUID();
@@ -621,12 +641,10 @@ export class MediceController {
       duration > 1440 ||
       duration % 15 !== 0
     ) {
-      res
-        .status(422)
-        .json({
-          error:
-            'La duración debe ser de 15 a 1440 minutos, en incrementos de 15.',
-        });
+      res.status(422).json({
+        error:
+          'La duración debe ser de 15 a 1440 minutos, en incrementos de 15.',
+      });
       return;
     }
     if (
@@ -646,11 +664,9 @@ export class MediceController {
       return;
     }
     if (patient.archived_at) {
-      res
-        .status(409)
-        .json({
-          error: 'No se pueden registrar seguimientos en pacientes archivados.',
-        });
+      res.status(409).json({
+        error: 'No se pueden registrar seguimientos en pacientes archivados.',
+      });
       return;
     }
     const authorId = this.userId(req);
@@ -671,24 +687,20 @@ export class MediceController {
         .first();
       if (prior) {
         if (prior.client_payload_hash !== payloadHash) {
-          res
-            .status(409)
-            .json({
-              error:
-                'El identificador de operación ya fue usado con otro contenido.',
-            });
+          res.status(409).json({
+            error:
+              'El identificador de operación ya fue usado con otro contenido.',
+          });
           return;
         }
-        res
-          .status(200)
-          .json({
-            data: {
-              id: prior.id,
-              patientId: prior.patient_id,
-              occurredAt: prior.occurred_at,
-              recordedAt: prior.recorded_at,
-            },
-          });
+        res.status(200).json({
+          data: {
+            id: prior.id,
+            patientId: prior.patient_id,
+            occurredAt: prior.occurred_at,
+            recordedAt: prior.recorded_at,
+          },
+        });
         return;
       }
     }
@@ -751,26 +763,30 @@ export class MediceController {
         );
       }
     }
-    res
-      .status(201)
-      .json({
-        data: {
-          id,
-          patientId: patient.id,
-          authorId,
-          occurredAt: body.occurredAt ?? timestamp,
-          recordedAt: timestamp,
-          contactType,
-          durationMinutes: duration,
-        },
-      });
+    res.status(201).json({
+      data: {
+        id,
+        patientId: patient.id,
+        authorId,
+        occurredAt: body.occurredAt ?? timestamp,
+        recordedAt: timestamp,
+        contactType,
+        durationMinutes: duration,
+      },
+    });
   }
 
   async listAlerts(req: Request, res: Response): Promise<void> {
     const query = this.db('alerts as a')
       .join('patients as p', 'p.id', 'a.patient_id')
       .join('users as u', 'u.id', 'a.created_by')
-      .select('a.*', 'p.name as patient_name', 'u.name as author_name')
+      .leftJoin('users as resolver', 'resolver.id', 'a.resolved_by')
+      .select(
+        'a.*',
+        'p.name as patient_name',
+        'u.name as author_name',
+        'resolver.name as resolved_by_name'
+      )
       .orderBy('a.created_at', 'desc');
     if (req.query.status === 'active' || req.query.status === 'resolved')
       query.where('a.status', req.query.status);
@@ -791,6 +807,7 @@ export class MediceController {
         authorName: row.author_name,
         createdAt: row.created_at,
         resolvedBy: row.resolved_by,
+        resolvedByName: row.resolved_by_name,
         resolvedAt: row.resolved_at,
         resolutionNote: row.resolution_note,
       })),
@@ -813,11 +830,9 @@ export class MediceController {
       return;
     }
     if (patient.archived_at) {
-      res
-        .status(409)
-        .json({
-          error: 'No se pueden activar alertas en pacientes archivados.',
-        });
+      res.status(409).json({
+        error: 'No se pueden activar alertas en pacientes archivados.',
+      });
       return;
     }
     const alert = {
@@ -900,22 +915,88 @@ export class MediceController {
   async updateMyProfile(req: Request, res: Response): Promise<void> {
     const id = this.userId(req);
     const body = req.body ?? {};
+    const existing = await this.db('volunteer_profiles')
+      .where({ user_id: id })
+      .first();
+    const protectedFields = [
+      'id',
+      'userId',
+      'email',
+      'name',
+      'role',
+      'permissions',
+      'activePatients',
+      'status',
+    ];
+    if (
+      protectedFields.some(field =>
+        Object.prototype.hasOwnProperty.call(body, field)
+      )
+    ) {
+      res.status(422).json({
+        error:
+          'La identidad, los permisos y las asignaciones no se editan desde el perfil.',
+      });
+      return;
+    }
+    const validateText = (field: string, maxLength: number): string | null => {
+      const value = body[field];
+      if (value === undefined || value === null) return null;
+      if (typeof value !== 'string' || value.length > maxLength) {
+        throw new Error(
+          `El campo ${field} debe ser texto de hasta ${maxLength} caracteres.`
+        );
+      }
+      return value.trim() || null;
+    };
+    let phone: string | null;
+    let specialtyAvailability: string | null;
+    let tenure: string | null;
+    let avatarUrl: string | null;
+    try {
+      phone = validateText('phone', 40);
+      specialtyAvailability = validateText('specialtyAvailability', 240);
+      tenure = validateText('tenure', 240);
+      avatarUrl = validateText('avatarUrl', 2048);
+      if (avatarUrl) {
+        const url = new URL(avatarUrl);
+        if (!['https:', 'http:'].includes(url.protocol))
+          throw new Error('La imagen debe usar una URL HTTP o HTTPS.');
+      }
+    } catch (error: any) {
+      res.status(422).json({ error: error.message });
+      return;
+    }
     const timestamp = now();
     const profile = {
       user_id: id,
-      phone: body.phone ?? null,
+      phone: body.phone === undefined ? (existing?.phone ?? null) : phone,
       specialty_availability:
-        body.specialtyAvailability ?? body.specialty ?? null,
-      tenure: body.tenure ?? null,
-      avatar_url: body.avatarUrl ?? body.avatar ?? null,
-      status: 'active',
+        body.specialtyAvailability === undefined
+          ? (existing?.specialty_availability ?? null)
+          : specialtyAvailability,
+      tenure: body.tenure === undefined ? (existing?.tenure ?? null) : tenure,
+      avatar_url:
+        body.avatarUrl === undefined
+          ? (existing?.avatar_url ?? null)
+          : avatarUrl,
+      status: existing?.status ?? 'active',
       updated_at: timestamp,
     };
     await this.db('volunteer_profiles')
       .insert({ ...profile, created_at: timestamp })
       .onConflict('user_id')
       .merge(profile);
-    res.json({ data: profile });
+    res.json({
+      data: {
+        userId: id,
+        phone: profile.phone,
+        specialtyAvailability: profile.specialty_availability,
+        tenure: profile.tenure,
+        avatarUrl: profile.avatar_url,
+        status: profile.status,
+      },
+    });
   }
 
   async getMyProfile(req: Request, res: Response): Promise<void> {
