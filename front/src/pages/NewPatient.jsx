@@ -1,27 +1,30 @@
 import React, { useState } from 'react';
 import { dbService } from '../services/db';
 
-export default function NewPatient({ onCancel, onSaveSuccess }) {
+export default function NewPatient({ onCancel, onSaveSuccess, patient = null }) {
   const hospitals = dbService.getHospitals();
 
   // Form states
-  const [name, setName] = useState('');
-  const [dni, setDni] = useState('');
-  const [dob, setDob] = useState('');
-  const [address, setAddress] = useState('');
+  const [name, setName] = useState(patient?.name ?? '');
+  const [dni, setDni] = useState(patient?.dni ?? '');
+  const [dob, setDob] = useState(patient?.dob ?? '');
+  const [address, setAddress] = useState(patient?.address ?? '');
   
-  const [diagnosis, setDiagnosis] = useState('');
-  const [hospitalId, setHospitalId] = useState(hospitals[0]?.id || '');
-  const [isComplex, setIsComplex] = useState(false);
+  const [diagnosis, setDiagnosis] = useState(patient?.diagnosis ?? '');
+  const [hospitalId, setHospitalId] = useState(patient?.hospitalId ?? hospitals.find((hospital) => !hospital.archivedAt)?.id ?? '');
+  const [isComplex, setIsComplex] = useState(patient?.complexSituation ?? patient?.currentStatus === 'En Observación');
 
-  const [caregiverName, setCaregiverName] = useState('');
-  const [caregiverPhone, setCaregiverPhone] = useState('');
-  const [livesWithPatient, setLivesWithPatient] = useState(false);
-  const [burdenLevel, setBurdenLevel] = useState('Bajo');
+  const [caregiverName, setCaregiverName] = useState(patient?.caregiver?.name ?? '');
+  const [caregiverPhone, setCaregiverPhone] = useState(patient?.caregiver?.phone ?? '');
+  const [caregiverRelation, setCaregiverRelation] = useState(patient?.caregiver?.relation ?? 'Familiar/Otro');
+  const [livesWithPatient, setLivesWithPatient] = useState(patient?.caregiver?.livesWithPatient ?? false);
+  const [burdenLevel, setBurdenLevel] = useState(patient?.caregiver?.burdenLevel ?? 'Bajo');
 
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e) => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name || !dni || !dob || !address || !diagnosis || !caregiverName || !caregiverPhone) {
       setErrorMsg('Por favor complete todos los campos obligatorios.');
@@ -29,29 +32,32 @@ export default function NewPatient({ onCancel, onSaveSuccess }) {
     }
 
     const patientData = {
+      ...(patient ? { id: patient.id } : {}),
       name,
       dni,
       dob,
       address,
       diagnosis,
       hospitalId,
-      currentStatus: isComplex ? 'Alerta' : 'Estable',
+      complexSituation: isComplex,
       assignedVolunteers: [] // Assigned in admin tab
     };
 
     const caregiverData = {
       name: caregiverName,
-      relation: 'Familiar/Otro',
+      relation: caregiverRelation,
       phone: caregiverPhone,
       livesWithPatient,
       burdenLevel
     };
 
     try {
-      const newPatientId = dbService.savePatient(patientData, caregiverData);
+      setSaving(true);
+      const newPatientId = await dbService.savePatient(patientData, caregiverData);
       onSaveSuccess(newPatientId);
     } catch (err) {
       setErrorMsg('Error al guardar el paciente: ' + err.message);
+      setSaving(false);
     }
   };
 
@@ -63,18 +69,18 @@ export default function NewPatient({ onCancel, onSaveSuccess }) {
           <nav style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: 'var(--color-outline)', marginBottom: '8px' }}>
             <span style={{ cursor: 'pointer' }} onClick={onCancel}>Pacientes</span>
             <span className="material-symbols-outlined" style={{ fontSize: '16px', margin: '0 4px' }}>chevron_right</span>
-            <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Nuevo Registro</span>
+            <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{patient ? 'Editar ficha' : 'Nuevo Registro'}</span>
           </nav>
-          <h1 style={{ color: 'var(--color-on-background)' }}>Registrar Nuevo Paciente</h1>
+          <h1 style={{ color: 'var(--color-on-background)' }}>{patient ? 'Editar Paciente y Cuidador' : 'Registrar Nuevo Paciente'}</h1>
           <p style={{ color: 'var(--color-on-surface-variant)', marginTop: '4px' }}>Complete los datos para iniciar el proceso de acompañamiento paliativo.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-secondary" onClick={onCancel} type="button">
             Cancelar
           </button>
-          <button className="btn btn-primary" onClick={handleSubmit} type="button">
+          <button className="btn btn-primary" onClick={handleSubmit} type="button" disabled={saving}>
             <span className="material-symbols-outlined">save</span>
-            Guardar Registro
+            {patient ? 'Guardar Cambios' : 'Guardar Registro'}
           </button>
         </div>
       </div>
@@ -192,7 +198,8 @@ export default function NewPatient({ onCancel, onSaveSuccess }) {
               <div className="form-group">
                 <label>Hospital de Referencia</label>
                 <select value={hospitalId} onChange={(e) => setHospitalId(e.target.value)}>
-                  {hospitals.map(h => (
+                  <option value="">Sin hospital asignado</option>
+                  {hospitals.filter((hospital) => !hospital.archivedAt || hospital.id === hospitalId).map(h => (
                     <option key={h.id} value={h.id}>{h.name}</option>
                   ))}
                 </select>
@@ -219,7 +226,7 @@ export default function NewPatient({ onCancel, onSaveSuccess }) {
                     />
                     Situación Compleja
                   </label>
-                  <span style={{ fontSize: '13px', color: 'var(--color-on-surface-variant)' }}>Marque esta opción si el paciente requiere atención de urgencia social o clínica inmediata.</span>
+                  <span style={{ fontSize: '13px', color: 'var(--color-on-surface-variant)' }}>Marque esta opción si requiere seguimiento en observación. No activa una alerta por sí sola.</span>
                 </div>
               </div>
             </div>
@@ -252,6 +259,12 @@ export default function NewPatient({ onCancel, onSaveSuccess }) {
                   onChange={(e) => setCaregiverPhone(e.target.value)}
                   required
                 />
+              </div>
+              <div className="form-group">
+                <label>Vínculo con el paciente *</label>
+                <select value={caregiverRelation} onChange={(e) => setCaregiverRelation(e.target.value)} required>
+                  {['Familiar/Otro', 'Hija', 'Hijo', 'Esposa', 'Esposo', 'Hermana', 'Hermano', 'Madre', 'Padre', 'Amiga/o', 'Cuidadora/or'].map((relation) => <option key={relation} value={relation}>{relation}</option>)}
+                </select>
               </div>
               <div className="form-group">
                 <label>Nivel de Sobrecarga del Cuidador</label>

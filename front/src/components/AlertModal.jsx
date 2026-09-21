@@ -5,10 +5,11 @@ export default function AlertModal({ isOpen, onClose, patient, onSubmit }) {
   const [motive, setMotive] = useState('');
   const [observations, setObservations] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!motive) {
       setErrorMsg('Por favor seleccione un motivo para la alerta.');
@@ -19,17 +20,22 @@ export default function AlertModal({ isOpen, onClose, patient, onSubmit }) {
       return;
     }
 
-    onSubmit({
-      alertLevel,
-      motive,
-      observations: observations.trim()
-    });
-    
-    // Clear inputs and close
-    setMotive('');
-    setObservations('');
+    setIsSubmitting(true);
     setErrorMsg('');
-    onClose();
+    try {
+      await onSubmit({
+        alertLevel,
+        motive,
+        observations: observations.trim()
+      });
+      setMotive('');
+      setObservations('');
+      onClose();
+    } catch (error) {
+      setErrorMsg(error?.message || 'No se pudo guardar la alerta. Intente nuevamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -51,6 +57,9 @@ export default function AlertModal({ isOpen, onClose, patient, onSubmit }) {
       
       {/* Modal Container */}
       <div 
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="clinical-alert-dialog-title"
         style={{
           backgroundColor: 'var(--color-surface-container-lowest)',
           width: '100%',
@@ -85,7 +94,7 @@ export default function AlertModal({ isOpen, onClose, patient, onSubmit }) {
             <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>warning</span>
           </div>
           <div>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: 'var(--color-on-background)' }}>Activar Alerta Clínica</h2>
+            <h2 id="clinical-alert-dialog-title" style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: 'var(--color-on-background)' }}>Activar Alerta Clínica</h2>
             <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: '2px 0 0 0' }}>Notificación inmediata al equipo médico de guardia</p>
           </div>
         </div>
@@ -223,7 +232,7 @@ export default function AlertModal({ isOpen, onClose, patient, onSubmit }) {
           }}>
             <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>info</span>
             <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: 0, lineHeight: '1.4' }}>
-              <strong>Importante:</strong> Esta acción activará notificaciones push inmediatas al equipo médico. Por favor, asegúrese de que la información sea precisa.
+              <strong>Importante:</strong> Las personas asignadas que habilitaron las notificaciones recibirán un aviso genérico, sin datos del paciente.
             </p>
           </div>
         </form>
@@ -249,10 +258,11 @@ export default function AlertModal({ isOpen, onClose, patient, onSubmit }) {
             type="button"
             className="btn btn-primary" 
             onClick={handleSubmit}
+            disabled={isSubmitting}
             style={{ height: '40px', padding: '0 24px', fontSize: '14px', backgroundColor: 'var(--color-error)', borderColor: 'var(--color-error)', color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>bolt</span>
-            Activar Alerta
+            {isSubmitting ? 'Guardando alerta…' : 'Activar Alerta'}
           </button>
         </div>
       </div>

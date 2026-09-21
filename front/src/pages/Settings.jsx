@@ -3,14 +3,24 @@ import { dbService } from '../services/db';
 import OfflineSync from '../components/OfflineSync';
 import { applyTheme, getStoredTheme } from '../tokens.js';
 import { scrollToSection } from '../utils/navigation';
+import { disablePushNotifications, enablePushNotifications, getPushSubscription } from '../services/pushNotifications';
 
 export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) {
   const [theme, setTheme] = useState(() => getStoredTheme());
   const isCloud = dbService.isCloudBackend();
   const [swStatus, setSwStatus] = useState('Registrado y Activo');
   const [notifPermission, setNotifPermission] = useState(() => 'Notification' in window ? Notification.permission : 'No compatible');
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMessage, setPushMessage] = useState('');
   const [activeSubTab, setActiveSubTab] = useState('preferencias');
   const [syncFocusSection, setSyncFocusSection] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    getPushSubscription().then((subscription) => { if (active) setPushEnabled(Boolean(subscription)); }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (!initialFocus) return;
@@ -25,34 +35,20 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
     onFocusConsumed?.();
   }, [initialFocus, onFocusConsumed]);
 
-  const handleResetData = () => {
-    if (confirm('¿Está seguro de que desea restablecer todos los datos del simulador? Se perderán los pacientes y seguimientos creados.')) {
-      localStorage.clear();
-      alert('Datos restablecidos con éxito. La página se recargará.');
-      window.location.reload();
-    }
-  };
-
   const toggleTheme = () => {
     const nextTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(nextTheme);
     applyTheme(nextTheme);
   };
 
-  const requestNotificationPermission = () => {
-    if ('Notification' in window) {
-      Notification.requestPermission().then(permission => {
-        setNotifPermission(permission);
-        if (permission === 'granted' && 'serviceWorker' in navigator) {
-          navigator.serviceWorker.ready.then(reg => {
-            reg.showNotification('Palia', {
-              body: 'Notificaciones habilitadas desde la configuración.',
-              icon: '/logo_icon.png'
-            });
-          });
-        }
-      });
-    }
+  const togglePush = async () => {
+    setPushBusy(true); setPushMessage('');
+    try {
+      if (pushEnabled) { await disablePushNotifications(); setPushEnabled(false); }
+      else { await enablePushNotifications(setNotifPermission); setPushEnabled(true); }
+      setNotifPermission('Notification' in window ? Notification.permission : 'No compatible');
+    } catch (error) { setPushMessage(error.status === 503 ? 'Las notificaciones push no están configuradas en el servidor.' : error.message || 'No se pudo actualizar la suscripción push.'); }
+    finally { setPushBusy(false); }
   };
 
   return (
@@ -117,23 +113,14 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--color-outline-variant)' }}>
               <div>
-                <strong style={{ fontSize: '15px', color: 'var(--color-on-surface)' }}>Modo Nube (Firebase)</strong>
-                <p style={{ fontSize: '13px', color: 'var(--color-outline)', margin: '2px 0 0 0' }}>Estado del servicio de sincronización.</p>
+                <strong style={{ fontSize: '15px', color: 'var(--color-on-surface)' }}>API de datos</strong>
+                <p style={{ fontSize: '13px', color: 'var(--color-outline)', margin: '2px 0 0 0' }}>Los cambios se guardan en el servidor de la organización.</p>
               </div>
               <span className="chip chip-info" style={{ backgroundColor: isCloud ? '#e6f4ea' : 'var(--color-surface-container-high)', color: isCloud ? '#137333' : 'var(--color-on-surface-variant)', fontSize: '12px' }}>
-                {isCloud ? 'Firebase Activo' : 'Persistencia Local'}
+                {isCloud ? 'API activa' : 'Desconectado'}
               </span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0' }}>
-              <div>
-                <strong style={{ fontSize: '15px', color: 'var(--color-on-surface)' }}>Restablecer Simulador</strong>
-                <p style={{ fontSize: '13px', color: 'var(--color-outline)', margin: '2px 0 0 0' }}>Borrar base de datos local y reinstalar datos semilla.</p>
-              </div>
-              <button className="btn btn-error" onClick={handleResetData} style={{ height: '36px', padding: '0 16px', fontSize: '13px' }}>
-                Restablecer
-              </button>
-            </div>
           </div>
 
           {/* PWA & Notifications */}
@@ -149,7 +136,7 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
                 <ul style={{ paddingLeft: '20px', fontSize: '13px', color: 'var(--color-on-surface-variant)', display: 'flex', flexDirection: 'column', gap: '8px', margin: '8px 0 0 0' }}>
                   <li><strong>Service Worker:</strong> {swStatus}</li>
                   <li><strong>Modo Offline:</strong> Soportado (Almacenamiento local activo)</li>
-                  <li><strong>Caché de activos:</strong> Activo (Versión 1.0)</li>
+                  <li><strong>Datos offline:</strong> Fichas asignadas abiertas y seguimientos pendientes</li>
                 </ul>
               </div>
               <div>
@@ -158,12 +145,12 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
                   <span style={{ fontSize: '13px', color: 'var(--color-on-surface-variant)' }}>
                     Estado actual: <strong style={{ textTransform: 'capitalize' }}>{notifPermission}</strong>
                   </span>
-                  {notifPermission !== 'granted' && (
-                    <button className="btn btn-primary" onClick={requestNotificationPermission} style={{ height: '36px', padding: '0 16px', fontSize: '13px' }}>
-                      Habilitar
-                    </button>
-                  )}
+                  <button className="btn btn-primary" disabled={pushBusy} onClick={togglePush} style={{ height: '36px', padding: '0 16px', fontSize: '13px' }}>
+                    {pushBusy ? 'Guardando…' : pushEnabled ? 'Deshabilitar push' : 'Habilitar push'}
+                  </button>
                 </div>
+                <p style={{ fontSize: '13px', color: 'var(--color-on-surface-variant)' }}>Las alertas del equipo se notifican con un mensaje genérico, sin datos del paciente.</p>
+                {pushMessage && <p role="alert" style={{ fontSize: '13px', color: 'var(--color-error)' }}>{pushMessage}</p>}
               </div>
             </div>
           </div>

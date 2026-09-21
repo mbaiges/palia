@@ -42,6 +42,10 @@ export class SqlitePushSubscriptionRepository implements PushSubscriptionReposit
     const now = new Date().toISOString();
     const { endpoint, keys, locale } = subscription;
 
+    // Browser endpoints are device-scoped. Rebinding prevents a shared browser
+    // from continuing to deliver a previous account's alerts after sign-in.
+    await execute(this.client, 'DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id <> ?', [endpoint, userId]);
+
     await execute(
       this.client,
       `INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, created_at, locale)

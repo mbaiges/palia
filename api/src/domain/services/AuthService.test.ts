@@ -91,7 +91,7 @@ describe('AuthService', () => {
     expect(result.user).toBeInstanceOf(User);
     expect(result.user.email).toBe('test@example.com');
     expect(mockUserSettingsRepository.update).toHaveBeenCalled();
-    expect(mockUserRepository.assignRole).toHaveBeenCalledWith(expect.any(String), 'user');
+    expect(mockUserRepository.assignRole).toHaveBeenCalledWith(expect.any(String), 'volunteer');
   });
 
   it('should return an existing user if they do exist', async () => {

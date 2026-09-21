@@ -6,6 +6,11 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
 
   const [alertActivated, setAlertActivated] = useState(false);
   const [contactType, setContactType] = useState('Presencial');
+  const [customDuration, setCustomDuration] = useState(false);
+  const [durationMinutes, setDurationMinutes] = useState(120);
+  const [alertLevel, setAlertLevel] = useState('Crisis Compleja');
+  const [alertMotive, setAlertMotive] = useState('');
+  const [alertObservations, setAlertObservations] = useState('');
 
   // Symptom dropdowns (matching mock: Dolor scale 0-10, Náuseas state, Disnea grade)
   const [dolorLevel, setDolorLevel] = useState('');
@@ -44,10 +49,18 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
 
   const toggleEquip = (key) => setEquip(prev => ({ ...prev, [key]: !prev[key] }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!symptomObs.trim() || !interventions.trim()) {
       setErrorMsg('Por favor complete todos los campos obligatorios marcados con *.');
+      return;
+    }
+    if (customDuration && (!Number.isInteger(Number(durationMinutes)) || durationMinutes < 15 || durationMinutes > 1440 || durationMinutes % 15 !== 0)) {
+      setErrorMsg('La duración personalizada debe ser de 15 minutos a 24 horas, en incrementos de 15 minutos.');
+      return;
+    }
+    if (alertActivated && (!alertMotive || !alertObservations.trim())) {
+      setErrorMsg('Para activar una alerta, seleccione el motivo y complete las observaciones clínicas.');
       return;
     }
     setErrorMsg('');
@@ -58,24 +71,24 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
       authorId: 'vol_1',
       authorName: 'Admin Palia',
       contactType,
-      symptoms: { dolor: dolorLevel, nauseas: nauseaLevel, disnea },
-      symptomObs,
+      symptoms: { pain: dolorLevel, nausea: nauseaLevel, dyspnea: disnea },
+      symptomObservations: symptomObs,
       socialRisk: { familySupport, environmentNotes },
-      equipment: Object.entries(equip).filter(([, v]) => v).map(([k]) => k),
-      equipOther: equipOther.trim(),
+      equipmentNeeds: Object.entries(equip).filter(([, v]) => v).map(([k]) => ({ oxigeno: 'Concentrador Oxígeno', cama: 'Cama Articulada', colchon: 'Colchón Antiescaras', aspirador: 'Aspirador Secreciones' })[k]),
+      equipmentOther: equipOther.trim(),
       interventions,
-      alertActivated,
+      durationMinutes: customDuration ? Number(durationMinutes) : contactType === 'Remoto' ? 60 : 120,
+      clientMutationId: crypto.randomUUID(),
+      alert: alertActivated ? { level: alertLevel === 'Seguimiento Estándar' ? 'standard' : 'complex', motive: alertMotive, observations: alertObservations.trim() } : null,
     };
 
-    setTimeout(() => {
-      try {
-        dbService.saveFollowUp(followUpData);
-        onSaveSuccess();
-      } catch (err) {
-        setErrorMsg('Error al guardar: ' + err.message);
-        setIsSaving(false);
-      }
-    }, 800);
+    try {
+      await dbService.saveFollowUp(followUpData);
+      onSaveSuccess();
+    } catch (err) {
+      setErrorMsg('Error al guardar: ' + err.message);
+      setIsSaving(false);
+    }
   };
 
   // Reusable checkbox card for equipment
@@ -158,6 +171,15 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
 
       <form onSubmit={handleSubmit} className="bento-grid">
 
+        {alertActivated && <div className="card" style={{ gridColumn: 'span 12', border: '1px solid var(--color-error)' }}>
+          <h2 style={{ color: 'var(--color-error)' }}>Datos de la alerta clínica</h2>
+          <div className="form-row-grid">
+            <div className="form-group"><label>Nivel de alerta *</label><select value={alertLevel} onChange={(event) => setAlertLevel(event.target.value)}><option>Seguimiento Estándar</option><option>Crisis Compleja</option></select></div>
+            <div className="form-group"><label>Motivo *</label><select value={alertMotive} onChange={(event) => setAlertMotive(event.target.value)}><option value="">Seleccione un motivo...</option><option>Dolor No Controlado</option><option>Disnea (Dificultad Respiratoria)</option><option>Insomnio Refractario</option><option>Crisis de Pánico / Agitación</option><option>Otros (Especificar abajo)</option></select></div>
+          </div>
+          <div className="form-group"><label>Observaciones clínicas de la alerta *</label><textarea value={alertObservations} onChange={(event) => setAlertObservations(event.target.value)} required /></div>
+        </div>}
+
         {/* ── Sintomatología Actual (8/12) ── */}
         <div className="card" style={{ gridColumn: 'span 8' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
@@ -169,9 +191,17 @@ export default function NewFollowUp({ patientId, onCancel, onSaveSuccess }) {
             <div className="form-group">
               <label>Tipo de Acompañamiento *</label>
               <select name="contactType" value={contactType} onChange={(e) => setContactType(e.target.value)}>
-                <option value="Presencial">Presencial (Visita Domiciliaria)</option>
-                <option value="Remoto">Remoto (Soporte Telefónico)</option>
+                <option value="Presencial">Presencial (Visita Domiciliaria) · 2 h estimadas</option>
+                <option value="Remoto">Remoto (Soporte Telefónico) · 1 h estimada</option>
               </select>
+            </div>
+            <div className="form-group">
+              <label>Duración del acompañamiento</label>
+              <select value={customDuration ? 'custom' : 'default'} onChange={(event) => { const isCustom = event.target.value === 'custom'; setCustomDuration(isCustom); setDurationMinutes(contactType === 'Remoto' ? 60 : 120); }}>
+                <option value="default">Usar duración estimada ({contactType === 'Remoto' ? '1 h' : '2 h'})</option>
+                <option value="custom">Ingresar duración personalizada</option>
+              </select>
+              {customDuration && <input aria-label="Duración personalizada en minutos" type="number" min="15" max="1440" step="15" value={durationMinutes} onChange={(event) => setDurationMinutes(Number(event.target.value))} required />}
             </div>
 
             {/* 3-column symptom dropdowns matching mock */}

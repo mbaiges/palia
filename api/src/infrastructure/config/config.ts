@@ -49,7 +49,12 @@ class ConfigService {
   }
 
   public getAllowedEmails(): string[] {
-    return this.config.users?.allowed_emails || [];
+    const configured = this.config.users?.allowed_emails || [];
+    return [...new Set([...configured, ...this.getInitialAdminEmails()].map((email) => email.trim().toLowerCase()).filter(Boolean))];
+  }
+
+  public getInitialAdminEmails(): string[] {
+    return (process.env.INITIAL_ADMIN_EMAILS ?? '').split(',').map((email) => email.trim().toLowerCase()).filter(Boolean);
   }
 }
 

@@ -8,6 +8,12 @@ import { ErrorCode } from '@/domain/errors/ErrorCodes';
 import { configService } from '@/infrastructure/config/config';
 
 jest.mock('@/application/handlers/AuthHandler');
+jest.mock('@/infrastructure/services/BrowserSession', () => ({
+  createBrowserSession: jest.fn().mockResolvedValue(undefined),
+  revokeBrowserSession: jest.fn().mockResolvedValue(undefined),
+  clearBrowserSession: jest.fn(),
+  resolveBrowserSession: jest.fn().mockResolvedValue(null),
+}));
 
 const mockUser = new User('1', 'google-1', 'a@a.com', 'Test User', '', '');
 const mockAuthenticatedUser = mockUser.toAuthenticatedUser();
@@ -71,8 +77,7 @@ describe('AuthController', () => {
         message: 'Account created successfully',
         data: {
           user: authResult.user.toJSON(),
-          token: authResult.token,
-          googleAccessToken: authResult.googleAccessToken,
+          role: 'volunteer',
           isNewUser: authResult.isNewUser,
           permissions: authResult.permissions,
         },
@@ -103,6 +108,7 @@ describe('AuthController', () => {
           data: expect.objectContaining({ 
             isNewUser: false,
             permissions: authResult.permissions,
+            role: 'volunteer',
           }),
         })
       );
@@ -191,6 +197,7 @@ describe('AuthController', () => {
         data: {
           user: handlerResult.user.toJSON(),
           permissions: handlerResult.permissions,
+          role: 'volunteer',
         },
       });
     });
@@ -295,10 +302,9 @@ describe('AuthController', () => {
         message: 'Account created successfully',
         data: {
           user: authResult.user.toJSON(),
-          token: authResult.token,
-          googleAccessToken: '',
           isNewUser: true,
           permissions: [],
+          role: 'volunteer',
         },
       });
     });

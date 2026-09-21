@@ -16,9 +16,14 @@ import { clientDiagnosticsController } from '@/infrastructure/controllers/Client
 import { AuditEventController } from '@/infrastructure/controllers/AuditEventController';
 import { isMediaEnabled } from '@/domain/utils/mediaConfig';
 import { apiDocsHtml, apiOpenApiDocument } from '@/infrastructure/openapi';
+import { csrfProtection, issueCsrfToken } from '@/infrastructure/services/BrowserSession';
+import { MediceController } from '@/infrastructure/controllers/MediceController';
 
 export function createRoutes(): Router {
   const router = Router();
+
+  router.use(csrfProtection);
+  router.get('/auth/csrf', (req, res) => res.json({ token: issueCsrfToken(req, res) }));
 
   router.get('/openapi.json', (_req, res) => res.json(apiOpenApiDocument));
   router.get('/docs', (_req, res) => res.type('html').send(apiDocsHtml));
@@ -32,6 +37,7 @@ export function createRoutes(): Router {
   const exampleItemController = container.resolve(ExampleItemController);
   const mediaAssetController = container.resolve(MediaAssetController);
   const auditEventController = container.resolve(AuditEventController);
+  const medice = new MediceController();
   const auth = container.resolve(AuthMiddleware);
   const permissionMiddleware = container.resolve(PermissionMiddleware);
 
@@ -205,6 +211,37 @@ export function createRoutes(): Router {
   router.get('/auth/me', auth.authenticate(), (req, res) =>
     authController.getCurrentUser(req, res)
   );
+
+  // Medice domain: all clinical reads require an authenticated, allow-listed account.
+  router.get('/bootstrap', auth.authenticate(), (req, res, next) => medice.bootstrap(req, res).catch(next));
+  router.get('/patients', auth.authenticate(), (req, res, next) => medice.listPatients(req, res).catch(next));
+  router.post('/patients', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.savePatient(req, res).catch(next));
+  router.get('/patients/:patientId', auth.authenticate(), (req, res, next) => medice.getPatient(req, res).catch(next));
+  router.patch('/patients/:patientId', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.savePatient(req, res).catch(next));
+  router.post('/patients/:patientId/archive', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.setPatientArchive(req, res).catch(next));
+  router.post('/patients/:patientId/restore', auth.authenticate(), async (req, res, next) => {
+    try {
+      await medice.restorePatient(req, res);
+    } catch (error) { next(error); }
+  });
+  router.put('/patients/:patientId/assignments', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.assignPatient(req, res).catch(next));
+  router.get('/patients/:patientId/follow-ups', auth.authenticate(), (req, res, next) => medice.listFollowUps(req, res).catch(next));
+  router.post('/patients/:patientId/follow-ups', auth.authenticate(), (req, res, next) => medice.createFollowUp(req, res).catch(next));
+  router.get('/alerts', auth.authenticate(), (req, res, next) => medice.listAlerts(req, res).catch(next));
+  router.post('/patients/:patientId/alerts', auth.authenticate(), (req, res, next) => medice.createAlert(req, res).catch(next));
+  router.post('/alerts/:alertId/resolve', auth.authenticate(), (req, res, next) => medice.resolveAlert(req, res).catch(next));
+  router.get('/hospitals', auth.authenticate(), (req, res, next) => medice.listHospitals(req, res).catch(next));
+  router.post('/hospitals', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.saveHospital(req, res).catch(next));
+  router.patch('/hospitals/:hospitalId', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.saveHospital(req, res).catch(next));
+  router.post('/hospitals/:hospitalId/archive', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.setHospitalArchive(req, res).catch(next));
+  router.post('/hospitals/:hospitalId/restore', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_domain'), (req, res, next) => medice.setHospitalArchive(req, res).catch(next));
+  router.get('/volunteers', auth.authenticate(), (req, res, next) => medice.listVolunteers(req, res).catch(next));
+  router.get('/users/me/profile', auth.authenticate(), (req, res, next) => medice.getMyProfile(req, res).catch(next));
+  router.patch('/users/me/profile', auth.authenticate(), (req, res, next) => medice.updateMyProfile(req, res).catch(next));
+  router.post('/coordinator/allowed-users', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_allowlist'), (req, res, next) => medice.addVolunteerAllowlist(req, res).catch(next));
+  router.get('/coordinator/allowed-users', auth.authenticate(), permissionMiddleware.requirePermission('medice:manage_allowlist'), (req, res, next) => medice.listVolunteerAllowlist(req, res).catch(next));
+  router.get('/stats/me', auth.authenticate(), (req, res, next) => medice.getStats(req, res).catch(next));
+  router.get('/stats/global', auth.authenticate(), permissionMiddleware.requirePermission('medice:global_stats'), (req, res, next) => medice.getStats(req, res).catch(next));
 
   // Current user settings (protected)
   router.get('/users/me/settings', auth.authenticate(), (req, res, next) => {

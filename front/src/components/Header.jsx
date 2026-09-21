@@ -126,7 +126,7 @@ function ProfilePopoverContent({ user, onNavigate, onLogout, onClose }) {
 }
 
 export default function Header({ searchVal, setSearchVal, onSearchFocus, user, onLogout, onNavigate, onViewPatient, alertPatients = [] }) {
-  const isCloud = dbService.isCloudBackend();
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const notifRef = useRef(null);
@@ -145,6 +145,14 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user, o
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => { window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline); };
   }, []);
 
   const toggleNotifications = () => {
@@ -260,11 +268,11 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user, o
           </div>
 
           <div className="db-status-badge">
-            <span className="material-symbols-outlined db-status-icon" style={{ fontSize: '18px', color: isCloud ? '#0070f3' : 'var(--color-secondary)' }}>
-              {isCloud ? 'cloud' : 'database'}
+            <span className="material-symbols-outlined db-status-icon" style={{ fontSize: '18px', color: isOnline ? '#0070f3' : 'var(--color-error)' }}>
+              {isOnline ? 'cloud' : 'cloud_off'}
             </span>
             <span className="db-status-text">
-              {isCloud ? 'Nube (Firebase)' : 'Persistencia Local'}
+              {isOnline ? 'API centralizada' : 'Sin conexión · cola local'}
             </span>
           </div>
         </div>

@@ -4,6 +4,22 @@ Esta lista define cuándo `api/` está terminada e integrada de forma comprobabl
 
 Las dos auditorías redundantes de cuatro agentes están resumidas en [gap-analysis.md](./gap-analysis.md). Los contratos y decisiones de producto están cerrados en los specs; no reabrirlos durante implementación.
 
+## Estado de implementación (iteración 4)
+
+Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que ya tiene evidencia en el código y en la suite ejecutada; los criterios detallados de abajo siguen siendo la fuente de verdad para el trabajo pendiente.
+
+- [x] Aplicación separada en `front/` y `api/`, API scaffold con persistencia SQLite local y contrato `/api` de mismo origen.
+- [x] Sesiones de navegador con cookie, flujo de login de desarrollo exclusivo del entorno de prueba y autorización del servidor para los flujos implementados.
+- [x] Bootstrap admin `INITIAL_ADMIN_EMAILS`, allow-list/roles y presentación del rol inicial en administración.
+- [x] Flujos API/front implementados para fichas, cuidadores, asignaciones, hospitales, seguimientos, alertas, estadísticas y administración; edición de paciente/cuidador incluida.
+- [x] Seguimiento online/offline con outbox local, recarga y sincronización; pruebas unitarias y E2E base.
+- [x] Alertas múltiples, resolución explícita con nota opcional y formulario que muestra errores de persistencia.
+- [x] Probes E2E para login, ficha, alta, seguimiento, alerta, edición, archivo, administración y layouts responsive. Se abrieron y revisaron visualmente las capturas 01–27 en esta iteración.
+- [x] `npm test`, builds de API/front y suite E2E configurada pasaron; lint front pasó con warnings.
+- [ ] No se considera completo: cobertura de OAuth real/callback, revisión exhaustiva de cookie/CSRF/RBAC, auditoría y métricas detalladas; aislamiento offline ante logout/revocación/desasignación y conflicto; proveedor/entrega push; impresión fiel; migración de los 13 E2E legacy excluidos; empaquetado/arranque de producción y cobertura de todos los AC.
+- [ ] `npm run format:check --prefix api` conserva fallo de baseline por 160 ficheros de scaffold sin formato uniforme; los ficheros nuevos de la iteración se formatearon puntualmente.
+- [ ] Turso permanece fuera de alcance y no está validado.
+
 ## Decisiones funcionales fijadas
 
 - [x] `localStorage` contiene solo datos demo/semilla; no se importan como datos de producción.

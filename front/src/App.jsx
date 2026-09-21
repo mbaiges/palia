@@ -15,9 +15,14 @@ import Settings from './pages/Settings';
 import HomeDashboard from './pages/HomeDashboard';
 import { scrollToSection, resetContentScroll } from './utils/navigation';
 import { syncMobileLayout, syncViewportHeight, syncMobileNavOffset } from './utils/viewport';
+import { api } from './services/apiClient';
+import { offlineStore } from './services/offlineStore';
+import { disablePushNotifications, syncExistingPushSubscription } from './services/pushNotifications';
 
 function App() {
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('palia_user') || 'null'));
+  const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [, setDataVersion] = useState(0);
   const [activeTab, setActiveTab] = useState('inicio');
   const [currentView, setCurrentView] = useState('inicio');
   const [searchVal, setSearchVal] = useState('');
@@ -26,10 +31,64 @@ function App() {
   const [settingsFocus, setSettingsFocus] = useState(null);
   const pendingScrollRef = useRef(null);
 
-  const handleLogout = () => {
-    localStorage.removeItem('palia_user');
-    setUser(null);
+  const openAlertFromUrl = () => {
+    const params = new URLSearchParams(window.location.search);
+    const alertId = params.get('alertId');
+    if (!alertId) return;
+    const patientId = dbService.getAlerts().find((alert) => alert.id === alertId)?.patientId;
+    if (patientId) {
+      setSelectedPatientId(patientId);
+      setCurrentView('detalle-paciente');
+      setActiveTab('pacientes');
+    }
+    window.history.replaceState({}, '', window.location.pathname);
   };
+
+  const handleLogout = async () => {
+    try { await disablePushNotifications({ bestEffort: true }).catch(() => undefined); await api.auth.signOut(); } finally { dbService.clear(); setUser(null); }
+  };
+
+  const acceptLogin = async (identity) => {
+    await dbService.initialize();
+    openAlertFromUrl();
+    await dbService.saveOfflineIdentity({ id: identity.id, displayName: identity.displayName ?? identity.name, role: identity.role });
+    await syncExistingPushSubscription().catch(() => undefined);
+    await dbService.syncOffline();
+    setUser(identity);
+  };
+
+  useEffect(() => {
+    let active = true;
+    api.auth.me().then(async (response) => {
+      if (!active) return;
+      const auth = response.data;
+      await dbService.initialize();
+      openAlertFromUrl();
+      const identity = { ...auth.user, displayName: auth.user.name, photoURL: auth.user.profileImageId, role: auth.role };
+      await dbService.saveOfflineIdentity({ id: identity.id, displayName: identity.displayName, role: identity.role });
+      await syncExistingPushSubscription().catch(() => undefined);
+      if (active) { setUser(identity); await dbService.syncOffline(); }
+    }).catch(async (error) => {
+      if (!active) return;
+      if (error instanceof TypeError || !navigator.onLine) {
+        try {
+          const identity = await offlineStore.getLastIdentity();
+          if (identity) {
+            await dbService.initializeOffline(identity);
+            if (active) setUser({ id: identity.id, name: identity.name, displayName: identity.name, role: identity.role, offline: true });
+            return;
+          }
+        } catch { /* Without a previously authenticated profile the login screen remains visible. */ }
+      }
+      await dbService.clear(); setUser(null);
+    }).finally(() => { if (active) setAuthReady(true); });
+    const unsubscribe = dbService.subscribe(() => setDataVersion((version) => version + 1));
+    const onUnauthorized = () => { dbService.clear(); setUser(null); };
+    window.addEventListener('medice:unauthorized', onUnauthorized);
+    const syncWhenOnline = () => { dbService.syncOffline().catch(() => undefined); };
+    window.addEventListener('online', syncWhenOnline);
+    return () => { active = false; unsubscribe(); window.removeEventListener('medice:unauthorized', onUnauthorized); window.removeEventListener('online', syncWhenOnline); };
+  }, []);
 
   const normalizeNavOptions = (secondArg) => {
     if (typeof secondArg === 'string') return { subTab: secondArg };
@@ -88,11 +147,6 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [activeTab, currentView]);
 
-  // Initialize DB with seed data on mount
-  useEffect(() => {
-    dbService.initialize();
-  }, []);
-
   useEffect(() => {
     if (!user) return undefined;
     const syncLayout = () => {
@@ -125,12 +179,18 @@ function App() {
         />
       );
     }
+
+    if (currentView === 'editar-paciente') {
+      return <NewPatient patient={dbService.getPatient(selectedPatientId)} onCancel={() => setCurrentView('detalle-paciente')} onSaveSuccess={handlePatientSaveSuccess} />;
+    }
     
     if (currentView === 'detalle-paciente') {
       return (
         <PatientDetail 
           patientId={selectedPatientId} 
+          user={user}
           onBack={() => handleTabChange('pacientes')} 
+          onEdit={() => setCurrentView('editar-paciente')}
           onNewFollowUp={() => setCurrentView('nuevo-seguimiento')}
         />
       );
@@ -153,6 +213,7 @@ function App() {
         return (
           <Patients 
             searchVal={searchVal}
+            canManage={canManage}
             onNewPatient={() => setCurrentView('nuevo-paciente')}
             onViewDetail={(id) => {
               setSelectedPatientId(id);
@@ -173,12 +234,16 @@ function App() {
     }
   };
 
+  if (!authReady) {
+    return <div className="app-loading" role="status">Conectando con Palia…</div>;
+  }
+
   if (!user) {
-    return <Login onLoginSuccess={setUser} />;
+    return <Login onLoginSuccess={acceptLogin} />;
   }
 
   // Check if the user has admin role to show admin nav on mobile
-  const isAdmin = user?.role === 'admin' || user?.email?.includes('admin') || true; // default all users can see admin
+  const canManage = user?.role === 'admin' || user?.role === 'coordinator';
 
   return (
     <div className="app-shell">
@@ -228,7 +293,7 @@ function App() {
           <span className="material-symbols-outlined">analytics</span>
           <span>Stats</span>
         </button>
-        {isAdmin && (
+        {canManage && (
           <button
             type="button"
             className={`mobile-nav-item ${activeTab === 'administracion' ? 'active' : ''}`}

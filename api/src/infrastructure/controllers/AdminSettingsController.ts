@@ -4,6 +4,7 @@ import { AppError } from '@/domain/errors/AppError';
 import { ErrorCode } from '@/domain/errors/ErrorCodes';
 import { AdminSettingsHandler } from '@/application/handlers/AdminSettingsHandler';
 import { logger } from '@/domain/utils/logger';
+import { DatabaseConfig } from '@/infrastructure/config/database';
 
 const sendError = (res: Response, status: number, error: unknown) => {
   const e = error as Error;
@@ -96,8 +97,16 @@ export class AdminSettingsController {
 
       // Decode email from URL (in case it contains special characters)
       const decodedEmail = decodeURIComponent(email);
+      const emailNormalized = decodedEmail.trim().toLowerCase();
+      const user = await DatabaseConfig.getKnex()('users').whereRaw('LOWER(email) = ?', [emailNormalized]).first('id');
+      if (user && user.id === (req as any).user?.id) {
+        res.status(409).json({ error: 'No se puede retirar el acceso de la sesión actual.' });
+        return;
+      }
 
       await this.adminSettingsHandler.removeAllowedUser(decodedEmail);
+
+      if (user) await DatabaseConfig.getKnex()('auth_sessions').where({ user_id: user.id }).delete();
 
       res.status(200).json({
         success: true,

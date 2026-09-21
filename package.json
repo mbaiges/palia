@@ -10,6 +10,10 @@
     "api:build": "npm run build --prefix api",
     "front:test:unit": "npm run test:unit --prefix front",
     "front:test:e2e": "npm run test:e2e --prefix front",
-    "api:test": "npm test --prefix api"
+    "front:test:e2e:api-front-separation": "npm run test:e2e:api-front-separation --prefix front",
+    "api:test": "npm test --prefix api",
+    "test": "npm run api:test && npm run front:test:unit",
+    "test:e2e": "npm run front:test:e2e",
+    "test:e2e:api-front-separation": "npm run front:test:e2e:api-front-separation"
   }
 }

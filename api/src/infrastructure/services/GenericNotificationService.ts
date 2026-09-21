@@ -11,6 +11,7 @@ export type GenericNotification = {
   body: string;
   createdAt: string;
   read: boolean;
+  data?: { notificationId: string; alertId?: string };
 };
 
 @injectable()
@@ -21,13 +22,6 @@ export class GenericNotificationService {
   ) {}
 
   async getMyNotifications(userId: string): Promise<GenericNotification[]> {
-    await this.repository.createOnce({
-      id: `welcome-${userId}`,
-      userId,
-      type: 'system',
-      title: 'Welcome to the application scaffold',
-      body: 'This persisted notification demonstrates the generic event feed.',
-    });
     const notifications = await this.repository.findByUserId(userId);
     return notifications.map(({ id, type, title, body, createdAt, read }) => ({ id, type, title, body, createdAt, read }));
   }
@@ -39,6 +33,21 @@ export class GenericNotificationService {
       title: 'Example item created',
       body: 'Your example item was created successfully.',
     });
+    await this.sendPushBestEffort(userId, notification);
+  }
+
+  async sendGenericClinicalAlert(userId: string, alertId: string): Promise<void> {
+    const notification = {
+      id: `alert-${alertId}-${userId}`,
+      userId,
+      type: 'system' as const,
+      title: 'Palia',
+      body: 'Hay una actualización. Inicia sesión para consultar la información.',
+      createdAt: new Date().toISOString(),
+      read: false,
+      data: { notificationId: `alert-${alertId}-${userId}`, alertId },
+    };
+    await this.repository.createOnce({ id: notification.id, userId, type: notification.type, title: notification.title, body: notification.body });
     await this.sendPushBestEffort(userId, notification);
   }
 
@@ -54,7 +63,7 @@ export class GenericNotificationService {
           await webpush.sendNotification({
             endpoint: subscription.endpoint,
             keys: { p256dh: subscription.p256dh, auth: subscription.auth },
-          }, JSON.stringify({ title: notification.title, body: notification.body, type: notification.type, data: { notificationId: notification.id } }));
+          }, JSON.stringify({ title: notification.title, body: notification.body, type: notification.type, data: notification.data ?? { notificationId: notification.id } }));
         } catch (error: any) {
           if (error?.statusCode === 404 || error?.statusCode === 410) {
             await this.pushRepository.deleteByEndpointIfExists(subscription.endpoint);

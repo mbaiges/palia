@@ -4,6 +4,7 @@ import { TokenProvider } from '@/domain/repositories/TokenProvider';
 import { UserRepository } from '@/domain/repositories/UserRepository';
 import { PermissionRepository } from '@/domain/repositories/PermissionRepository';
 import { User } from '@/domain/models/User';
+import { resolveBrowserSession } from '@/infrastructure/services/BrowserSession';
 
 /**
  * Extended Request interface with user data
@@ -27,7 +28,18 @@ export class AuthMiddleware {
    */
   authenticate() {
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-      const token = this.extractToken(req);
+      let token = this.extractToken(req);
+      let sessionUserId: string | undefined;
+
+      if (!token) {
+        try {
+          const session = await resolveBrowserSession(req);
+          token = session?.jwt ?? null;
+          sessionUserId = session?.userId;
+        } catch {
+          token = null;
+        }
+      }
 
       if (!token) {
         res.status(401).json({ message: 'No token provided' });
@@ -36,7 +48,8 @@ export class AuthMiddleware {
 
       try {
         const decoded = this.tokenProvider.verifyToken(token);
-        const user = await this.userRepository.findById(decoded.userId);
+        const userId = sessionUserId ?? decoded.userId;
+        const user = await this.userRepository.findById(userId);
 
         if (!user) {
           res.status(401).json({ message: 'User not found' });

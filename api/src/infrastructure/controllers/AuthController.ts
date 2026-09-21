@@ -6,6 +6,7 @@ import { AppError } from '@/domain/errors/AppError';
 import { ErrorCode } from '@/domain/errors/ErrorCodes';
 import { parseAcceptLanguage } from '@/infrastructure/i18n';
 import { configService } from '@/infrastructure/config/config';
+import { createBrowserSession, revokeBrowserSession, clearBrowserSession, resolveBrowserSession } from '@/infrastructure/services/BrowserSession';
 
 /**
  * Authentication Controller
@@ -41,6 +42,7 @@ export class AuthController {
       }
 
       const result = await this.authHandler.handleGoogleSignIn(authCode);
+      await createBrowserSession(res, result.user.id, result.token);
 
       res.status(result.isNewUser ? 201 : 200).json({
         success: true,
@@ -49,8 +51,7 @@ export class AuthController {
           : 'Signed in successfully',
         data: {
           user: result.user.toJSON(),
-          token: result.token,
-          googleAccessToken: result.googleAccessToken,
+          role: result.permissions.includes('admin:manage_roles') ? 'admin' : result.permissions.includes('medice:manage_domain') ? 'coordinator' : 'volunteer',
           isNewUser: result.isNewUser,
           permissions: result.permissions,
         },
@@ -100,6 +101,7 @@ export class AuthController {
       }
 
       const result = await this.authHandler.handleDevBypass(email, name);
+      await createBrowserSession(res, result.user.id, result.token);
 
       res.status(result.isNewUser ? 201 : 200).json({
         success: true,
@@ -108,8 +110,7 @@ export class AuthController {
           : 'Signed in successfully',
         data: {
           user: result.user.toJSON(),
-          token: result.token,
-          googleAccessToken: result.googleAccessToken,
+          role: result.permissions.includes('admin:manage_roles') ? 'admin' : result.permissions.includes('medice:manage_domain') ? 'coordinator' : 'volunteer',
           isNewUser: result.isNewUser,
           permissions: result.permissions,
         },
@@ -218,7 +219,8 @@ export class AuthController {
    */
   async refreshToken(req: Request, res: Response): Promise<void> {
     try {
-      const token = this.extractToken(req);
+      const session = await resolveBrowserSession(req);
+      const token = this.extractToken(req) ?? session?.jwt ?? null;
       if (!token) {
         res.status(401).json({
           success: false,
@@ -231,13 +233,13 @@ export class AuthController {
       const newToken = await this.authHandler.handleTokenRefresh(
         decoded.userId
       );
+      await revokeBrowserSession(req);
+      await createBrowserSession(res, decoded.userId, newToken);
 
       res.status(200).json({
         success: true,
         message: 'Token refreshed successfully',
-        data: {
-          token: newToken,
-        },
+        data: { refreshed: true },
       });
     } catch (error: any) {
       logger.error('Token refresh error', error);
@@ -316,6 +318,7 @@ export class AuthController {
         success: true,
         data: {
           user: result.user.toJSON(),
+          role: result.permissions.includes('admin:manage_roles') ? 'admin' : result.permissions.includes('medice:manage_domain') ? 'coordinator' : 'volunteer',
           permissions: result.permissions,
         },
       });
@@ -333,9 +336,9 @@ export class AuthController {
    * Sign out (client-side token removal)
    * POST /api/auth/signout
    */
-  signOut(_req: Request, res: Response): void {
-    // In a JWT system, sign out is handled client-side by removing the token
-    // This endpoint is here for consistency and can be used for logging
+  async signOut(req: Request, res: Response): Promise<void> {
+    await revokeBrowserSession(req);
+    clearBrowserSession(res);
     res.status(200).json({
       success: true,
       message: 'Signed out successfully',

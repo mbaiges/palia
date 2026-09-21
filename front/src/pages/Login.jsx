@@ -1,27 +1,56 @@
-import React, { useState } from 'react';
-import { dbService } from '../services/db';
+import React, { useEffect, useState } from 'react';
+import { api, ApiError } from '../services/apiClient';
 
 export default function Login({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
-  const isCloud = dbService.isCloudBackend();
+  const [error, setError] = useState('');
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const devBypass = (import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === 'true') || (import.meta.env.MODE === 'e2e' && import.meta.env.VITE_E2E_AUTH_BYPASS === 'true');
+
+  useEffect(() => {
+    if (!googleClientId || window.google?.accounts?.oauth2) return undefined;
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+    return () => script.remove();
+  }, [googleClientId]);
+
+  const completeLogin = async (result) => {
+    const user = result?.data?.user;
+    if (!user) throw new Error('La API no devolvió la identidad autenticada.');
+    await onLoginSuccess({ ...user, displayName: user.name, photoURL: user.profileImageId, role: result.data.role });
+  };
 
   const handleGoogleLogin = () => {
+    setError('');
+    if (!window.google?.accounts?.oauth2) {
+      setError(googleClientId ? 'No se pudo cargar el inicio de sesión de Google. Revise su conexión.' : 'El inicio de sesión con Google aún no está configurado.');
+      return;
+    }
     setLoading(true);
-    // Simulate Google Sign-In authentication delay
-    setTimeout(() => {
-      const mockUser = {
-        uid: 'google_user_123',
-        displayName: 'Marta Coordinadora',
-        email: 'marta.coordinadora@palia.org',
-        photoURL: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCdXGuMCmzFL7Ymvch2Hc8CVe66MyxzA9MPk0_rnJQrR3mRNdxP3IygPbo2oFctVDuxLgYqjV1nUPmxIyaFISVXppyZKKtSrI8WU-4dBaWrUkpqkHUNbRjzCD82zHbf-2yO0-tEhgalTSGZcAyAg3KK5pKw9Wfhf8zqCOvzTPjZMFgqe2hVqS1kpsxH-8z-F_usFld3wvq4nRvmO2GzxGp6V8p3Vk8QAV61cC2nPLvwnKAGnq5i8Y6qxsS3r83q5wGpyQdCuU6XjQ8',
-        role: 'Coordinador'
-      };
-      
-      // Save auth state
-      localStorage.setItem('palia_user', JSON.stringify(mockUser));
-      setLoading(false);
-      onLoginSuccess(mockUser);
-    }, 1200);
+    try {
+      const client = window.google.accounts.oauth2.initCodeClient({
+        client_id: googleClientId,
+        scope: 'openid email profile',
+        ux_mode: 'popup',
+        callback: async (response) => {
+          try { await completeLogin(await api.auth.google(response.code)); }
+          catch (err) { setError(err instanceof ApiError && err.status === 403 ? 'Tu cuenta no está autorizada para usar Palia.' : err.message); }
+          finally { setLoading(false); }
+        },
+        error_callback: (response) => { setError(response.message || 'No se pudo completar la autenticación con Google.'); setLoading(false); },
+      });
+      client.requestCode();
+    } catch (err) { setError(err.message); setLoading(false); }
+  };
+
+  const handleDevLogin = async (email, name) => {
+    setError(''); setLoading(true);
+    try { await completeLogin(await api.auth.devBypass(email, name)); }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -65,17 +94,19 @@ export default function Login({ onLoginSuccess }) {
 
         {/* Intro */}
         <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--color-on-surface)', margin: '0 0 8px 0' }}>Portal del Coordinador</h2>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--color-on-surface)', margin: '0 0 8px 0' }}>Portal de Acompañamiento</h2>
           <p style={{ fontSize: '14px', color: 'var(--color-outline)', lineHeight: '1.5', margin: 0 }}>
             Acceda de forma segura utilizando sus credenciales corporativas para gestionar la red de acompañamientos de Palia.
           </p>
         </div>
 
+        {error && <div role="alert" style={{ marginBottom: '16px', padding: '12px', color: 'var(--color-error)', background: 'var(--color-error-container)', borderRadius: '12px' }}>{error}</div>}
+
         {/* Action Button */}
         <button
           className="btn btn-primary"
           onClick={handleGoogleLogin}
-          disabled={loading}
+          disabled={loading || !googleClientId}
           style={{
             width: '100%',
             height: '48px',
@@ -98,6 +129,12 @@ export default function Login({ onLoginSuccess }) {
           )}
           {loading ? 'Iniciando sesión...' : 'Iniciar Sesión con Google'}
         </button>
+        {devBypass && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8, marginTop: 12 }}>
+            <button type="button" className="btn btn-secondary" disabled={loading} onClick={() => handleDevLogin('admin@medice.test', 'Admin de prueba')}>Acceso de prueba admin</button>
+            <button type="button" className="btn btn-secondary" disabled={loading} onClick={() => handleDevLogin('volunteer@medice.test', 'Voluntario de prueba')}>Acceso de prueba voluntario</button>
+          </div>
+        )}
 
         {/* Footer Info */}
         <div style={{ 
@@ -111,11 +148,11 @@ export default function Login({ onLoginSuccess }) {
           gap: '8px',
           justifyContent: 'center'
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: isCloud ? '#0070f3' : 'var(--color-secondary)' }}>
-            {isCloud ? 'cloud' : 'database'}
+            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-secondary)' }}>
+            cloud
           </span>
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-on-surface-variant)' }}>
-            Configurado en modo: <strong>{isCloud ? 'Firebase' : 'Persistencia Local'}</strong>
+            Datos compartidos desde la API segura
           </span>
         </div>
       </div>

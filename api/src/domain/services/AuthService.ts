@@ -57,6 +57,9 @@ export class AuthService {
       }
     }
 
+    const initialAdminEmails = (process.env.INITIAL_ADMIN_EMAILS ?? '').split(',').map((value) => value.trim().toLowerCase()).filter(Boolean);
+    const isInitialAdmin = initialAdminEmails.includes(email.trim().toLowerCase());
+
     // Check if user exists by Google ID
     let user = await this.userRepository.findByGoogleId(googleId);
 
@@ -82,6 +85,7 @@ export class AuthService {
         user = await this.userRepository.save(updatedUser);
       }
 
+      if (isInitialAdmin) await this.userRepository.replaceUserRole(user.id, 'admin');
       return {
         user,
         isNewUser: false,
@@ -105,7 +109,7 @@ export class AuthService {
     const savedUser = await this.userRepository.save(newUser);
 
     // Assign default 'user' role to new user
-    await this.userRepository.assignRole(savedUser.id, 'user');
+    await this.userRepository.assignRole(savedUser.id, isInitialAdmin ? 'admin' : 'volunteer');
 
     // Create default settings for the new user
     await this.userSettingsRepository.update(savedUser.id, { theme: 'light' });

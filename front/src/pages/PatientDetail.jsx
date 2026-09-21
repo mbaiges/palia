@@ -3,7 +3,7 @@ import { dbService } from '../services/db';
 import AlertModal from '../components/AlertModal';
 import PrintReportPreview from '../components/PrintReportPreview';
 
-export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
+export default function PatientDetail({ patientId, user, onBack, onNewFollowUp, onEdit }) {
   const [patientState, setPatientState] = useState(() => dbService.getPatient(patientId));
   const [followUpsState, setFollowUpsState] = useState(() => dbService.getFollowUpsForPatient(patientId));
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
@@ -17,6 +17,10 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
   }, [patientId]);
 
   useEffect(() => {
+    if (patientState && user?.id) dbService.cachePatientOffline(patientId);
+  }, [patientId, patientState, user?.id]);
+
+  useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 1024);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -27,32 +31,26 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
   const followUps = followUpsState;
   const hospitals = dbService.getHospitals();
 
-  const handleAlertSubmit = (alertData) => {
-    // Generate follow-up event
-    const newEvent = {
-      patientId: patient.id,
-      authorId: 'admin',
-      authorName: 'Coordinador Central',
-      contactType: 'Presencial',
-      symptoms: {
-        pain: alertData.motive.includes('Dolor') ? '10 - Insoportable' : '1-3 - Leve',
-        nausea: alertData.motive.includes('Náusea') ? 'Persistente' : 'Ninguno',
-        gradient: 'none',
-        dyspnea: alertData.motive.includes('Disnea') ? 'Grado 3 - Severa' : 'Grado 0 - Normal'
-      },
-      symptomObservations: `🚨 Alerta Clínica [${alertData.motive}]: ${alertData.observations}`,
-      socialRisk: {
-        familySupport: 'Sólido y constante',
-        environmentNotes: 'Alerta gatillada desde el panel coordinador.'
-      },
-      equipmentNeeds: [],
-      equipmentOther: "",
-      interventions: `Activación de red médica de emergencia. Motivo: ${alertData.motive}.`,
-      alertActivated: true
-    };
+  const handleAlertSubmit = async (alertData) => {
+    await dbService.createAlert(patientId, {
+      level: alertData.alertLevel === 'Seguimiento Estándar' ? 'standard' : 'complex',
+      motive: alertData.motive,
+      observations: alertData.observations,
+    });
+    setPatientState(dbService.getPatient(patientId));
+    setFollowUpsState(dbService.getFollowUpsForPatient(patientId));
+  };
 
-    dbService.saveFollowUp(newEvent);
-    // Reload local state
+  const alerts = dbService.getAlerts().filter((alert) => alert.patientId === patientId);
+  const resolveAlert = async (alertId) => {
+    const note = window.prompt('Nota opcional de resolución:') ?? '';
+    await dbService.resolveAlert(alertId, note);
+    setPatientState(dbService.getPatient(patientId));
+  };
+
+  const toggleArchive = async () => {
+    if (patient.archivedAt) await dbService.restorePatient(patientId);
+    else await dbService.archivePatient(patientId);
     setPatientState(dbService.getPatient(patientId));
     setFollowUpsState(dbService.getFollowUpsForPatient(patientId));
   };
@@ -108,16 +106,18 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
-          {!isMobile && (
+          {(user?.role === 'admin' || user?.role === 'coordinator') && <button className="btn btn-secondary" onClick={onEdit}>Editar ficha</button>}
+          {(user?.role === 'admin' || user?.role === 'coordinator') && (!patient.archivedAt || user?.role === 'coordinator') && <button className="btn btn-secondary" onClick={toggleArchive}>{patient.archivedAt ? 'Restaurar paciente' : 'Archivar paciente'}</button>}
+          {!patient.archivedAt && !isMobile && (
             <button className="btn btn-primary" onClick={onNewFollowUp} style={{ gap: '6px' }}>
               <span className="material-symbols-outlined">edit_note</span>
               Registrar Seguimiento
             </button>
           )}
-          <button 
-            className="btn btn-secondary" 
-            onClick={() => setIsAlertModalOpen(true)} 
-            style={{ 
+          {!patient.archivedAt && <button
+            className="btn btn-secondary"
+            onClick={() => setIsAlertModalOpen(true)}
+            style={{
               backgroundColor: 'var(--color-error-container)', 
               color: 'var(--color-error)', 
               borderColor: 'var(--color-error)',
@@ -131,7 +131,7 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>bolt</span>
             Activar Alerta
-          </button>
+          </button>}
           <button 
             className="btn btn-secondary" 
             onClick={() => setIsPrintModalOpen(true)} 
@@ -273,6 +273,18 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
           )}
         </section>
 
+        <section style={{ gridColumn: 'span 12', marginTop: '12px' }} aria-labelledby="patient-alerts-heading">
+          <h2 id="patient-alerts-heading" style={{ fontSize: 20, marginBottom: 12 }}>Alertas clínicas</h2>
+          {alerts.length === 0 ? <p className="card">No hay alertas registradas.</p> : alerts.map((alert) => <article key={alert.id} className="card" style={{ marginBottom: 10, borderLeft: `4px solid ${alert.status === 'active' ? 'var(--color-error)' : 'var(--color-outline-variant)'}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div><strong>{alert.motive}</strong><p style={{ margin: '6px 0' }}>{alert.observations}</p><small>{alert.level === 'complex' ? 'Crisis Compleja' : 'Seguimiento Estándar'} · {formatDate(alert.createdAt)} · {alert.authorName}</small>
+                {alert.status === 'resolved' && <p style={{ marginBottom: 0 }}>Resuelta {alert.resolutionNote ? `— ${alert.resolutionNote}` : 'sin nota'}</p>}
+              </div>
+              {alert.status === 'active' && <button type="button" className="btn btn-secondary" onClick={() => resolveAlert(alert.id)}>Resolver alerta</button>}
+            </div>
+          </article>)}
+        </section>
+
         {/* History Chronological Timeline Section */}
         <section style={{ gridColumn: 'span 12', marginTop: '16px' }}>
           <h2 style={{ fontSize: '20px', color: 'var(--color-on-background)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', paddingLeft: '8px' }}>
@@ -308,7 +320,9 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
                             {isAlert ? 'Urgente' : event.contactType}
                           </span>
                         </div>
-                        <span className="timeline-meta">{formatDate(event.date)}</span>
+                        <span className="timeline-meta">{formatDate(event.date || event.occurredAt)}</span>
+                        {event.status === 'pending-sync' && <span className="chip chip-warning">Pendiente de sincronización</span>}
+                        {event.status === 'needs-review' && <span className="chip chip-error">Requiere revisión</span>}
                       </div>
 
                       {/* Symptoms Summary */}
@@ -360,16 +374,6 @@ export default function PatientDetail({ patientId, onBack, onNewFollowUp }) {
           )}
         </section>
       </div>
-
-      {/* Floating Action Button */}
-      <button 
-        className="fab" 
-        onClick={onNewFollowUp}
-        aria-label="Registrar Seguimiento"
-      >
-        <span className="material-symbols-outlined">add</span>
-        <span>Registrar Seguimiento</span>
-      </button>
 
       {/* Alert Activation Modal */}
       <AlertModal 

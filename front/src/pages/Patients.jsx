@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { dbService } from '../services/db';
 
-export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
+export default function Patients({ onViewDetail, onNewPatient, searchVal, canManage = false }) {
   const [filterStatus, setFilterStatus] = useState('Todos');
   const [localQuery, setLocalQuery] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 1024 : false);
 
@@ -15,7 +16,7 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const allPatients = dbService.getPatients();
+  const allPatients = dbService.getPatients().filter((patient) => Boolean(patient.archivedAt) === showArchived);
   const hospitals = dbService.getHospitals();
 
   const getHospitalName = (id) => {
@@ -99,6 +100,13 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-stack-lg)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div role="group" aria-label="Estado de pacientes" style={{ display: 'flex', gap: 8 }}>
+          <button className={`btn ${!showArchived ? 'btn-primary' : 'btn-secondary'}`} aria-pressed={!showArchived} onClick={() => setShowArchived(false)}>Activos</button>
+          <button className={`btn ${showArchived ? 'btn-primary' : 'btn-secondary'}`} aria-pressed={showArchived} onClick={() => setShowArchived(true)}>Archivados</button>
+        </div>
+        {showArchived && <span style={{ color: 'var(--color-on-surface-variant)' }}>Pacientes archivados · solo coordinación puede restaurarlos</span>}
+      </div>
       {isMobile ? (
         /* 📱 MOBILE ONLY VIEW (Strict alignment with mock: directorio_de_pacientes.html) */
         <div id="patients-directory" style={{ padding: '0 4px 0 4px' }}>
@@ -122,7 +130,7 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
             </div>
 
             {/* Horizontal scrollable filter chips */}
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingBottom: '4px' }}>
               <button
                 onClick={() => setFilterStatus('Todos')}
                 className="font-label-md"
@@ -185,7 +193,7 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
             {filteredPatients.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '32px', color: 'var(--color-on-surface-variant)' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--color-outline-variant)' }}>search_off</span>
-                <p style={{ marginTop: '8px' }}>No hay pacientes asignados.</p>
+                <p style={{ marginTop: '8px' }}>No hay pacientes registrados.</p>
               </div>
             ) : (
               filteredPatients.map(patient => {
@@ -306,7 +314,7 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
           </div>
 
           {/* Floating Contextual FAB for mobile new patient */}
-          <button
+          {canManage && <button
             onClick={onNewPatient}
             aria-label="Añadir nuevo paciente"
             className="fab fab--patients"
@@ -319,7 +327,7 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
           >
             <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>person_add</span>
             <span style={{ fontSize: '14px', fontWeight: 600 }}>Nuevo Paciente</span>
-          </button>
+          </button>}
         </div>
       ) : (
         /* 💻 DESKTOP ONLY VIEW */
@@ -329,13 +337,13 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
             <div>
               <h1 style={{ color: 'var(--color-on-background)' }}>Directorio de Pacientes</h1>
               <p style={{ color: 'var(--color-on-surface-variant)', marginTop: '4px' }}>
-                Gestiona y supervisa el estado de todos los pacientes asignados.
+                Consulta el directorio completo y el estado de seguimiento de cada paciente.
               </p>
             </div>
-            <button className="btn btn-primary" onClick={onNewPatient} style={{ gap: '8px' }}>
+            {canManage && <button className="btn btn-primary" onClick={onNewPatient} style={{ gap: '8px' }}>
               <span className="material-symbols-outlined">person_add</span>
               Añadir Nuevo Paciente
-            </button>
+            </button>}
           </div>
 
           {/* Stat cards */}
@@ -456,7 +464,7 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal }) {
             {/* Pagination */}
             <div style={{ padding: '14px 24px', borderTop: '1px solid var(--color-outline-variant)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <span style={{ fontSize: '13px', color: 'var(--color-outline)' }}>
-                Mostrando 1 a {filteredPatients.length} de {filteredPatients.length} pacientes
+                {filteredPatients.length === 0 ? 'No hay pacientes para mostrar.' : `Mostrando ${filteredPatients.length} pacientes`}
               </span>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <button className="btn btn-tertiary" style={{ width: '36px', height: '36px', padding: 0, fontSize: '18px' }} disabled>‹</button>
