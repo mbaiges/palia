@@ -16,4 +16,8 @@ For cross-application features or substantial behavior changes, use the local Op
 
 The skill checkout under `.agentic/open-agent-skills/` is local tooling and is intentionally Git-ignored. Its contents can be restored from the sibling `../matices/.agentic/open-agent-skills/` repository.
 
+## Spec-driven implementation
+
+Once both specs are agreed and implementation is requested, use `.agentic/open-agent-skills/skills/loop-build/SKILL.md` and its shared guardrails. Read `docs/features/api-front-separation/loop-state.md` first on every new session, follow its numbered next-iteration focus and the linked implementation checklist, and update the state before pausing. The loop-build skill checkout is Git-ignored and can be restored from `../matices/.agentic/open-agent-skills/skills/loop-build/`.
+
 Do not implement a non-trivial feature until its product and technical decisions are agreed with the user.
