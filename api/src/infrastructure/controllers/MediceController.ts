@@ -9,6 +9,7 @@ import { inject, injectable } from 'tsyringe';
 import { MediceOperationsService } from '@/domain/services/MediceOperationsService';
 import { MediceFollowUpService } from '@/domain/services/MediceFollowUpService';
 import { MediceAlertService } from '@/domain/services/MediceAlertService';
+import { MediceProfileService } from '@/domain/services/MediceProfileService';
 import { GenericNotificationService } from '@/infrastructure/services/GenericNotificationService';
 
 const now = () => new Date().toISOString();
@@ -31,6 +32,8 @@ export class MediceController {
     private readonly followUpService: MediceFollowUpService,
     @inject('MediceAlertService')
     private readonly alertService: MediceAlertService,
+    @inject('MediceProfileService')
+    private readonly profileService: MediceProfileService,
   ) {}
   private get db(): Knex {
     return DatabaseConfig.getKnex();
@@ -638,110 +641,15 @@ export class MediceController {
   }
 
   async updateMyProfile(req: Request, res: Response): Promise<void> {
-    const id = this.userId(req);
-    const body = req.body ?? {};
-    const existing = await this.db('volunteer_profiles')
-      .where({ user_id: id })
-      .first();
-    const protectedFields = [
-      'id',
-      'userId',
-      'email',
-      'name',
-      'role',
-      'permissions',
-      'activePatients',
-      'status',
-    ];
-    if (
-      protectedFields.some(field =>
-        Object.prototype.hasOwnProperty.call(body, field)
-      )
-    ) {
-      res.status(422).json({
-        error:
-          'La identidad, los permisos y las asignaciones no se editan desde el perfil.',
-      });
-      return;
-    }
-    const validateText = (field: string, maxLength: number): string | null => {
-      const value = body[field];
-      if (value === undefined || value === null) return null;
-      if (typeof value !== 'string' || value.length > maxLength) {
-        throw new Error(
-          `El campo ${field} debe ser texto de hasta ${maxLength} caracteres.`
-        );
-      }
-      return value.trim() || null;
-    };
-    let phone: string | null;
-    let specialtyAvailability: string | null;
-    let tenure: string | null;
-    let avatarUrl: string | null;
-    try {
-      phone = validateText('phone', 40);
-      specialtyAvailability = validateText('specialtyAvailability', 240);
-      tenure = validateText('tenure', 240);
-      avatarUrl = validateText('avatarUrl', 2048);
-      if (avatarUrl) {
-        const url = new URL(avatarUrl);
-        if (!['https:', 'http:'].includes(url.protocol))
-          throw new Error('La imagen debe usar una URL HTTP o HTTPS.');
-      }
-    } catch (error: any) {
-      res.status(422).json({ error: error.message });
-      return;
-    }
-    const timestamp = now();
-    const profile = {
-      user_id: id,
-      phone: body.phone === undefined ? (existing?.phone ?? null) : phone,
-      specialty_availability:
-        body.specialtyAvailability === undefined
-          ? (existing?.specialty_availability ?? null)
-          : specialtyAvailability,
-      tenure: body.tenure === undefined ? (existing?.tenure ?? null) : tenure,
-      avatar_url:
-        body.avatarUrl === undefined
-          ? (existing?.avatar_url ?? null)
-          : avatarUrl,
-      status: existing?.status ?? 'active',
-      updated_at: timestamp,
-    };
-    await this.db('volunteer_profiles')
-      .insert({ ...profile, created_at: timestamp })
-      .onConflict('user_id')
-      .merge(profile);
-    res.json({
-      data: {
-        userId: id,
-        phone: profile.phone,
-        specialtyAvailability: profile.specialty_availability,
-        tenure: profile.tenure,
-        avatarUrl: profile.avatar_url,
-        status: profile.status,
-      },
-    });
+    try { res.json({ data: await this.profileService.update(this.userId(req), req.body ?? {}) }); }
+    catch (error: any) { if (error.status) { res.status(error.status).json({ error: error.message }); return; } throw error; }
   }
 
   async getMyProfile(req: Request, res: Response): Promise<void> {
-    const row = await this.db('volunteer_profiles')
-      .where({ user_id: this.userId(req) })
-      .first();
-    res.json({
-      data: row
-        ? {
-            userId: row.user_id,
-            phone: row.phone,
-            specialtyAvailability: row.specialty_availability,
-            tenure: row.tenure,
-            avatarUrl: row.avatar_url,
-            status: row.status,
-          }
-        : null,
-    });
+    const data = await this.profileService.get(this.userId(req));
+    if (!data) { res.status(404).json({ error: 'Perfil no encontrado' }); return; }
+    res.json({ data });
   }
-
   async addVolunteerAllowlist(req: Request, res: Response): Promise<void> {
     const email = String(req.body?.email ?? '')
       .trim()
