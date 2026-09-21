@@ -42,7 +42,7 @@ export function createRoutes(): Router {
   const exampleItemController = container.resolve(ExampleItemController);
   const mediaAssetController = container.resolve(MediaAssetController);
   const auditEventController = container.resolve(AuditEventController);
-  const medice = new MediceController();
+  const medice = container.resolve(MediceController);
   const auth = container.resolve(AuthMiddleware);
   const permissionMiddleware = container.resolve(PermissionMiddleware);
 

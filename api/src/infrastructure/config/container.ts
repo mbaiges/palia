@@ -43,6 +43,9 @@ import { SqliteMediaAssetRepository } from '@/infrastructure/adapters/repositori
 import { MediaAssetService } from '@/domain/services/MediaAssetService';
 import { MediaAssetController } from '@/infrastructure/controllers/MediaAssetController';
 import { AuditEventController } from '@/infrastructure/controllers/AuditEventController';
+import { MedicePatientService } from '@/domain/services/MedicePatientService';
+import { SqliteMedicePatientRepository } from '@/infrastructure/adapters/repositories/SqliteMedicePatientRepository';
+import { MediceController } from '@/infrastructure/controllers/MediceController';
 
 // Database
 container.register('Database', {
@@ -95,6 +98,11 @@ container.register(
   'MediaAssetRepository',
   { useClass: SqliteMediaAssetRepository },
   { lifecycle: Lifecycle.Singleton }
+);
+container.register(
+  'MedicePatientRepository',
+  { useClass: SqliteMedicePatientRepository },
+  { lifecycle: Lifecycle.Singleton },
 );
 
 // Auth repository
@@ -153,6 +161,7 @@ container.register('UserService', { useClass: UserService });
 container.register('GenericNotificationService', { useClass: GenericNotificationService });
 container.register('ExampleItemService', { useClass: ExampleItemService });
 container.register('MediaAssetService', { useClass: MediaAssetService });
+container.register('MedicePatientService', { useClass: MedicePatientService });
 container.register(SocketIORealtimeGateway, { useClass: SocketIORealtimeGateway });
 
 // Application Handlers
@@ -169,6 +178,7 @@ container.register('PushController', { useClass: PushController });
 container.register('ExampleItemController', { useClass: ExampleItemController });
 container.register('MediaAssetController', { useClass: MediaAssetController });
 container.register('AuditEventController', { useClass: AuditEventController });
+container.register('MediceController', { useClass: MediceController });
 
 // Middleware
 container.register('AuthMiddleware', { useClass: AuthMiddleware });

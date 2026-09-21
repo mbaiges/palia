@@ -5,6 +5,8 @@ import { DatabaseConfig } from '@/infrastructure/config/database';
 import { container } from '@/infrastructure/config/container';
 import type { AuthenticatedRequest } from '@/infrastructure/middleware/authMiddleware';
 import { GenericNotificationService } from '@/infrastructure/services/GenericNotificationService';
+import { MedicePatientService } from '@/domain/services/MedicePatientService';
+import { inject, injectable } from 'tsyringe';
 
 const now = () => new Date().toISOString();
 const digits = (value: unknown) => String(value ?? '').replace(/\D/g, '');
@@ -22,7 +24,12 @@ const parseJson = (value: unknown, fallback: unknown = null) => {
   }
 };
 
+@injectable()
 export class MediceController {
+  constructor(
+    @inject('MedicePatientService')
+    private readonly patientService: MedicePatientService,
+  ) {}
   private get db(): Knex {
     return DatabaseConfig.getKnex();
   }
@@ -73,52 +80,6 @@ export class MediceController {
     );
   }
 
-  private async patientDto(row: any): Promise<any> {
-    const [caregiver, hospital, assignments, alerts] = await Promise.all([
-      this.db('caregivers').where({ patient_id: row.id }).first(),
-      row.hospital_id
-        ? this.db('hospitals').where({ id: row.hospital_id }).first()
-        : null,
-      this.db('patient_assignments')
-        .where({ patient_id: row.id })
-        .select('user_id'),
-      this.db('alerts')
-        .where({ patient_id: row.id, status: 'active' })
-        .select('id'),
-    ]);
-    return {
-      id: row.id,
-      name: row.name,
-      dni: row.dni,
-      dob: row.dob,
-      address: row.address,
-      diagnosis: row.diagnosis,
-      hospitalId: row.hospital_id,
-      hospitalName: hospital?.name ?? null,
-      complexSituation: Boolean(row.complex_situation),
-      currentStatus: alerts.length
-        ? 'Alerta'
-        : row.complex_situation
-          ? 'En Observación'
-          : 'Estable',
-      assignedVolunteers: assignments.map((item: any) => item.user_id),
-      archivedAt: row.archived_at,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      caregiver: caregiver
-        ? {
-            patientId: row.id,
-            name: caregiver.name,
-            relation: caregiver.relation,
-            phone: caregiver.phone,
-            livesWithPatient: Boolean(caregiver.lives_with_patient),
-            burdenLevel: caregiver.burden_level,
-          }
-        : null,
-      activeAlerts: alerts.length,
-    };
-  }
-
   async bootstrap(req: Request, res: Response): Promise<void> {
     const userId = this.userId(req);
     const roles = await this.db('user_roles')
@@ -162,7 +123,7 @@ export class MediceController {
         : Promise.resolve([]),
     ]);
     const patients = await Promise.all(
-      patientRows.map((row: any) => this.patientDto(row))
+      patientRows.map((row: any) => this.patientService.getDto(row))
     );
     const followUps = followUpRows.map((row: any) => {
       const linkedAlert = alertRows.find(
@@ -352,58 +313,24 @@ export class MediceController {
 
   async listPatients(req: Request, res: Response): Promise<void> {
     const includeArchived = req.query.includeArchived === 'true';
-    let rows: any[] = await this.db('patients')
-      .modify(query => {
-        if (!includeArchived) query.whereNull('archived_at');
-      })
-      .orderBy('name')
-      .orderBy('id');
-    const q = normalizeText(req.query.q);
-    if (q)
-      rows = rows.filter(
-        row =>
-          [row.name, row.dni, row.diagnosis].some(value =>
-            normalizeText(value).includes(q)
-          ) ||
-          (digits(q).length > 0 && digits(row.dni).includes(digits(q)))
-      );
-    const status = String(req.query.status ?? 'all');
-    const dtos = await Promise.all(
-      rows.map((row: any) => this.patientDto(row))
-    );
-    const filtered =
-      status === 'all'
-        ? dtos
-        : dtos.filter(patient =>
-            status === 'critical'
-              ? patient.currentStatus === 'Alerta'
-              : status === 'observation'
-                ? patient.currentStatus === 'En Observación'
-                : patient.currentStatus === 'Estable'
-          );
     const limit = Math.min(100, Math.max(1, Number(req.query.limit ?? 50)));
     const offset = Math.max(0, Number(req.query.cursor ?? 0));
-    res.json({
-      data: filtered.slice(offset, offset + limit),
-      page: {
-        limit,
-        nextCursor:
-          offset + limit < filtered.length ? String(offset + limit) : null,
-        total: filtered.length,
-      },
-    });
+    res.json(await this.patientService.list({
+      includeArchived,
+      query: req.query.q,
+      status: String(req.query.status ?? 'all'),
+      limit,
+      offset,
+    }));
   }
 
   async getPatient(req: Request, res: Response): Promise<void> {
-    const row = await this.db('patients')
-      .where({ id: req.params.patientId })
-      .first();
-    if (!row) {
+    const data = await this.patientService.findById(req.params.patientId);
+    if (!data) {
       res.status(404).json({ error: 'Paciente no encontrado' });
       return;
     }
-    const dto = await this.patientDto(row);
-    res.json({ data: dto });
+    res.json({ data });
   }
 
   async savePatient(req: Request, res: Response): Promise<void> {
@@ -523,7 +450,7 @@ export class MediceController {
     const result = await this.db('patients').where({ id }).first();
     res
       .status(req.params.patientId ? 200 : 201)
-      .json({ data: await this.patientDto(result) });
+      .json({ data: await this.patientService.getDto(result) });
   }
 
   async setPatientArchive(req: Request, res: Response): Promise<void> {

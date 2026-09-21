@@ -228,6 +228,55 @@ test("narrow phone login and shell render without horizontal overflow", async ({
   await capture(page, "17-narrow-mobile-shell.png");
 });
 
+test("average 360px phone supports patient actions and primary navigation", async ({
+  page,
+}) => {
+  await signInAsAdmin(page, 360, 800);
+  const noHorizontalOverflow = async () =>
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+      ),
+    ).toBe(true);
+
+  await page.getByRole("button", { name: /Directorio|Pacientes/ }).first().click();
+  await expect(
+    page.getByRole("heading", { name: "Directorio de Pacientes" }),
+  ).toBeVisible();
+  await noHorizontalOverflow();
+  await page.getByPlaceholder("Buscar por nombre o DNI...").fill("Paciente de prueba API");
+  await page.getByText("Paciente de prueba API", { exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Paciente de prueba API" }),
+  ).toBeVisible();
+  await noHorizontalOverflow();
+  await capture(page, "56-average-360-patient-detail.png");
+
+  const patientActions = page.locator(".patient-detail-actions");
+  const actionButtons = patientActions.getByRole("button");
+  const actionCount = await actionButtons.count();
+  for (let index = 0; index < actionCount; index += 1) {
+    await expect(actionButtons.nth(index)).toBeVisible();
+    const box = await actionButtons.nth(index).boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(360);
+  }
+  await page.getByRole("button", { name: "Registrar Seguimiento" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Registro Clínico de Seguimiento" }),
+  ).toBeVisible();
+  await noHorizontalOverflow();
+  await capture(page, "57-average-360-follow-up.png");
+  await page.getByRole("button", { name: "Cancelar y Salir" }).click();
+
+  await page.locator(".mobile-nav-item").filter({ hasText: "Stats" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Estadísticas e impacto" }),
+  ).toBeVisible();
+  await noHorizontalOverflow();
+  await capture(page, "58-average-360-stats.png");
+});
+
 test("mobile volunteer community and administration remain usable", async ({
   page,
 }) => {

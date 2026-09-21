@@ -1,7 +1,7 @@
 # Loop state: api-front-separation
 
 Updated: 2026-09-21
-Iteration: 33 (proxy confiable, apagado seguro y estabilización visual)
+Iteration: 34 (lectura de pacientes por capas y cobertura de móvil promedio)
 Status: IN PROGRESS
 
 ## Fuente de verdad
@@ -13,6 +13,11 @@ Status: IN PROGRESS
 - Turso queda explícitamente fuera de los gates y no se debe validar.
 
 ## Estado de esta iteración
+
+- Se extrajeron lectura de pacientes, filtros por texto/estado, paginación y armado del DTO a `MedicePatientService`, con el contrato `MedicePatientRepository` en dominio y adaptador `SqliteMedicePatientRepository`. El controlador conserva la escritura de fichas y el resto de áreas Medice aún deben extraerse en cortes posteriores.
+- `MedicePatientService.test.ts` cubre el mapeo de relaciones/estado y filtro/paginación. API build y E2E de aceptación contra SQLite pasaron tras el cambio.
+- Playwright agregó viewport 360×800 (teléfono promedio): directorio, ficha, CTAs de ficha dentro del viewport, formulario de seguimiento y estadísticas. Capturas 56–58 fueron abiertas: los botones de ficha apilan correctamente; encabezado/formulario de seguimiento caben al ancho y la gráfica semanal queda dentro de pantalla, sin overflow horizontal.
+- Responsive E2E aislado pasó 4/4, incluida la matriz existente 390×844, 344 px/login y community/admin/profile. La suite E2E raíz pasó 5/5 (aceptación desktop/API + cuatro recorridos responsive). `npm test` pasó (API 48 suites/355 tests; front 19); `api:build`, `front:build`, lint front y `git diff --check` pasaron. Lint mantiene warnings previos.
 
 - La vista previa imprimible ahora responde a viewport móvil: toolbar en dos filas, datos de paciente/cuidador en una columna, encabezado envuelto y tabla dentro de un scroller propio. Playwright comprueba que no haya solapamiento, recorte del contenido principal ni overflow de página.
 - Capturas 45 (`45-mobile-alert-modal.png`) y 46 (`46-mobile-print-preview.png`) se generaron a 390 px y fueron abiertas/revisadas: el diálogo de alerta es legible, los botones de impresión no chocan y los datos de la ficha se apilan dentro del ancho.
@@ -205,8 +210,9 @@ Todas están en `e2e/artifacts/screenshots/api-front-separation/` (artefactos ig
 
 ## Siguiente iteración
 
-1. Resolver el gap arquitectónico acordado en el technical spec: extraer queries/reglas del controlador Medice a servicios/repositorios por dominio, manteniendo contrato y transacciones; añadir tests de repositorio/servicio y repetir E2E feature + root. `MediceController.ts` todavía consulta Knex directamente.
-2. Antes de declarar operación productiva, configurar credenciales OAuth reales y el proxy/HTTPS del host; no se pueden validar sin esas credenciales/infraestructura externa. No validar Turso.
-3. Solo tras resolver 1 y tener gates verdes, actualizar checklist/AC y cambiar `Next iteration focus` a `COMPLETE`.
+1. Completar la separación de capas Medice: mover escrituras y lectura/actualización de seguimientos, alertas, hospitales, asignaciones, perfiles, allow-list, bootstrap y estadísticas desde `MediceController.ts` a servicios/repositorios por dominio, preservando permisos, transacciones y contrato; añadir pruebas unitarias por servicio/repositorio y repetir acceptance/responsive E2E con capturas revisadas.
+2. Revisar la suite E2E raíz que está en curso y registrar su resultado; si falla, arreglar y repetir hasta verde.
+3. Antes de declarar la operación productiva lista, configurar credenciales OAuth reales y proxy/HTTPS del host; dependen de infraestructura externa. No validar Turso.
+4. Solo después de completar la separación arquitectónica y los gates, actualizar checklist/AC y cambiar `Next iteration focus` a `COMPLETE`.
 
 No marcar COMPLETE mientras queden criterios relevantes o gates sin evidencia.

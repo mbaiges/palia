@@ -4,7 +4,7 @@ Esta lista define cuándo `api/` está terminada e integrada de forma comprobabl
 
 Las dos auditorías redundantes de cuatro agentes están resumidas en [gap-analysis.md](./gap-analysis.md). Los contratos y decisiones de producto están cerrados en los specs; no reabrirlos durante implementación.
 
-## Estado de implementación (iteración 33)
+## Estado de implementación (iteración 34)
 
 Los recorridos de producto tienen evidencia local contra SQLite y el cotejo por criterio está en [acceptance-coverage.md](./acceptance-coverage.md). Continúan abiertos solo los puntos enumerados aquí; no se valida Turso.
 
@@ -41,6 +41,7 @@ Los recorridos de producto tienen evidencia local contra SQLite y el cotejo por 
 - [x] Iteración 33: proxy confiable por conteo explícito de saltos, default `0`, límites/errores unitarios; shutdown SIGTERM/SIGINT para Socket.IO/HTTP, SQLite y job periódico. Docker SQLite smoke comprobó health/root/SPA, y `docker stop` activó cierre ordenado.
 - [x] QA visual 33: el E2E espera que el tab allow-list termine su transición de color antes de capturar. Captura 49 y las imágenes móviles 39–55 fueron abiertas otra vez tras el último E2E raíz; pestaña activa, formularios, CTAs, popovers y barra inferior se ven correctamente.
 - [x] Gate final iteración 33: API 47 suites/353 tests; front 19; acceptance E2E 1/1; E2E raíz 4/4; build API/front, lint front, Docker/SQLite y `git diff --check` verdes. Turso no se llamó.
+- [x] Iteración 34: lecturas y presentación de pacientes separadas en servicio/repositorio con pruebas unitarias de DTO, filtro por acento/estado y paginación; 360×800 agregado como viewport móvil promedio y recorrido de directorio/ficha/seguimiento/estadísticas cubierto por Playwright.
 - [x] En iteración 5, `npm run test:e2e:api-front-separation` pasó y se revisó visualmente `28-volunteer-profile.png`.
 - [x] En iteración 6, E2E aislado comprobó las validaciones server-side del perfil y se revisó visualmente `29-profile-validation.png`.
 - [x] Los criterios de producto y privacidad de auditoría, aislamiento offline, push genérico y permisos tienen pruebas locales; los límites y la evidencia por criterio están detallados en `acceptance-coverage.md`. Los 13 specs antiguos usan personas/localStorage demo y se retiran del gate; la suite actual reemplaza los recorridos de API y mobile relevantes.
@@ -99,7 +100,7 @@ Los recorridos de producto tienen evidencia local contra SQLite y el cotejo por 
 
 - [x] Definir migraciones Knex compatibles con SQLite local/test para usuarios/roles/sesiones, pacientes, cuidadores, hospitales, asignaciones, seguimientos, alertas, allow-list, auditoría y suscripciones push.
 - [x] Añadir claves foráneas, índices, restricciones e invariantes: relación de cuidador vigente, DNI según política acordada, claves únicas de idempotencia, integridad de asignaciones y estados de alerta.
-- [ ] Implementar repositorios y servicios de dominio separados de HTTP para CRUD, filtros/paginación y transacciones.
+- [ ] Completar repositorios y servicios de dominio separados de HTTP para todas las áreas Medice. En iteración 34 se extrajeron lectura, filtros, paginación y DTO de pacientes a `MedicePatientService` + `MedicePatientRepository`/adaptador SQLite; siguen pendientes altas/ediciones, seguimientos, alertas, hospitales, perfiles, asignaciones y estadísticas.
 - [x] Persistir cada seguimiento como historial append-only con autor, hora UTC y campos validados; no sobrescribir historial.
 - [x] Crear alerta en la misma transacción que su seguimiento cuando el formulario incluye nivel/motivo/observaciones; resolver solo mediante operación explícita y conservar quién/cuándo/nota.
 - [x] Implementar asignación/desasignación de pacientes y actualizar/invalidar el acceso offline correspondiente.
