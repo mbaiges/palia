@@ -1,28 +1,22 @@
-import { createHash, randomUUID } from 'crypto';
+import { randomUUID } from 'crypto';
 import type { Request, Response } from 'express';
 import type { Knex } from 'knex';
 import { DatabaseConfig } from '@/infrastructure/config/database';
 import { container } from '@/infrastructure/config/container';
 import type { AuthenticatedRequest } from '@/infrastructure/middleware/authMiddleware';
-import { GenericNotificationService } from '@/infrastructure/services/GenericNotificationService';
 import { MedicePatientService } from '@/domain/services/MedicePatientService';
 import { inject, injectable } from 'tsyringe';
 import { MediceOperationsService } from '@/domain/services/MediceOperationsService';
+import { MediceFollowUpService } from '@/domain/services/MediceFollowUpService';
+import { GenericNotificationService } from '@/infrastructure/services/GenericNotificationService';
 
 const now = () => new Date().toISOString();
 const digits = (value: unknown) => String(value ?? '').replace(/\D/g, '');
 const normalizeText = (value: unknown) =>
-  String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
+  String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const parseJson = (value: unknown, fallback: unknown = null) => {
   if (typeof value !== 'string') return value ?? fallback;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
+  try { return JSON.parse(value); } catch { return fallback; }
 };
 
 @injectable()
@@ -32,6 +26,8 @@ export class MediceController {
     private readonly patientService: MedicePatientService,
     @inject('MediceOperationsService')
     private readonly operationsService: MediceOperationsService,
+    @inject('MediceFollowUpService')
+    private readonly followUpService: MediceFollowUpService,
   ) {}
   private get db(): Knex {
     return DatabaseConfig.getKnex();
@@ -551,196 +547,30 @@ export class MediceController {
   }
 
   async listFollowUps(req: Request, res: Response): Promise<void> {
-    const rows = await this.db('follow_ups as f')
-      .join('users as u', 'u.id', 'f.author_id')
-      .where({ 'f.patient_id': req.params.patientId })
-      .select('f.*', 'u.name as author_name')
-      .orderBy('f.occurred_at', 'desc')
-      .orderBy('f.id', 'desc');
-    const data = await Promise.all(
-      rows.map(async (row: any) => ({
-        id: row.id,
-        patientId: row.patient_id,
-        authorId: row.author_id,
-        authorName: row.author_name,
-        occurredAt: row.occurred_at,
-        recordedAt: row.recorded_at,
-        date: row.occurred_at,
-        contactType: row.contact_type === 'in_person' ? 'Presencial' : 'Remoto',
-        durationMinutes: row.duration_minutes,
-        durationHours: row.duration_minutes / 60,
-        symptoms: parseJson(row.symptoms, {}),
-        symptomObservations: row.symptom_observations,
-        socialRisk: parseJson(row.social_risk, {}),
-        equipmentNeeds: parseJson(row.equipment_needs, []),
-        equipmentOther: row.equipment_other,
-        interventions: row.interventions,
-        alertActivated: Boolean(
-          await this.db('alerts').where({ follow_up_id: row.id }).first()
-        ),
-      }))
-    );
-    res.json({ data });
+    res.json({ data: await this.followUpService.list(req.params.patientId) });
   }
 
   async createFollowUp(req: Request, res: Response): Promise<void> {
-    const body = req.body ?? {};
-    const duration = Number(
-      body.durationMinutes ??
-        (body.contactType === 'remote' || body.contactType === 'Remoto'
-          ? 60
-          : 120)
-    );
-    if (
-      !Number.isInteger(duration) ||
-      duration < 15 ||
-      duration > 1440 ||
-      duration % 15 !== 0
-    ) {
-      res.status(422).json({
-        error:
-          'La duración debe ser de 15 a 1440 minutos, en incrementos de 15.',
-      });
-      return;
-    }
-    if (
-      typeof body.symptomObservations !== 'string' ||
-      typeof body.interventions !== 'string'
-    ) {
-      res
-        .status(422)
-        .json({ error: 'Observaciones e intervenciones son obligatorias.' });
-      return;
-    }
-    const patient = await this.db('patients')
-      .where({ id: req.params.patientId })
-      .first();
-    if (!patient) {
-      res.status(404).json({ error: 'Paciente no encontrado' });
-      return;
-    }
-    if (patient.archived_at) {
-      res.status(409).json({
-        error: 'No se pueden registrar seguimientos en pacientes archivados.',
-      });
-      return;
-    }
-    const authorId = this.userId(req);
-    const mutationId =
-      body.clientMutationId ?? req.header('idempotency-key') ?? null;
-    const payloadHash = createHash('sha256')
-      .update(
-        JSON.stringify({
-          patientId: patient.id,
-          ...body,
-          clientMutationId: undefined,
-        })
-      )
-      .digest('hex');
-    if (mutationId) {
-      const prior = await this.db('follow_ups')
-        .where({ author_id: authorId, client_mutation_id: mutationId })
-        .first();
-      if (prior) {
-        if (prior.client_payload_hash !== payloadHash) {
-          res.status(409).json({
-            error:
-              'El identificador de operación ya fue usado con otro contenido.',
-          });
-          return;
-        }
-        res.status(200).json({
-          data: {
-            id: prior.id,
-            patientId: prior.patient_id,
-            occurredAt: prior.occurred_at,
-            recordedAt: prior.recorded_at,
-          },
-        });
-        return;
-      }
-    }
-    const id = randomUUID();
-    const timestamp = now();
-    const contactType = ['remote', 'Remoto'].includes(body.contactType)
-      ? 'remote'
-      : 'in_person';
-    let createdAlertId: string | null = null;
     try {
-      await this.db.transaction(async trx => {
-        await trx('follow_ups').insert({
-          id,
-          patient_id: patient.id,
-          author_id: authorId,
-          occurred_at: body.occurredAt ?? timestamp,
-          recorded_at: timestamp,
-          contact_type: contactType,
-          duration_minutes: duration,
-          symptoms: JSON.stringify(body.symptoms ?? {}),
-          symptom_observations: body.symptomObservations,
-          social_risk: JSON.stringify(body.socialRisk ?? {}),
-          equipment_needs: JSON.stringify(
-            body.equipmentNeeds ?? body.equipment ?? []
-          ),
-          equipment_other: body.equipmentOther ?? '',
-          interventions: body.interventions,
-          client_mutation_id: mutationId,
-          client_payload_hash: payloadHash,
-        });
-        if (body.alert && typeof body.alert === 'object') {
-          createdAlertId = randomUUID();
-          await trx('alerts').insert({
-            id: createdAlertId,
-            patient_id: patient.id,
-            follow_up_id: id,
-            level: body.alert.level ?? 'standard',
-            motive: body.alert.motive ?? 'other',
-            observations: body.alert.observations ?? '',
-            status: 'active',
-            created_by: authorId,
-            created_at: timestamp,
-          });
-        }
-        await this.recordAudit(trx, authorId, 'follow_up.created', 'follow_up', id, {
-          patientId: patient.id,
-          alertCreated: Boolean(createdAlertId),
-        });
-        if (createdAlertId)
-          await this.recordAudit(trx, authorId, 'alert.created', 'alert', createdAlertId, {
-            patientId: patient.id,
-            source: 'follow_up',
-          });
+      const result = await this.followUpService.create({
+        patientId: req.params.patientId,
+        authorId: this.userId(req),
+        body: req.body ?? {},
+        idempotencyKey: req.header('idempotency-key') ?? null,
       });
+      res.status(result.status).json({ data: result.data });
     } catch (error: any) {
       if (error?.code === 'SQLITE_CONSTRAINT_UNIQUE') {
         res.status(409).json({ error: 'Conflicto de idempotencia.' });
         return;
       }
+      if (error?.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
       throw error;
     }
-    if (createdAlertId) {
-      try {
-        await this.notifyAssignedTeam(patient.id, createdAlertId, authorId);
-      } catch (error) {
-        console.error(
-          'Could not notify assigned team about a clinical alert',
-          error
-        );
-      }
-    }
-    res.status(201).json({
-      data: {
-        id,
-        patientId: patient.id,
-        authorId,
-        occurredAt: body.occurredAt ?? timestamp,
-        recordedAt: timestamp,
-        contactType,
-        durationMinutes: duration,
-      },
-    });
   }
-
   async listAlerts(req: Request, res: Response): Promise<void> {
     const query = this.db('alerts as a')
       .join('patients as p', 'p.id', 'a.patient_id')
@@ -1126,3 +956,4 @@ export class MediceController {
     res.json({ data });
   }
 }
+
