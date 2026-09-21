@@ -8,6 +8,7 @@ import { MedicePatientService } from '@/domain/services/MedicePatientService';
 import { inject, injectable } from 'tsyringe';
 import { MediceOperationsService } from '@/domain/services/MediceOperationsService';
 import { MediceFollowUpService } from '@/domain/services/MediceFollowUpService';
+import { MediceAlertService } from '@/domain/services/MediceAlertService';
 import { GenericNotificationService } from '@/infrastructure/services/GenericNotificationService';
 
 const now = () => new Date().toISOString();
@@ -28,6 +29,8 @@ export class MediceController {
     private readonly operationsService: MediceOperationsService,
     @inject('MediceFollowUpService')
     private readonly followUpService: MediceFollowUpService,
+    @inject('MediceAlertService')
+    private readonly alertService: MediceAlertService,
   ) {}
   private get db(): Knex {
     return DatabaseConfig.getKnex();
@@ -572,146 +575,33 @@ export class MediceController {
     }
   }
   async listAlerts(req: Request, res: Response): Promise<void> {
-    const query = this.db('alerts as a')
-      .join('patients as p', 'p.id', 'a.patient_id')
-      .join('users as u', 'u.id', 'a.created_by')
-      .leftJoin('users as resolver', 'resolver.id', 'a.resolved_by')
-      .select(
-        'a.*',
-        'p.name as patient_name',
-        'u.name as author_name',
-        'resolver.name as resolved_by_name'
-      )
-      .orderBy('a.created_at', 'desc');
-    if (req.query.status === 'active' || req.query.status === 'resolved')
-      query.where('a.status', req.query.status);
-    if (req.query.patientId)
-      query.where('a.patient_id', String(req.query.patientId));
     const requestedLimit = Number(req.query.limit ?? 50);
     const requestedCursor = Number(req.query.cursor ?? 0);
-    const limit = Number.isFinite(requestedLimit)
-      ? Math.min(100, Math.max(1, Math.floor(requestedLimit)))
-      : 50;
-    const offset = Number.isFinite(requestedCursor)
-      ? Math.max(0, Math.floor(requestedCursor))
-      : 0;
-    const totalRow: any = await query
-      .clone()
-      .clearSelect()
-      .clearOrder()
-      .count({ count: 'a.id' })
-      .first();
-    const rows = await query.limit(limit).offset(offset);
-    res.json({
-      data: rows.map(row => ({
-        id: row.id,
-        patientId: row.patient_id,
-        patientName: row.patient_name,
-        followUpId: row.follow_up_id,
-        level: row.level,
-        motive: row.motive,
-        observations: row.observations,
-        status: row.status,
-        authorId: row.created_by,
-        authorName: row.author_name,
-        createdAt: row.created_at,
-        resolvedBy: row.resolved_by,
-        resolvedByName: row.resolved_by_name,
-        resolvedAt: row.resolved_at,
-        resolutionNote: row.resolution_note,
-      })),
-      page: {
-        limit,
-        nextCursor:
-          offset + rows.length < Number(totalRow?.count ?? 0)
-            ? String(offset + rows.length)
-            : null,
-        total: Number(totalRow?.count ?? 0),
-      },
-    });
+    const limit = Number.isFinite(requestedLimit) ? Math.min(100, Math.max(1, Math.floor(requestedLimit))) : 50;
+    const offset = Number.isFinite(requestedCursor) ? Math.max(0, Math.floor(requestedCursor)) : 0;
+    res.json(await this.alertService.list({
+      status: typeof req.query.status === 'string' ? req.query.status : undefined,
+      patientId: typeof req.query.patientId === 'string' ? req.query.patientId : undefined,
+      limit, offset,
+    }));
   }
 
   async createAlert(req: Request, res: Response): Promise<void> {
-    const body = req.body ?? {};
-    if (!body.level || !body.motive || !body.observations?.trim()) {
-      res
-        .status(422)
-        .json({ error: 'Nivel, motivo y observaciones son obligatorios.' });
-      return;
-    }
-    const patient = await this.db('patients')
-      .where({ id: req.params.patientId })
-      .first();
-    if (!patient) {
-      res.status(404).json({ error: 'Paciente no encontrado' });
-      return;
-    }
-    if (patient.archived_at) {
-      res.status(409).json({
-        error: 'No se pueden activar alertas en pacientes archivados.',
-      });
-      return;
-    }
-    const alert = {
-      id: randomUUID(),
-      patient_id: patient.id,
-      follow_up_id: null,
-      level: body.level,
-      motive: body.motive,
-      observations: body.observations.trim(),
-      status: 'active',
-      created_by: this.userId(req),
-      created_at: now(),
-      resolved_by: null,
-      resolved_at: null,
-      resolution_note: null,
-    };
-    await this.db.transaction(async trx => {
-      await trx('alerts').insert(alert);
-      await this.recordAudit(trx, alert.created_by, 'alert.created', 'alert', alert.id, {
-        patientId: patient.id,
-        source: 'standalone',
-      });
-    });
     try {
-      await this.notifyAssignedTeam(patient.id, alert.id, alert.created_by);
-    } catch (error) {
-      console.error(
-        'Could not notify assigned team about a clinical alert',
-        error
-      );
+      const alert = await this.alertService.create(req.params.patientId, this.userId(req), req.body ?? {});
+      try { await this.notifyAssignedTeam(req.params.patientId, alert.id, this.userId(req)); } catch (error) { console.error('Could not notify assigned team about a clinical alert', error); }
+      res.status(201).json({ data: alert });
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      throw error;
     }
-    res.status(201).json({ data: alert });
   }
 
   async resolveAlert(req: Request, res: Response): Promise<void> {
-    const count = await this.db.transaction(async trx => {
-      const alert = await trx('alerts')
-        .where({ id: req.params.alertId, status: 'active' })
-        .first('patient_id');
-      if (!alert) return 0;
-      const affected = await trx('alerts')
-        .where({ id: req.params.alertId, status: 'active' })
-        .update({
-          status: 'resolved',
-          resolved_by: this.userId(req),
-          resolved_at: now(),
-          resolution_note: req.body?.note?.trim() || null,
-        });
-      if (affected)
-        await this.recordAudit(trx, this.userId(req), 'alert.resolved', 'alert', req.params.alertId, {
-          patientId: alert.patient_id,
-          resolutionNoteProvided: Boolean(req.body?.note?.trim()),
-        });
-      return affected;
-    });
-    if (!count) {
-      res.status(404).json({ error: 'Alerta activa no encontrada' });
-      return;
-    }
+    const result = await this.alertService.resolve(req.params.alertId, this.userId(req), req.body?.note);
+    if (!result) { res.status(404).json({ error: 'Alerta activa no encontrada' }); return; }
     res.json({ success: true });
   }
-
   async listVolunteers(req: Request, res: Response): Promise<void> {
     const rows = await this.db('volunteer_profiles as vp')
       .join('users as u', 'u.id', 'vp.user_id')

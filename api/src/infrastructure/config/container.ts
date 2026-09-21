@@ -50,6 +50,8 @@ import { MediceOperationsService } from '@/domain/services/MediceOperationsServi
 import { SqliteMediceOperationsRepository } from '@/infrastructure/adapters/repositories/SqliteMediceOperationsRepository';
 import { MediceFollowUpService } from '@/domain/services/MediceFollowUpService';
 import { SqliteMediceFollowUpRepository } from '@/infrastructure/adapters/repositories/SqliteMediceFollowUpRepository';
+import { MediceAlertService } from '@/domain/services/MediceAlertService';
+import { SqliteMediceAlertRepository } from '@/infrastructure/adapters/repositories/SqliteMediceAlertRepository';
 
 // Database
 container.register('Database', {
@@ -118,6 +120,11 @@ container.register(
   { useClass: SqliteMediceFollowUpRepository },
   { lifecycle: Lifecycle.Singleton },
 );
+container.register(
+  'MediceAlertRepository',
+  { useClass: SqliteMediceAlertRepository },
+  { lifecycle: Lifecycle.Singleton },
+);
 container.register('ClinicalAlertNotifier', { useToken: 'GenericNotificationService' });
 
 // Auth repository
@@ -179,6 +186,7 @@ container.register('MediaAssetService', { useClass: MediaAssetService });
 container.register('MedicePatientService', { useClass: MedicePatientService });
 container.register('MediceOperationsService', { useClass: MediceOperationsService });
 container.register('MediceFollowUpService', { useClass: MediceFollowUpService });
+container.register('MediceAlertService', { useClass: MediceAlertService });
 container.register(SocketIORealtimeGateway, { useClass: SocketIORealtimeGateway });
 
 // Application Handlers

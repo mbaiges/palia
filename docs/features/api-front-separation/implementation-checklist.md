@@ -47,6 +47,7 @@ Los recorridos de producto tienen evidencia local contra SQLite y el cotejo por 
 - [x] Gate local iteración 36: API 49 suites/357 tests; front 19 tests; Playwright raíz 6/6; acceptance aislado 1/1; builds API/front, lint front, Docker build + SQLite smoke (`/api/health/ready`, `/`, `/patients/123` todos 200) y `git diff --check` pasaron. Sin Turso.
 - [x] Iteración 37: seguimientos (listado, validación, idempotencia, transacción con alerta, auditoría y notificación genérica) pasan por `MediceFollowUpService`/repositorio SQLite; el contrato y payload del front se conservan.
 - [x] Gate local iteración 37: API 50 suites/359 tests; front 19; E2E raíz 6/6 y acceptance 1/1; builds API/front, lint y `git diff --check` verdes. No se validó Turso.
+- [x] Iteración 38: alertas (listado paginado, alta, resolución con nota y auditoría) pasan por `MediceAlertService`/repositorio SQLite; se mantiene la notificación genérica al equipo asignado.
 - [x] En iteración 5, `npm run test:e2e:api-front-separation` pasó y se revisó visualmente `28-volunteer-profile.png`.
 - [x] En iteración 6, E2E aislado comprobó las validaciones server-side del perfil y se revisó visualmente `29-profile-validation.png`.
 - [x] Los criterios de producto y privacidad de auditoría, aislamiento offline, push genérico y permisos tienen pruebas locales; los límites y la evidencia por criterio están detallados en `acceptance-coverage.md`. Los 13 specs antiguos usan personas/localStorage demo y se retiran del gate; la suite actual reemplaza los recorridos de API y mobile relevantes.

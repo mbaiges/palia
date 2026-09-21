@@ -1,7 +1,7 @@
 # Loop state: api-front-separation
 
 Updated: 2026-09-21
-Iteration: 37 (seguimientos por capas y gate final local)
+Iteration: 38 (alertas por capas)
 Status: IN PROGRESS
 
 ## Fuente de verdad
@@ -24,6 +24,7 @@ Status: IN PROGRESS
 - Gate tras el cambio: `npm test` pasó (API 49 suites/357 tests; front 19), E2E raíz 6/6, API build, front build, lint front (con warnings de lint ya conocidos), `git diff --check`; Docker build y SQLite smoke de readiness/SPA 200. No se validó Turso.
 - Iteración 37 extrae listado y creación de seguimientos a `MediceFollowUpService`, `MediceFollowUpRepository` y adaptador SQLite. La interfaz de notificación queda detrás de `ClinicalAlertNotifier`; la transacción conserva alerta y auditoría, y el servicio mantiene idempotencia y restricciones de duración.
 - Gate final local tras el cambio: `npm test` pasó (API 50 suites/359 tests; front 19), E2E raíz 6/6, acceptance 1/1, builds API/front, lint front con warnings preexistentes y `git diff --check`. Las capturas 56–63 siguen revisadas; no hubo cambios visuales en esta iteración. Docker/SQLite smoke de la iteración 36 permanece verde.
+- Iteración 38 extrae listado, alta y resolución de alertas a `MediceAlertService`, contrato de repositorio y adaptador SQLite. La respuesta conserva paginación, filtros, nota opcional y auditoría; acceptance E2E pasó 1/1 y no hubo cambios visuales.
 
 - La vista previa imprimible ahora responde a viewport móvil: toolbar en dos filas, datos de paciente/cuidador en una columna, encabezado envuelto y tabla dentro de un scroller propio. Playwright comprueba que no haya solapamiento, recorte del contenido principal ni overflow de página.
 - Capturas 45 (`45-mobile-alert-modal.png`) y 46 (`46-mobile-print-preview.png`) se generaron a 390 px y fueron abiertas/revisadas: el diálogo de alerta es legible, los botones de impresión no chocan y los datos de la ficha se apilan dentro del ancho.
@@ -216,7 +217,7 @@ Todas están en `e2e/artifacts/screenshots/api-front-separation/` (artefactos ig
 
 ## Siguiente iteración
 
-1. Completar la separación de capas Medice: mover alertas, perfiles, allow-list, bootstrap y estadísticas desde `MediceController.ts` a servicios/repositorios por dominio, preservando permisos, transacciones y contrato; añadir pruebas unitarias por servicio/repositorio y repetir acceptance/responsive E2E con capturas revisadas.
+1. Completar la separación de capas Medice: mover perfiles, allow-list, bootstrap y estadísticas desde `MediceController.ts` a servicios/repositorios por dominio, preservando permisos, transacciones y contrato; añadir pruebas unitarias por servicio/repositorio y repetir acceptance/responsive E2E con capturas revisadas.
 2. Repetir Docker build + SQLite smoke después de los próximos cambios de API; no tocar Turso.
 3. Antes de declarar la operación productiva lista, configurar credenciales OAuth reales y proxy/HTTPS del host; dependen de infraestructura externa. No validar Turso.
 4. Solo después de completar la separación arquitectónica y los gates, actualizar checklist/AC y cambiar `Next iteration focus` a `COMPLETE`.
