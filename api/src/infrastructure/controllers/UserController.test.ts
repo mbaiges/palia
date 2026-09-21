@@ -31,6 +31,8 @@ describe('UserController', () => {
         mockUserRepository = {
             findPublicAll: jest.fn(),
             findPublicById: jest.fn(),
+            getUserRoles: jest.fn(),
+            delete: jest.fn(),
         } as any;
         mockUserSettingsRepository = {
             findByUserId: jest.fn(),
@@ -67,6 +69,21 @@ describe('UserController', () => {
             expect(mockUserRepository.findPublicAll).toHaveBeenCalled();
             expect(mockStatus).toHaveBeenCalledWith(200);
             expect(mockJson).toHaveBeenCalledWith(publicUsers.map(u => u.toJSON()));
+        });
+    });
+
+    describe('deleteUser', () => {
+        it('does not delete an administrator account', async () => {
+            mockUserRepository.getUserRoles.mockResolvedValue(['admin']);
+            mockRequest = { ...mockRequest, params: { id: 'protected-admin' } };
+
+            await userController.deleteUser(mockRequest as Request, mockResponse as Response);
+
+            expect(mockUserRepository.delete).not.toHaveBeenCalled();
+            expect(mockStatus).toHaveBeenCalledWith(409);
+            expect(mockJson).toHaveBeenCalledWith({
+                message: 'Administrator accounts cannot be deleted through this endpoint',
+            });
         });
     });
 

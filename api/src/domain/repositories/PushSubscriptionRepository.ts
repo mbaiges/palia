@@ -20,6 +20,7 @@ export interface PushSubscriptionInput {
 export interface PushSubscriptionRepository {
   save(userId: string, subscription: PushSubscriptionInput): Promise<void>;
   findByUserId(userId: string): Promise<PushSubscriptionRecord[]>;
+  deleteByUserAndEndpoint(userId: string, endpoint: string): Promise<void>;
   deleteByEndpoint(endpoint: string): Promise<void>;
   deleteByEndpointIfExists(endpoint: string): Promise<void>;
 }

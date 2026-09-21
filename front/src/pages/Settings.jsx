@@ -83,7 +83,7 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
       {/* Header */}
       <div>
         <h1 style={{ color: 'var(--color-on-background)', margin: 0, fontSize: 'clamp(24px, 7vw, 32px)', lineHeight: 1.2, overflowWrap: 'anywhere' }}>Configuración de Palia</h1>
-        <p style={{ color: 'var(--color-on-surface-variant)', marginTop: '4px', margin: 0, maxWidth: '100%', overflowWrap: 'anywhere' }}>
+        <p style={{ color: 'var(--color-on-surface-variant)', marginTop: '4px', margin: 0, maxWidth: '100%', overflowWrap: 'anywhere', fontSize: '14px' }}>
           Gestione las preferencias de la aplicación, la sincronización offline y accesos.
         </p>
       </div>

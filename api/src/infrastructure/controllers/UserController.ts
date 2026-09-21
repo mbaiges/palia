@@ -19,7 +19,8 @@ const SUPPORTED_LOCALES = ['en', 'es', 'es_AR'];
 export class UserController {
   constructor(
     @inject('UserRepository') private readonly userRepository: UserRepository,
-    @inject('UserSettingsRepository') private readonly userSettingsRepository: UserSettingsRepository,
+    @inject('UserSettingsRepository')
+    private readonly userSettingsRepository: UserSettingsRepository,
     @inject('UserService') private readonly userService: UserService
   ) {}
 
@@ -88,6 +89,14 @@ export class UserController {
   public async deleteUser(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      const roles = await this.userRepository.getUserRoles(id);
+      if (roles.includes('admin')) {
+        res.status(409).json({
+          message:
+            'Administrator accounts cannot be deleted through this endpoint',
+        });
+        return;
+      }
       const deleted = await this.userRepository.delete(id);
 
       if (!deleted) {
@@ -110,7 +119,9 @@ export class UserController {
    */
   async getMySettings(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const settings = await this.userSettingsRepository.findByUserId(req.user!.id);
+      const settings = await this.userSettingsRepository.findByUserId(
+        req.user!.id
+      );
       res.status(200).json({
         success: true,
         data: {
@@ -129,9 +140,16 @@ export class UserController {
    * PATCH /api/users/me/settings
    * Body: { locale?: string }
    */
-  async updateMySettings(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async updateMySettings(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     try {
-      if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      if (
+        !req.body ||
+        typeof req.body !== 'object' ||
+        Array.isArray(req.body)
+      ) {
         res.status(400).json({ success: false, error: 'Invalid settings' });
         return;
       }
@@ -140,7 +158,11 @@ export class UserController {
 
       if (locale !== undefined) {
         if (typeof locale !== 'string') {
-          res.status(400).json({ success: false, error: 'Invalid locale', message: `Locale must be one of: ${SUPPORTED_LOCALES.join(', ')}` });
+          res.status(400).json({
+            success: false,
+            error: 'Invalid locale',
+            message: `Locale must be one of: ${SUPPORTED_LOCALES.join(', ')}`,
+          });
           return;
         }
         const normalized = locale.trim();
@@ -154,7 +176,11 @@ export class UserController {
         }
       }
 
-      if (theme !== undefined && (typeof theme !== 'string' || !['light', 'dark', 'system'].includes(theme.trim()))) {
+      if (
+        theme !== undefined &&
+        (typeof theme !== 'string' ||
+          !['light', 'dark', 'system'].includes(theme.trim()))
+      ) {
         res.status(400).json({ success: false, error: 'Invalid theme' });
         return;
       }
@@ -164,7 +190,10 @@ export class UserController {
         updatePayload.locale = locale.trim() || null;
       }
       if (theme !== undefined) updatePayload.theme = theme.trim();
-      const settings = await this.userSettingsRepository.update(userId, updatePayload);
+      const settings = await this.userSettingsRepository.update(
+        userId,
+        updatePayload
+      );
 
       res.status(200).json({
         success: true,
@@ -274,7 +303,10 @@ export class UserController {
    * Requires admin:manage_roles permission (enforced by middleware)
    * Body: { role: string }
    */
-  async updateUserRole(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async updateUserRole(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     try {
       // User authentication and admin:manage_roles permission are already checked by middleware
       const requestingUserId = req.user!.id;

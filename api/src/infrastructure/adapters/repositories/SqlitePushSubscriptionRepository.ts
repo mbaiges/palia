@@ -18,7 +18,9 @@ type PushSubscriptionRow = {
   locale?: string | null;
 };
 
-export class SqlitePushSubscriptionRepository implements PushSubscriptionRepository {
+export class SqlitePushSubscriptionRepository
+  implements PushSubscriptionRepository
+{
   private client: Client;
 
   constructor() {
@@ -37,14 +39,21 @@ export class SqlitePushSubscriptionRepository implements PushSubscriptionReposit
     };
   }
 
-  async save(userId: string, subscription: PushSubscriptionInput): Promise<void> {
+  async save(
+    userId: string,
+    subscription: PushSubscriptionInput
+  ): Promise<void> {
     const id = uuidv4();
     const now = new Date().toISOString();
     const { endpoint, keys, locale } = subscription;
 
     // Browser endpoints are device-scoped. Rebinding prevents a shared browser
     // from continuing to deliver a previous account's alerts after sign-in.
-    await execute(this.client, 'DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id <> ?', [endpoint, userId]);
+    await execute(
+      this.client,
+      'DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id <> ?',
+      [endpoint, userId]
+    );
 
     await execute(
       this.client,
@@ -64,11 +73,26 @@ export class SqlitePushSubscriptionRepository implements PushSubscriptionReposit
       'SELECT * FROM push_subscriptions WHERE user_id = ?',
       [userId]
     );
-    return rows.map((r) => this.mapRow(r));
+    return rows.map(r => this.mapRow(r));
   }
 
   async deleteByEndpoint(endpoint: string): Promise<void> {
-    await execute(this.client, 'DELETE FROM push_subscriptions WHERE endpoint = ?', [endpoint]);
+    await execute(
+      this.client,
+      'DELETE FROM push_subscriptions WHERE endpoint = ?',
+      [endpoint]
+    );
+  }
+
+  async deleteByUserAndEndpoint(
+    userId: string,
+    endpoint: string
+  ): Promise<void> {
+    await execute(
+      this.client,
+      'DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?',
+      [userId, endpoint]
+    );
   }
 
   async deleteByEndpointIfExists(endpoint: string): Promise<void> {

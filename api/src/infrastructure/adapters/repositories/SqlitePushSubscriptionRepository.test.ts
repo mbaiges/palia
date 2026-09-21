@@ -13,7 +13,9 @@ describe('SqlitePushSubscriptionRepository', () => {
     await DatabaseConfig.clean();
     repository = new SqlitePushSubscriptionRepository();
     userRepository = new SqliteUserRepository();
-    await userRepository.save(new User(userId, 'google-1', 'test@example.com', 'Test User'));
+    await userRepository.save(
+      new User(userId, 'google-1', 'test@example.com', 'Test User')
+    );
   });
 
   describe('save', () => {
@@ -73,7 +75,7 @@ describe('SqlitePushSubscriptionRepository', () => {
 
       const subs = await repository.findByUserId(userId);
       expect(subs).toHaveLength(2);
-      const endpoints = subs.map((s) => s.endpoint).sort();
+      const endpoints = subs.map(s => s.endpoint).sort();
       expect(endpoints).toEqual([
         'https://push.example.com/a',
         'https://push.example.com/b',
@@ -92,6 +94,29 @@ describe('SqlitePushSubscriptionRepository', () => {
 
       const subs = await repository.findByUserId(userId);
       expect(subs).toHaveLength(0);
+    });
+
+    it('scopes user-initiated deletion to the authenticated owner', async () => {
+      const otherUserId = 'user-push-2';
+      await userRepository.save(
+        new User(otherUserId, 'google-2', 'other@example.com', 'Other User')
+      );
+      await repository.save(userId, {
+        endpoint: 'https://push.example.com/scoped-delete',
+        keys: { p256dh: 'k1', auth: 'a1' },
+      });
+
+      await repository.deleteByUserAndEndpoint(
+        otherUserId,
+        'https://push.example.com/scoped-delete'
+      );
+      expect(await repository.findByUserId(userId)).toHaveLength(1);
+
+      await repository.deleteByUserAndEndpoint(
+        userId,
+        'https://push.example.com/scoped-delete'
+      );
+      expect(await repository.findByUserId(userId)).toHaveLength(0);
     });
   });
 });

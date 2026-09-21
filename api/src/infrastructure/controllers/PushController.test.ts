@@ -24,6 +24,7 @@ describe('PushController', () => {
     mockPushRepo = {
       save: jest.fn().mockResolvedValue(undefined),
       findByUserId: jest.fn(),
+      deleteByUserAndEndpoint: jest.fn().mockResolvedValue(undefined),
       deleteByEndpoint: jest.fn().mockResolvedValue(undefined),
       deleteByEndpointIfExists: jest.fn(),
     } as any;
@@ -55,7 +56,10 @@ describe('PushController', () => {
         },
       };
 
-      await pushController.subscribe(mockRequest as Request, mockResponse as Response);
+      await pushController.subscribe(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockPushRepo.save).toHaveBeenCalledWith('user1', {
         endpoint: 'https://push.example.com/1',
@@ -73,7 +77,10 @@ describe('PushController', () => {
         },
       };
 
-      await pushController.subscribe(mockRequest as Request, mockResponse as Response);
+      await pushController.subscribe(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockPushRepo.save).not.toHaveBeenCalled();
       expect(mockStatus).toHaveBeenCalledWith(400);
@@ -92,7 +99,10 @@ describe('PushController', () => {
         },
       };
 
-      await pushController.subscribe(mockRequest as Request, mockResponse as Response);
+      await pushController.subscribe(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockPushRepo.save).not.toHaveBeenCalled();
       expect(mockStatus).toHaveBeenCalledWith(400);
@@ -106,7 +116,10 @@ describe('PushController', () => {
         },
       };
 
-      await pushController.subscribe(mockRequest as Request, mockResponse as Response);
+      await pushController.subscribe(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockPushRepo.save).not.toHaveBeenCalled();
       expect(mockStatus).toHaveBeenCalledWith(400);
@@ -121,7 +134,10 @@ describe('PushController', () => {
         },
       };
 
-      await pushController.subscribe(mockRequest as Request, mockResponse as Response);
+      await pushController.subscribe(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockPushRepo.save).not.toHaveBeenCalled();
       expect(mockStatus).toHaveBeenCalledWith(401);
@@ -133,9 +149,15 @@ describe('PushController', () => {
     it('should return 204 and delete when endpoint provided', async () => {
       mockRequest.body = { endpoint: 'https://push.example.com/1' };
 
-      await pushController.unsubscribe(mockRequest as Request, mockResponse as Response);
+      await pushController.unsubscribe(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
-      expect(mockPushRepo.deleteByEndpoint).toHaveBeenCalledWith('https://push.example.com/1');
+      expect(mockPushRepo.deleteByUserAndEndpoint).toHaveBeenCalledWith(
+        'user1',
+        'https://push.example.com/1'
+      );
       expect(mockStatus).toHaveBeenCalledWith(204);
       expect(mockSend).toHaveBeenCalled();
     });
@@ -143,9 +165,12 @@ describe('PushController', () => {
     it('should return 400 when endpoint missing', async () => {
       mockRequest.body = {};
 
-      await pushController.unsubscribe(mockRequest as Request, mockResponse as Response);
+      await pushController.unsubscribe(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
-      expect(mockPushRepo.deleteByEndpoint).not.toHaveBeenCalled();
+      expect(mockPushRepo.deleteByUserAndEndpoint).not.toHaveBeenCalled();
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({ error: 'endpoint is required' });
     });
@@ -154,9 +179,12 @@ describe('PushController', () => {
       mockRequest.user = undefined;
       mockRequest.body = { endpoint: 'https://push.example.com/1' };
 
-      await pushController.unsubscribe(mockRequest as Request, mockResponse as Response);
+      await pushController.unsubscribe(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
-      expect(mockPushRepo.deleteByEndpoint).not.toHaveBeenCalled();
+      expect(mockPushRepo.deleteByUserAndEndpoint).not.toHaveBeenCalled();
       expect(mockStatus).toHaveBeenCalledWith(401);
     });
   });
@@ -165,7 +193,10 @@ describe('PushController', () => {
     it('should return publicKey when VAPID_PUBLIC_KEY is set', () => {
       process.env.VAPID_PUBLIC_KEY = 'test-public-key';
 
-      pushController.getVapidPublic(mockRequest as Request, mockResponse as Response);
+      pushController.getVapidPublic(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockJson).toHaveBeenCalledWith({ publicKey: 'test-public-key' });
     });
@@ -173,16 +204,24 @@ describe('PushController', () => {
     it('should return 503 when VAPID_PUBLIC_KEY not set', () => {
       process.env.VAPID_PUBLIC_KEY = '';
 
-      pushController.getVapidPublic(mockRequest as Request, mockResponse as Response);
+      pushController.getVapidPublic(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(503);
-      expect(mockJson).toHaveBeenCalledWith({ error: 'Push notifications not configured' });
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Push notifications not configured',
+      });
     });
 
     it('should return 401 when unauthenticated', () => {
       mockRequest.user = undefined;
 
-      pushController.getVapidPublic(mockRequest as Request, mockResponse as Response);
+      pushController.getVapidPublic(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockStatus).toHaveBeenCalledWith(401);
       expect(mockJson).toHaveBeenCalledWith({ error: 'Unauthorized' });

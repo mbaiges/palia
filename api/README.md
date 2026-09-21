@@ -55,3 +55,11 @@ npm run smoke:load
 The example domain is deliberately small and replaceable. Domain-specific chat, challenge, invite, game, scanner, display, and image semantics are not part of this scaffold. Standalone media remains supported without coupling it to a domain workflow.
 
 Preservation rules live in [AGENTS.md](AGENTS.md) and the canonical loop state at [docs/features/scaffolding-extraction/loop-state.md](docs/features/scaffolding-extraction/loop-state.md).
+
+## Medice application
+
+This repository uses the scaffold runtime for the Medice application. Its domain routes are defined in `src/infrastructure/routes/index.ts`; schema migrations are in `src/infrastructure/migrations/`; `src/infrastructure/controllers/MediceController.ts` currently implements the Medice HTTP and persistence flows. Browser sessions use HttpOnly cookies and CSRF protection. The React client is served by Vite in development and by the combined root Docker image in a single-origin deployment.
+
+For this repository, email/password authentication remains disabled, Google identities must pass the configured allow-list, and `INITIAL_ADMIN_EMAILS` provides bootstrap admin access. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `JWT_SECRET`, `ENCRYPTION_KEY`, and the environment-specific origin in the API process. Do not place API secrets in frontend environment variables. Local tests force SQLite and use disposable/test database files; Turso configuration is intentionally not covered by the local validation workflow.
+
+From the monorepo root, use `npm run api:dev`, `npm run api:build`, and `npm run api:test`. The end-to-end suite is `npm run test:e2e:api-front-separation` and exercises the local API plus frontend together.

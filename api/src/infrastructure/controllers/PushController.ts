@@ -33,8 +33,15 @@ export class PushController {
       const body = req.body as PushSubscriptionBody;
       const { subscription } = body;
 
-      if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
-        res.status(400).json({ error: 'Invalid subscription: endpoint and keys.p256dh, keys.auth required' });
+      if (
+        !subscription?.endpoint ||
+        !subscription?.keys?.p256dh ||
+        !subscription?.keys?.auth
+      ) {
+        res.status(400).json({
+          error:
+            'Invalid subscription: endpoint and keys.p256dh, keys.auth required',
+        });
         return;
       }
 
@@ -49,13 +56,15 @@ export class PushController {
       });
       res.status(204).send();
     } catch (error: any) {
-      res.status(error.message === 'Unauthorized' ? 401 : 500).json({ error: error.message });
+      res
+        .status(error.message === 'Unauthorized' ? 401 : 500)
+        .json({ error: error.message });
     }
   }
 
   async unsubscribe(req: Request, res: Response): Promise<void> {
     try {
-      this.getUser(req);
+      const user = this.getUser(req);
       const body = req.body as { endpoint?: string };
       const { endpoint } = body;
 
@@ -64,10 +73,12 @@ export class PushController {
         return;
       }
 
-      await this.pushRepo.deleteByEndpoint(endpoint);
+      await this.pushRepo.deleteByUserAndEndpoint(user.id, endpoint);
       res.status(204).send();
     } catch (error: any) {
-      res.status(error.message === 'Unauthorized' ? 401 : 500).json({ error: error.message });
+      res
+        .status(error.message === 'Unauthorized' ? 401 : 500)
+        .json({ error: error.message });
     }
   }
 
@@ -81,7 +92,9 @@ export class PushController {
       }
       res.json({ publicKey });
     } catch (error: any) {
-      res.status(error.message === 'Unauthorized' ? 401 : 500).json({ error: error.message });
+      res
+        .status(error.message === 'Unauthorized' ? 401 : 500)
+        .json({ error: error.message });
     }
   }
 }

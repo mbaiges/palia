@@ -458,8 +458,11 @@ export function createRoutes(): Router {
   router.get('/users/google/:googleId', auth.authenticate(), (req, res) =>
     userController.getUserByGoogleId(req, res)
   );
-  router.delete('/users/:id', auth.authenticate(), (req, res) =>
-    userController.deleteUser(req, res)
+  router.delete(
+    '/users/:id',
+    auth.authenticate(),
+    permissionMiddleware.requirePermission('admin:manage_roles'),
+    (req, res) => userController.deleteUser(req, res)
   );
 
   // Admin settings

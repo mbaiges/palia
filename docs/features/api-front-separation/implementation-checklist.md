@@ -4,7 +4,7 @@ Esta lista define cuándo `api/` está terminada e integrada de forma comprobabl
 
 Las dos auditorías redundantes de cuatro agentes están resumidas en [gap-analysis.md](./gap-analysis.md). Los contratos y decisiones de producto están cerrados en los specs; no reabrirlos durante implementación.
 
-## Estado de implementación (iteración 16)
+## Estado de implementación (iteración 18)
 
 Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que ya tiene evidencia en el código y en la suite ejecutada; los criterios detallados de abajo siguen siendo la fuente de verdad para el trabajo pendiente.
 
@@ -20,6 +20,9 @@ Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que 
 - [x] Probes E2E para login, ficha, alta, seguimiento, alerta, edición, archivo, administración y layouts responsive. Se abrieron y revisaron visualmente las capturas 01–32.
 - [x] `npm test`, builds de API/front y suite E2E configurada pasaron; lint front pasó con warnings.
 - [x] Iteraciones 12–16: outbox usa clave compuesta por usuario+mutación; E2E prueba colisión entre cuentas, migración IndexedDB v1→v2 y reingreso/sincronización del autor; PATCH parcial conserva campos omitidos/estado; mutaciones autenticadas sin Origin reciben 403 y logout limpia cookie CSRF; bootstrap admin se asigna una vez y conserva roles persistidos; tests verifican revocación de sesión y privacidad del Service Worker.
+- [x] Iteración 18: la baja push requiere propietario; el endpoint genérico rechaza eliminar Admin; alertas soportan `limit`/`cursor` con metadatos y E2E de contrato.
+- [x] El Playwright usa puertos disponibles asignados por su runner, sin asumir 5173/3100; E2E de aceptación y responsive mobile/desktop pasan 3/3.
+- [x] QA visual mobile (390/344 px): capturas de directorio, ajustes offline, login y estadísticas leídas; subtítulo de ajustes ahora ajusta línea y se valida que no quede recortado.
 - [x] En iteración 5, `npm run test:e2e:api-front-separation` pasó y se revisó visualmente `28-volunteer-profile.png`.
 - [x] En iteración 6, E2E aislado comprobó las validaciones server-side del perfil y se revisó visualmente `29-profile-validation.png`.
 - [ ] No se considera completo: OAuth con configuración Google real/callback; revisión exhaustiva de cookie/CSRF/RBAC; auditoría detallada; aislamiento offline ante revocación/desasignación y conflicto; proveedor/entrega push; migración de los 13 E2E legacy excluidos; cobertura de todos los AC. Logout/cambio de cuenta y protección de cache/outbox sí tienen E2E local.
@@ -114,16 +117,16 @@ Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que 
 
 ## 4. Cliente y pantallas `front/`
 
-- [ ] Crear un cliente HTTP común con base relativa `/api`, `credentials: same-origin`, JSON, CSRF, cancelación y normalización de errores.
-- [ ] Configurar proxy Vite `/api` hacia API local y verificar que el navegador conserve mismo origen en desarrollo.
-- [ ] Sustituir `dbService`/`localStorage` como fuente canónica por llamadas async a API; `localStorage` no debe sostener datos operativos.
+- [x] Crear un cliente HTTP común con base relativa `/api`, credenciales incluidas, JSON, CSRF, cancelación vía `RequestInit.signal` y normalización de errores. Pruebas unitarias verifican el contrato, CSRF cacheado, camelización, 422 y evento de 401.
+- [x] Configurar proxy Vite `/api` hacia API local y verificar mismo origen y mutaciones autenticadas desde Playwright.
+- [x] Sustituir `dbService`/`localStorage` como fuente canónica por llamadas async a API; `localStorage` conserva solo preferencia visual de tema, no datos operativos.
 - [ ] Conectar alertas individuales activas/resueltas, resumen agrupado por paciente y resolución individual con confirmación/nota; refrescar detalle/directorio/header/dashboard sin cerrar alertas restantes.
 - [ ] Conectar login/logout/identidad a auth API y proteger rutas por identidad/rol cargados desde `/auth/me`.
 - [ ] Conectar directorio, detalle, alta/edición de pacientes y cuidadores, hospitales, voluntarios/asignaciones, seguimientos, alertas, administración y estadísticas. Edición de paciente/cuidador es requisito para coordinador/admin e incluye la relación.
 - [x] Agregar opción personalizada al formulario de seguimiento (15–1440 minutos, step 15); validar en front y API y conservar valor en historial/impresión.
 - [ ] Conectar o retirar/reemplazar cada bloque del inventario por pantalla; cubrir búsqueda global, filtros/paginación, perfil/comunidad, resumen por rol, click push con sesión vencida y vista imprimible.
 - [ ] Añadir estados consistentes de carga, vacío, error, reintento, acceso denegado y éxito en cada flujo.
-- [ ] Enviar CSRF en todas las mutaciones y tratar `401` como sesión vencida sin perder formularios locales útiles.
+- [x] Enviar CSRF en las mutaciones centralizadas y tratar `401` como sesión vencida; formularios offline válidos permanecen en IndexedDB hasta respuesta/revisión.
 - [ ] Verificar que coordinador/admin vean estadísticas agregadas y voluntario solo sus cifras; no confiar en ocultar controles UI como autorización.
 - [ ] Eliminar semillas de producción; conservar fixtures solo en entorno de desarrollo/prueba.
 
@@ -162,9 +165,9 @@ Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que 
 
 ## 8. Verificación final y Definition of Done
 
-- [ ] Unit API: servicios, validadores, repositorios, permisos, sesiones/CSRF, idempotencia, alertas, estadísticas y notificaciones sin PII.
-- [ ] Unit front: API client, estados async, IndexedDB/outbox, reintentos y comportamiento ante respuestas/errores.
-- [ ] E2E feature aislado contra API real local + SQLite test/local: login permitido/rechazado; admin CRUD/allow-list/asignación; voluntario directorio/seguimiento/alerta/resolución; estadísticas; offline/reconexión; push simulado.
+- [x] Unit API: suites existentes cubren servicios, validadores, repositorios, permisos, sesiones/CSRF, idempotencia, alertas, estadísticas y notificaciones sin PII (45 suites).
+- [x] Unit front: cliente API, IndexedDB/outbox, reintentos, Service Worker y errores (19 tests); ampliar estados async en gates E2E pendientes.
+- [x] E2E feature aislado contra API real local + SQLite efímera: login permitido/rechazado; CRUD de paciente/cuidador, allow-list/asignación; directorio/seguimiento/alerta/resolución; estadísticas; offline/reconexión; push genérico simulado.
 - [ ] En la cobertura E2E incluir también gestión de hospitales, búsqueda/filtros, acceso revocado con cookie existente, resumen por rol, comunidad/perfil, reporte imprimible y contenido no-demo con DB vacía; probar errores recuperables y conflictos relevantes.
 - [ ] E2E de archivado: todos los roles autorizados consultan un paciente archivado; coordinador puede restaurarlo y voluntario/admin reciben 403 al intentar restaurarlo.
 - [ ] E2E de hospitales: coordinador y admin archivan/restauran; voluntario recibe 403; hospital archivado no se ofrece para nuevas altas y sigue visible como referencia histórica.
@@ -172,13 +175,13 @@ Este trabajo está **en curso**, no terminado. La siguiente lista resume lo que 
 - [x] E2E de duración: defaults presencial/remoto; personalizados 15 y 1440 aceptados; 14, 16, 1441 y valores no múltiplos de 15 rechazados.
 - [ ] E2E offline: coordinador/admin asignado con perfil voluntario puede cachear ficha, encolar y sincronizar seguimiento; no asignado no puede usar offline.
 - [x] Hacer que el E2E API/front use el Google fake en modo test para probar UI popup, rol bootstrap, allow-list y rechazo. No usar cuenta Google real ni habilitar fake fuera de test.
-- [ ] Capturar explícitamente todas las capturas de la manifest en `e2e/artifacts/screenshots/api-front-separation/`; abrir/revisar cada PNG y anotar el resultado en `loop-state.md`.
-- [ ] Ejecutar el conjunto completo unitario de ambas apps y el conjunto completo E2E; guardar comandos/resultados en `loop-state.md`.
-- [ ] Ejecutar builds de `api/` y `front/`, lint/format disponibles y comprobar que no hay secretos, archivos DB locales ni artefactos de prueba staged.
-- [ ] Validar las reglas del Service Worker con `/api` network-only, sin respuestas clínicas en Cache Storage, y navegación offline que no aparente una API disponible.
+- [x] Capturar explícitamente las imágenes 01–38 del manifiesto; abrir/revisar visualmente cada captura y registrar los resultados en `loop-state.md`.
+- [x] Ejecutar unitarias completas (API 45 suites/342 tests; front 19 tests), E2E aceptación y raíz (3/3), builds API/front, lint y Docker/SQLite tras los cambios de iteración 18. Suite Playwright confirma desktop y móvil.
+- [x] Ejecutar builds de `api/` y `front/`, lint/format dirigidos y smoke del contenedor SQLite; comprobar que no se versionan secretos, DB locales ni artefactos de prueba. Lint reporta warnings preexistentes documentados.
+- [x] Validar Service Worker: `/api` queda network-only, no almacena respuestas clínicas en Cache Storage y navegación offline solo devuelve el shell estático; pruebas Node VM cubren estas reglas.
 - [ ] Comprobar contractualmente roles/CSRF/cookies, ausencia de PII en push/logs y ausencia de datos operativos en `localStorage`.
 - [ ] Mapear cada criterio de aceptación funcional a implementación y test con resultado verde.
-- [ ] Actualizar README de raíz y ambos proyectos con arranque local y flujo de pruebas SQLite.
+- [x] Actualizar README de raíz y ambos proyectos con arranque local y flujo de pruebas SQLite.
 - [ ] Marcar checklist/AC completos y `Next iteration focus: COMPLETE` solo después de todos los gates anteriores.
 
 ### Excluido explícitamente

@@ -20,6 +20,7 @@ test("admin connects to the API, creates a patient, records a follow-up and open
   browser,
 }) => {
   test.setTimeout(60000);
+  const frontendOrigin = test.info().project.use.baseURL;
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.addInitScript(() => {
     const claims = {
@@ -77,11 +78,11 @@ test("admin connects to the API, creates a patient, records a follow-up and open
     page.getByRole("heading", { name: "Portal de Acompañamiento" }),
   ).toBeVisible();
   const emailAuth = await page.request.post(
-    "http://localhost:5173/api/auth/email/sign-in",
+    new URL("/api/auth/email/sign-in", frontendOrigin).toString(),
     { data: { email: "volunteer@medice.test", password: "irrelevant" } },
   );
   const bearerOnly = await page.request.get(
-    "http://localhost:5173/api/bootstrap",
+    new URL("/api/bootstrap", frontendOrigin).toString(),
     { headers: { Authorization: "Bearer invalid-scaffold-token" } },
   );
   expect(emailAuth.status()).toBe(404);
@@ -133,7 +134,7 @@ test("admin connects to the API, creates a patient, records a follow-up and open
     (cookie) => cookie.name === "medice_csrf",
   );
   const missingOriginMutation = await context.request.patch(
-    "http://localhost:5173/api/users/me/profile",
+    new URL("/api/users/me/profile", frontendOrigin).toString(),
     {
       headers: { "X-CSRF-Token": csrfCookie.value },
       data: { phone: "+54 11 5555 1212" },
@@ -576,6 +577,9 @@ test("admin connects to the API, creates a patient, records a follow-up and open
       (item) =>
         item.id === `alert-${alertBody.data.id}-${volunteer.data.user.id}`,
     );
+    const alertPage = await fetch("/api/alerts?limit=1&cursor=0", {
+      credentials: "include",
+    }).then((response) => response.json());
     const globalStatsStatus = (
       await fetch("/api/stats/global", { credentials: "include" })
     ).status;
@@ -586,13 +590,27 @@ test("admin connects to the API, creates a patient, records a follow-up and open
         headers: { "X-CSRF-Token": csrf },
       })
     ).status;
+    const coordinatorDeleteAdminStatus = (
+      await fetch(`/api/users/${auth.data.user.id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: { "X-CSRF-Token": csrf },
+      })
+    ).status;
     return {
       notification: notification ?? null,
+      alertPage: {
+        items: alertPage.data.length,
+        limit: alertPage.page.limit,
+        total: alertPage.page.total,
+        nextCursor: alertPage.page.next_cursor,
+      },
       volunteerId: volunteer.data.user.id,
       alertId: alertBody.data.id,
       globalStatsStatus,
       personalStatsStatus,
       coordinatorRemoveStatus,
+      coordinatorDeleteAdminStatus,
       unassignedFollowUpStatus,
       idempotentReplayStatus: idempotentReplayResponse.status,
       conflictingReplayStatus: conflictingReplayResponse.status,
@@ -608,6 +626,12 @@ test("admin connects to the API, creates a patient, records a follow-up and open
     title: "Palia",
     body: "Hay una actualización. Inicia sesión para consultar la información.",
   });
+  expect(alertNotice.alertPage.items).toBe(1);
+  expect(alertNotice.alertPage.limit).toBe(1);
+  expect(alertNotice.alertPage.total).toBeGreaterThanOrEqual(1);
+  expect(alertNotice.alertPage.nextCursor).toBe(
+    alertNotice.alertPage.total > 1 ? "1" : null,
+  );
   expect(JSON.stringify(alertNotice.notification)).not.toContain(
     "Paciente de prueba API",
   );
@@ -623,6 +647,7 @@ test("admin connects to the API, creates a patient, records a follow-up and open
   ]);
   expect(alertNotice.missingGoogleRequestMarkerStatus).toBe(400);
   expect(alertNotice.coordinatorRemoveStatus).toBe(403);
+  expect(alertNotice.coordinatorDeleteAdminStatus).toBe(403);
   await page.evaluate(async () => {
     const csrf = decodeURIComponent(
       document.cookie
@@ -814,14 +839,14 @@ test("admin connects to the API, creates a patient, records a follow-up and open
   );
   await volunteerContext.addCookies([volunteerCookie, revokedCsrfCookie]);
   const revokedResponse = await volunteerContext.request.get(
-    "http://localhost:5173/api/auth/me",
+    new URL("/api/auth/me", frontendOrigin).toString(),
   );
   expect(revokedResponse.status()).toBe(401);
   const revokedWriteResponse = await volunteerContext.request.post(
-    `http://localhost:5173/api/patients/${patientId}/follow-ups`,
+    new URL(`/api/patients/${patientId}/follow-ups`, frontendOrigin).toString(),
     {
       headers: {
-        Origin: "http://localhost:5173",
+        Origin: frontendOrigin,
         "X-CSRF-Token": revokedCsrfCookie.value,
       },
       data: {

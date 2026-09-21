@@ -46,6 +46,15 @@ test("mobile directory and offline settings fit compact phone viewport", async (
   await expect(
     page.getByRole("heading", { name: "Configuración de Palia" }),
   ).toBeVisible();
+  const settingsDescription = page.getByText(
+    "Gestione las preferencias de la aplicación, la sincronización offline y accesos.",
+  );
+  await expect(settingsDescription).toBeVisible();
+  expect(
+    await settingsDescription.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth + 1,
+    ),
+  ).toBe(true);
   await page.getByRole("button", { name: "Centro de Sincronización" }).click();
   await expect(page.getByText("Estado de red:")).toBeVisible();
   expect(

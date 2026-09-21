@@ -1,7 +1,7 @@
 # Loop state: api-front-separation
 
 Updated: 2026-09-21
-Iteration: 16 (revocación de sesión en escritura y privacy push)
+Iteration: 18 (permisos, runner E2E dinámico y QA móvil/desktop)
 Status: IN PROGRESS
 
 ## Fuente de verdad
@@ -13,6 +13,19 @@ Status: IN PROGRESS
 - Turso queda explícitamente fuera de los gates y no se debe validar.
 
 ## Estado de esta iteración
+
+- El endpoint de baja push ahora elimina por `user_id + endpoint`; evita que un usuario autenticado pueda dar de baja una suscripción ajena. Repositorio y controlador tienen pruebas de aislamiento.
+- Alertas ahora aceptan `limit` y `cursor`, devuelven metadatos de página y conservan filtros por estado/paciente. El E2E verifica el contrato snake_case directamente.
+- El cliente HTTP compartido tiene pruebas unitarias de misma origen/credenciales, JSON, CSRF cacheado, camelización, errores estables y evento de sesión expirada.
+- La baja de suscripciones push quedó limitada al dueño de la suscripción; usuarios sin permiso no pueden eliminar cuentas administradoras. La paginación de alertas tiene contrato con límite, cursor y conteo, cubierto por el E2E HTTP.
+- El runner Playwright reserva puertos libres por proceso y mantiene los mismos valores en config, worker y proxy; se quitaron las últimas URLs E2E hardcodeadas que fallaban si otro proyecto ocupaba 5173.
+- Responsive E2E mobile (390 px y 344 px) y flujo API/desktop pasaron 3/3. Al leer `15-mobile-offline-settings.png` detecté el subtítulo recortado; el texto ahora ajusta a 14 px y la prueba comprueba que su ancho interno no se recorte. La captura actualizada fue abierta e inspeccionada, con el texto completo en dos líneas.
+- `38-offline-account-isolation.png` se revisó otra vez: la cuenta activa solo presenta su seguimiento pendiente. Las capturas 14, 15, 16 y 35 se leyeron visualmente; el directorio, ajustes offline, login compacto y tarjetas de estadísticas caben en móvil.
+- `npm test` pasó tras los cambios; API 45 suites y front 19 tests. Builds de ambas apps, lint front y `git diff --check` pasan; lint sigue mostrando warnings preexistentes.
+- E2E enfocado y raíz pasaron (1 caso de aceptación; 3/3 en raíz). Docker build pasó y el smoke SQLite devolvió `/` 200, `/patients/123` 200, readiness 200; login de email y bypass dev dieron 404 en producción.
+- La prueba no llamó a Turso. Se preservó el estilo preexistente en `Settings.jsx` y `UserController.test.ts` para evitar diffs masivos causados por Prettier.
+- `front/README.md` y `api/README.md` describen el runtime Medice actual (API canónica, SQLite local, cliente centralizado, sesión cookie y pruebas locales); se quitaron indicaciones obsoletas de Firebase/LocalStorage como backend.
+- Último `npm test`: API 45 suites/342 tests y front 19 tests; builds API/front pasaron; lint front terminó con warnings existentes. Docker build y smoke SQLite: `/`, ruta profunda y readiness devolvieron 200. El E2E enfocado sigue en ejecución al comenzar la documentación de esta iteración.
 
 - La outbox IndexedDB ahora usa clave compuesta `[userId, id]`; el upgrade desde el esquema anterior preserva operaciones. E2E crea deliberadamente la misma mutación para dos cuentas, cambia de cuenta y verifica que ambas colas quedan aisladas.
 - `38-offline-account-isolation.png` se regeneró tras esa prueba y fue leída visualmente: la cuenta activa muestra una única operación local y no presenta la cola de la otra cuenta.
@@ -133,12 +146,12 @@ Todas están en `e2e/artifacts/screenshots/api-front-separation/` (artefactos ig
 
 ## Siguiente iteración
 
-1. Repetir unitarias, builds, lint/format dirigido y raíz E2E tras el test del Service Worker; smoke Docker pasó con el último código de API.
-2. Probar el ciclo UI completo de reautenticación/reintento de outbox y el caso de asignación retirada durante un seguimiento offline; el acceso revocado ya responde 401 en lectura/escritura.
-3. Completar callback/expiración OAuth y matriz de sesión vencida/roles; verificar flags `__Host-` con smoke HTTPS local si se automatiza sin Turso.
-4. Cerrar auditoría de dominio, errores/paginación, historial de hospitales archivados, matriz completa de roles y concurrencia/idempotencia.
-5. Validar push mediante proveedor fake, click/session expiry y fallback in-app; confirmar cobertura real de métricas.
-6. Migrar o reemplazar con cobertura equivalente los 13 specs Playwright legacy excluidos; el conjunto raíz actual son 3 pruebas.
-7. Mantener Turso explícitamente fuera de pruebas; no marcar COMPLETE hasta cerrar los AC y gates pendientes.
+1. Completar E2E de outbox en escenario de asignación retirada y asegurar que no se permite sincronizar tras desasignación; cubrir retry UI con sesión expirada.
+2. Ampliar pruebas E2E de archivado/restauración (pacientes y hospitales) y matriz de permisos coordinador/admin/voluntario, incluyendo respuestas 403 y referencias archivadas.
+3. Probar callback/expiración OAuth y cookie/CSRF; OAuth real queda limitado a credenciales de despliegue, usar fake solo en test.
+4. Probar push con proveedor fake: subscripción inválida, envío al equipo excluyendo autor, click con sesión vencida y fallback in-app.
+5. Migrar o reemplazar con cobertura equivalente los 13 specs Playwright legacy excluidos; ampliar reporte imprimible y perfil/comunidad con roles.
+6. Mapear cada criterio de aceptación pendiente, revisar auditoría/concurrencia/idempotencia y repetir la matriz final (unitarias, builds, lint, E2E móvil/desktop y Docker SQLite).
+7. Mantener Turso explícitamente fuera de pruebas; no marcar COMPLETE hasta cerrar criterios/gates restantes.
 
 No marcar COMPLETE mientras queden criterios relevantes o gates sin evidencia.

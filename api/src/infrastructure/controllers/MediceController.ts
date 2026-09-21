@@ -792,7 +792,21 @@ export class MediceController {
       query.where('a.status', req.query.status);
     if (req.query.patientId)
       query.where('a.patient_id', String(req.query.patientId));
-    const rows = await query;
+    const requestedLimit = Number(req.query.limit ?? 50);
+    const requestedCursor = Number(req.query.cursor ?? 0);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(100, Math.max(1, Math.floor(requestedLimit)))
+      : 50;
+    const offset = Number.isFinite(requestedCursor)
+      ? Math.max(0, Math.floor(requestedCursor))
+      : 0;
+    const totalRow: any = await query
+      .clone()
+      .clearSelect()
+      .clearOrder()
+      .count({ count: 'a.id' })
+      .first();
+    const rows = await query.limit(limit).offset(offset);
     res.json({
       data: rows.map(row => ({
         id: row.id,
@@ -811,6 +825,14 @@ export class MediceController {
         resolvedAt: row.resolved_at,
         resolutionNote: row.resolution_note,
       })),
+      page: {
+        limit,
+        nextCursor:
+          offset + rows.length < Number(totalRow?.count ?? 0)
+            ? String(offset + rows.length)
+            : null,
+        total: Number(totalRow?.count ?? 0),
+      },
     });
   }
 
