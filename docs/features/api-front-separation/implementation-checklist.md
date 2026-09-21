@@ -4,7 +4,7 @@ Esta lista define cuándo `api/` está terminada e integrada de forma comprobabl
 
 Las dos auditorías redundantes de cuatro agentes están resumidas en [gap-analysis.md](./gap-analysis.md). Los contratos y decisiones de producto están cerrados en los specs; no reabrirlos durante implementación.
 
-## Estado de implementación (iteración 34)
+## Estado de implementación (iteración 36)
 
 Los recorridos de producto tienen evidencia local contra SQLite y el cotejo por criterio está en [acceptance-coverage.md](./acceptance-coverage.md). Continúan abiertos solo los puntos enumerados aquí; no se valida Turso.
 
@@ -42,6 +42,9 @@ Los recorridos de producto tienen evidencia local contra SQLite y el cotejo por 
 - [x] QA visual 33: el E2E espera que el tab allow-list termine su transición de color antes de capturar. Captura 49 y las imágenes móviles 39–55 fueron abiertas otra vez tras el último E2E raíz; pestaña activa, formularios, CTAs, popovers y barra inferior se ven correctamente.
 - [x] Gate final iteración 33: API 47 suites/353 tests; front 19; acceptance E2E 1/1; E2E raíz 4/4; build API/front, lint front, Docker/SQLite y `git diff --check` verdes. Turso no se llamó.
 - [x] Iteración 34: lecturas y presentación de pacientes separadas en servicio/repositorio con pruebas unitarias de DTO, filtro por acento/estado y paginación; 360×800 agregado como viewport móvil promedio y recorrido de directorio/ficha/seguimiento/estadísticas cubierto por Playwright.
+- [x] Iteración 35: viewport 360×800 amplía el recorrido a notificaciones, comunidad, centros, allow-list y perfil; Playwright pasó 5/5 responsive. Capturas 59–63 fueron abiertas y revisadas; sin desbordamiento horizontal ni acciones primarias bajo la navegación fija.
+- [x] Iteración 36: operaciones de centros (lista, alta/edición, archivo/restauración) y asignación de voluntarios pasan por `MediceOperationsService`/`MediceOperationsRepository` y adaptador SQLite; servicio valida datos, existencia de referencias, deduplica asignaciones y mantiene reemplazo transaccional con auditoría.
+- [x] Gate local iteración 36: API 49 suites/357 tests; front 19 tests; Playwright raíz 6/6; acceptance aislado 1/1; builds API/front, lint front, Docker build + SQLite smoke (`/api/health/ready`, `/`, `/patients/123` todos 200) y `git diff --check` pasaron. Sin Turso.
 - [x] En iteración 5, `npm run test:e2e:api-front-separation` pasó y se revisó visualmente `28-volunteer-profile.png`.
 - [x] En iteración 6, E2E aislado comprobó las validaciones server-side del perfil y se revisó visualmente `29-profile-validation.png`.
 - [x] Los criterios de producto y privacidad de auditoría, aislamiento offline, push genérico y permisos tienen pruebas locales; los límites y la evidencia por criterio están detallados en `acceptance-coverage.md`. Los 13 specs antiguos usan personas/localStorage demo y se retiran del gate; la suite actual reemplaza los recorridos de API y mobile relevantes.

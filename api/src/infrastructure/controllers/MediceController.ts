@@ -7,6 +7,7 @@ import type { AuthenticatedRequest } from '@/infrastructure/middleware/authMiddl
 import { GenericNotificationService } from '@/infrastructure/services/GenericNotificationService';
 import { MedicePatientService } from '@/domain/services/MedicePatientService';
 import { inject, injectable } from 'tsyringe';
+import { MediceOperationsService } from '@/domain/services/MediceOperationsService';
 
 const now = () => new Date().toISOString();
 const digits = (value: unknown) => String(value ?? '').replace(/\D/g, '');
@@ -29,6 +30,8 @@ export class MediceController {
   constructor(
     @inject('MedicePatientService')
     private readonly patientService: MedicePatientService,
+    @inject('MediceOperationsService')
+    private readonly operationsService: MediceOperationsService,
   ) {}
   private get db(): Knex {
     return DatabaseConfig.getKnex();
@@ -490,90 +493,61 @@ export class MediceController {
   }
 
   async assignPatient(req: Request, res: Response): Promise<void> {
-    const patientId = req.params.patientId;
     const userIds: string[] = Array.isArray(req.body?.volunteerIds)
       ? req.body.volunteerIds
       : [];
-    const exists = await this.db('patients').where({ id: patientId }).first();
-    if (!exists) {
-      res.status(404).json({ error: 'Paciente no encontrado' });
-      return;
+    try {
+      const data = await this.operationsService.assignPatient(
+        req.params.patientId, userIds, this.userId(req), now(),
+      );
+      res.json({ data });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      throw error;
     }
-    const users = userIds.length
-      ? await this.db('users').whereIn('id', userIds).select('id')
-      : [];
-    if (users.length !== new Set(userIds).size) {
-      res.status(422).json({ error: 'Una o más personas no existen.' });
-      return;
-    }
-    await this.db.transaction(async trx => {
-      await trx('patient_assignments')
-        .where({ patient_id: patientId })
-        .delete();
-      if (userIds.length)
-        await trx('patient_assignments').insert(
-          userIds.map(userId => ({
-            patient_id: patientId,
-            user_id: userId,
-            created_by: this.userId(req),
-            created_at: now(),
-          }))
-        );
-      await this.recordAudit(trx, this.userId(req), 'patient.assignments_updated', 'patient', patientId, {
-        assignmentCount: userIds.length,
-      });
-    });
-    res.json({ data: userIds });
   }
 
   async listHospitals(req: Request, res: Response): Promise<void> {
-    const query = this.db('hospitals').orderBy('name');
-    if (req.query.includeArchived !== 'true') query.whereNull('archived_at');
-    res.json({ data: await query });
+    res.json({ data: await this.operationsService.listHospitals(req.query.includeArchived === 'true') });
   }
 
   async saveHospital(req: Request, res: Response): Promise<void> {
     const body = req.body ?? {};
-    const timestamp = now();
-    const id = req.params.hospitalId ?? randomUUID();
-    if (!body.name?.trim() || !body.address?.trim()) {
-      res.status(422).json({ error: 'Nombre y domicilio son obligatorios.' });
-      return;
-    }
-    const values = {
-      name: body.name.trim(),
-      address: body.address.trim(),
-      zone: body.zone?.trim() ?? null,
-      updated_at: timestamp,
-    };
-    if (req.params.hospitalId) {
-      const count = await this.db('hospitals').where({ id }).update(values);
-      if (!count) {
-        res.status(404).json({ error: 'Centro no encontrado' });
+    try {
+      const data = await this.operationsService.saveHospital({
+        id: req.params.hospitalId,
+        name: body.name,
+        address: body.address,
+        zone: body.zone,
+        timestamp: now(),
+      });
+      res.status(req.params.hospitalId ? 200 : 201).json({ data });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
         return;
       }
-    } else
-      await this.db('hospitals').insert({
-        id,
-        ...values,
-        created_at: timestamp,
-        archived_at: null,
-      });
-    res
-      .status(req.params.hospitalId ? 200 : 201)
-      .json({ data: await this.db('hospitals').where({ id }).first() });
+      throw error;
+    }
   }
 
   async setHospitalArchive(req: Request, res: Response): Promise<void> {
-    const archivedAt = req.path.endsWith('/restore') ? null : now();
-    const count = await this.db('hospitals')
-      .where({ id: req.params.hospitalId })
-      .update({ archived_at: archivedAt, updated_at: now() });
-    if (!count) {
-      res.status(404).json({ error: 'Centro no encontrado' });
-      return;
+    const timestamp = now();
+    try {
+      await this.operationsService.setHospitalArchived(
+        req.params.hospitalId, !req.path.endsWith('/restore'), timestamp,
+      );
+      res.json({ success: true });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      throw error;
     }
-    res.json({ success: true });
   }
 
   async listFollowUps(req: Request, res: Response): Promise<void> {

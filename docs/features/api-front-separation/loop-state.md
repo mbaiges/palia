@@ -1,7 +1,7 @@
 # Loop state: api-front-separation
 
 Updated: 2026-09-21
-Iteration: 34 (lectura de pacientes por capas y cobertura de móvil promedio)
+Iteration: 36 (operaciones de centros y asignaciones por capas)
 Status: IN PROGRESS
 
 ## Fuente de verdad
@@ -18,6 +18,10 @@ Status: IN PROGRESS
 - `MedicePatientService.test.ts` cubre el mapeo de relaciones/estado y filtro/paginación. API build y E2E de aceptación contra SQLite pasaron tras el cambio.
 - Playwright agregó viewport 360×800 (teléfono promedio): directorio, ficha, CTAs de ficha dentro del viewport, formulario de seguimiento y estadísticas. Capturas 56–58 fueron abiertas: los botones de ficha apilan correctamente; encabezado/formulario de seguimiento caben al ancho y la gráfica semanal queda dentro de pantalla, sin overflow horizontal.
 - Responsive E2E aislado pasó 4/4, incluida la matriz existente 390×844, 344 px/login y community/admin/profile. La suite E2E raíz pasó 5/5 (aceptación desktop/API + cuatro recorridos responsive). `npm test` pasó (API 48 suites/355 tests; front 19); `api:build`, `front:build`, lint front y `git diff --check` pasaron. Lint mantiene warnings previos.
+- Iteración 35 amplía 360×800 a menús de notificaciones, comunidad, administración de centros, allow-list y perfil; responsive pasó 5/5. Capturas 59–63 se revisaron: popover acotado al ancho, tarjetas/listas legibles, botón de hospital arriba de la navegación inferior, pestaña de accesos seleccionada y perfil sin recorte horizontal.
+- Iteración 35: la suite E2E raíz pasó 6/6 tras añadir ambos recorridos a 360 px; `npm test` pasó (API 48 suites/355 tests; front 19). Iteración 36 añade cambios API posteriores y requiere repetir el gate final.
+- Iteración 36 extrae operaciones de centros y asignaciones a `MediceOperationsService`, su puerto de dominio y adaptador SQLite. El E2E de aceptación pasó 1/1 al repetirse en aislamiento; un intento concurrente falló porque el servidor todavía no estaba disponible (`ECONNREFUSED`) durante el arranque y no reprodujo en el reintento aislado. Pruebas unitarias del servicio cubren normalización/validación, ID inválido y reemplazo de asignaciones.
+- Gate tras el cambio: `npm test` pasó (API 49 suites/357 tests; front 19), E2E raíz 6/6, API build, front build, lint front (con warnings de lint ya conocidos), `git diff --check`; Docker build y SQLite smoke de readiness/SPA 200. No se validó Turso.
 
 - La vista previa imprimible ahora responde a viewport móvil: toolbar en dos filas, datos de paciente/cuidador en una columna, encabezado envuelto y tabla dentro de un scroller propio. Playwright comprueba que no haya solapamiento, recorte del contenido principal ni overflow de página.
 - Capturas 45 (`45-mobile-alert-modal.png`) y 46 (`46-mobile-print-preview.png`) se generaron a 390 px y fueron abiertas/revisadas: el diálogo de alerta es legible, los botones de impresión no chocan y los datos de la ficha se apilan dentro del ancho.
@@ -210,8 +214,8 @@ Todas están en `e2e/artifacts/screenshots/api-front-separation/` (artefactos ig
 
 ## Siguiente iteración
 
-1. Completar la separación de capas Medice: mover escrituras y lectura/actualización de seguimientos, alertas, hospitales, asignaciones, perfiles, allow-list, bootstrap y estadísticas desde `MediceController.ts` a servicios/repositorios por dominio, preservando permisos, transacciones y contrato; añadir pruebas unitarias por servicio/repositorio y repetir acceptance/responsive E2E con capturas revisadas.
-2. Revisar la suite E2E raíz que está en curso y registrar su resultado; si falla, arreglar y repetir hasta verde.
+1. Completar la separación de capas Medice: mover escrituras y lectura/actualización de seguimientos, alertas, perfiles, allow-list, bootstrap y estadísticas desde `MediceController.ts` a servicios/repositorios por dominio, preservando permisos, transacciones y contrato; añadir pruebas unitarias por servicio/repositorio y repetir acceptance/responsive E2E con capturas revisadas.
+2. Correr `npm run test:e2e` completo y `npm test` tras iteración 36; si falla algo, corregirlo y repetir. Repetir builds, lint y `git diff --check` para el cierre final.
 3. Antes de declarar la operación productiva lista, configurar credenciales OAuth reales y proxy/HTTPS del host; dependen de infraestructura externa. No validar Turso.
 4. Solo después de completar la separación arquitectónica y los gates, actualizar checklist/AC y cambiar `Next iteration focus` a `COMPLETE`.
 

@@ -46,6 +46,8 @@ import { AuditEventController } from '@/infrastructure/controllers/AuditEventCon
 import { MedicePatientService } from '@/domain/services/MedicePatientService';
 import { SqliteMedicePatientRepository } from '@/infrastructure/adapters/repositories/SqliteMedicePatientRepository';
 import { MediceController } from '@/infrastructure/controllers/MediceController';
+import { MediceOperationsService } from '@/domain/services/MediceOperationsService';
+import { SqliteMediceOperationsRepository } from '@/infrastructure/adapters/repositories/SqliteMediceOperationsRepository';
 
 // Database
 container.register('Database', {
@@ -102,6 +104,11 @@ container.register(
 container.register(
   'MedicePatientRepository',
   { useClass: SqliteMedicePatientRepository },
+  { lifecycle: Lifecycle.Singleton },
+);
+container.register(
+  'MediceOperationsRepository',
+  { useClass: SqliteMediceOperationsRepository },
   { lifecycle: Lifecycle.Singleton },
 );
 
@@ -162,6 +169,7 @@ container.register('GenericNotificationService', { useClass: GenericNotification
 container.register('ExampleItemService', { useClass: ExampleItemService });
 container.register('MediaAssetService', { useClass: MediaAssetService });
 container.register('MedicePatientService', { useClass: MedicePatientService });
+container.register('MediceOperationsService', { useClass: MediceOperationsService });
 container.register(SocketIORealtimeGateway, { useClass: SocketIORealtimeGateway });
 
 // Application Handlers

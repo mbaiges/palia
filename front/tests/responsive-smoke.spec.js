@@ -277,6 +277,68 @@ test("average 360px phone supports patient actions and primary navigation", asyn
   await capture(page, "58-average-360-stats.png");
 });
 
+test("average 360px phone supports menus, community, administration and profile", async ({
+  page,
+}) => {
+  await signInAsAdmin(page, 360, 800);
+  const noHorizontalOverflow = async () =>
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+      ),
+    ).toBe(true);
+
+  await page.getByRole("button", { name: "Notificaciones" }).click();
+  const notificationPopover = page.locator(".notification-popover").first();
+  await expect(notificationPopover).toHaveCSS("opacity", "1");
+  const notificationBox = await notificationPopover.boundingBox();
+  expect(notificationBox.x).toBeGreaterThanOrEqual(0);
+  expect(notificationBox.x + notificationBox.width).toBeLessThanOrEqual(360);
+  await capture(page, "59-average-360-notifications.png");
+  await page.getByRole("button", { name: "Notificaciones" }).click();
+
+  await page.locator(".user-profile-menu").click();
+  await page.getByRole("button", { name: "Voluntariado" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Comunidad de Voluntarios" }),
+  ).toBeVisible();
+  await noHorizontalOverflow();
+  await capture(page, "60-average-360-community.png");
+
+  await page.locator(".mobile-nav-item").filter({ hasText: "Admin" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Panel de Administración" }),
+  ).toBeVisible();
+  await noHorizontalOverflow();
+  const addHospital = page.getByRole("button", { name: "Agregar Hospital" });
+  await addHospital.scrollIntoViewIfNeeded();
+  await expect(addHospital).toBeVisible();
+  const addHospitalBox = await addHospital.boundingBox();
+  const navBox = await page.locator(".mobile-nav").boundingBox();
+  expect(addHospitalBox.y + addHospitalBox.height).toBeLessThanOrEqual(navBox.y + 1);
+  await capture(page, "61-average-360-administration.png");
+
+  const accessTab = page.getByRole("button", { name: "Invitaciones y Accesos" });
+  await accessTab.click();
+  await expect(
+    page.getByRole("heading", { name: "Autorizar voluntario" }),
+  ).toBeVisible();
+  await noHorizontalOverflow();
+  await capture(page, "62-average-360-allowlist.png");
+
+  await page.locator(".mobile-nav-item").filter({ hasText: "Perfil" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Configuración de Palia" }),
+  ).toBeVisible();
+  const saveProfile = page.getByRole("button", { name: "Guardar perfil" });
+  await saveProfile.scrollIntoViewIfNeeded();
+  const saveBox = await saveProfile.boundingBox();
+  const profileNavBox = await page.locator(".mobile-nav").boundingBox();
+  expect(saveBox.y + saveBox.height).toBeLessThanOrEqual(profileNavBox.y + 1);
+  await noHorizontalOverflow();
+  await capture(page, "63-average-360-profile-save.png");
+});
+
 test("mobile volunteer community and administration remain usable", async ({
   page,
 }) => {
