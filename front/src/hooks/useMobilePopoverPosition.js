@@ -38,6 +38,7 @@ export function getMobilePopoverStyle(anchorEl, { width = 320, align = 'right' }
 
 export function useMobilePopoverPosition(open, anchorRef, options = {}) {
   const [style, setStyle] = useState(null);
+  const { width = 320, align = 'right' } = options;
 
   useLayoutEffect(() => {
     if (!open || typeof window === 'undefined' || window.innerWidth > MOBILE_BREAKPOINT) {
@@ -47,7 +48,7 @@ export function useMobilePopoverPosition(open, anchorRef, options = {}) {
 
     const update = () => {
       if (!anchorRef.current) return;
-      setStyle(getMobilePopoverStyle(anchorRef.current, options));
+      setStyle(getMobilePopoverStyle(anchorRef.current, { width, align }));
     };
 
     update();
@@ -60,7 +61,7 @@ export function useMobilePopoverPosition(open, anchorRef, options = {}) {
       window.visualViewport?.removeEventListener('resize', update);
       window.visualViewport?.removeEventListener('scroll', update);
     };
-  }, [open, anchorRef, options.width, options.align]);
+  }, [open, anchorRef, width, align]);
 
   return style;
 }

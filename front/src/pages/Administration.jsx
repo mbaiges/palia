@@ -3,7 +3,7 @@ import { dbService } from '../services/container';
 
 export default function Administration({ initialTab, onTabConsumed }) {
   const [patients, setPatients] = useState(dbService.getPatients());
-  const [volunteers, setVolunteers] = useState(dbService.getVolunteers());
+  const [volunteers] = useState(dbService.getVolunteers());
   const [hospitals, setHospitals] = useState(dbService.getHospitals());
   const [invitations, setInvitations] = useState(dbService.getInvitations());
 
@@ -24,7 +24,7 @@ export default function Administration({ initialTab, onTabConsumed }) {
       setActiveSubTab(initialTab);
       if (onTabConsumed) onTabConsumed();
     }
-  }, [initialTab]);
+  }, [initialTab, onTabConsumed]);
 
   // Volunteer Assignment form states
   const [assignPatientId, setAssignPatientId] = useState(patients[0]?.id || '');

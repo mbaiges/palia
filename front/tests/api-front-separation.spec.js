@@ -1563,7 +1563,7 @@ test("admin connects to the API, creates a patient, records a follow-up and open
       name: "Matias Test",
       sub: "google-test-matias",
     });
-    const allowedBody = await allowed.json();
+    await allowed.json();
     const current = await fetch("/api/auth/me", {
       credentials: "include",
     }).then((response) => response.json());

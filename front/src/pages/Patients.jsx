@@ -17,13 +17,6 @@ export default function Patients({ onViewDetail, onNewPatient, searchVal, canMan
   }, []);
 
   const allPatients = dbService.getPatients().filter((patient) => Boolean(patient.archivedAt) === showArchived);
-  const hospitals = dbService.getHospitals();
-
-  const getHospitalName = (id) => {
-    const h = hospitals.find(hosp => hosp.id === id);
-    return h ? h.name : 'No asignado';
-  };
-
   const getCaregiverRelation = (patientId) => {
     if (dbService.getCaregiverForPatient) {
       const cg = dbService.getCaregiverForPatient(patientId);

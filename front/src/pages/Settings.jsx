@@ -12,7 +12,7 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
   const [profileForm, setProfileForm] = useState({ phone: '', specialtyAvailability: '', tenure: '', avatarUrl: '' });
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileMessage, setProfileMessage] = useState('');
-  const [swStatus, setSwStatus] = useState('Registrado y Activo');
+  const [swStatus] = useState('Registrado y Activo');
   const [notifPermission, setNotifPermission] = useState(() => 'Notification' in window ? Notification.permission : 'No compatible');
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);

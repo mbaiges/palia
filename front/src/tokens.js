@@ -135,7 +135,7 @@ export function applyTheme(themeName) {
   // Persist
   try {
     localStorage.setItem('palia_theme', themeName);
-  } catch (_) {}
+  } catch {}
 }
 
 /**
@@ -146,6 +146,6 @@ export function getStoredTheme() {
   try {
     const stored = localStorage.getItem('palia_theme');
     if (stored === 'dark' || stored === 'light') return stored;
-  } catch (_) {}
+  } catch {}
   return 'light';
 }

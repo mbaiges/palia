@@ -19,7 +19,7 @@ test.describe('Mobile bottom nav visibility', () => {
     await page.reload();
     await page.click('text=Iniciar Sesión con Google');
 
-    const shell = page.locator('.app-shell');
+    const _shell = page.locator('.app-shell');
     const nav = page.locator('.mobile-nav');
 
     await expect(nav).toBeVisible();

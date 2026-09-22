@@ -14,7 +14,7 @@ import Login from './pages/Login';
 import Settings from './pages/Settings';
 import HomeDashboard from './pages/HomeDashboard';
 import { scrollToSection, resetContentScroll } from './utils/navigation';
-import { syncMobileLayout, syncViewportHeight, syncMobileNavOffset } from './utils/viewport';
+import { syncMobileLayout } from './utils/viewport';
 import { disablePushNotifications, syncExistingPushSubscription } from './services/pushNotifications';
 
 function App() {
