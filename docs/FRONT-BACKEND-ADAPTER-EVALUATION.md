@@ -141,7 +141,108 @@ Por eso se recomienda **Firebase detrás de la API/BFF** si el objetivo es cambi
 7. Crear tests de contrato que ejecuten los mismos casos contra cada adapter.
 8. Si se necesita Firebase, implementarlo primero detrás de la API; recién después evaluar acceso directo desde el navegador.
 
+## Evaluación de `ApiRepository`
+
+La propuesta concreta es válida:
+
+```text
+ApiRepository (port)
+├── DefaultHttpApiRepository
+└── DefaultFirebaseApiRepository
+```
+
+La idea permite cambiar la implementación desde un único punto de composición. Recomiendo estos nombres para que el transporte no quede confundido con el rol de la clase:
+
+- `ApiRepository`: interfaz/port del dominio remoto.
+- `HttpApiRepository`: adapter Express/HTTP.
+- `FirebaseApiRepository`: adapter Firebase.
+
+El prefijo `Default` no aporta información en este caso. Si se conserva, `DefaultHttpApiRepository` sigue siendo correcto, pero expresa menos claramente que es la implementación HTTP.
+
+### Contrato correcto
+
+El repository no debería devolver respuestas HTTP como `{ data }`, exponer `fetch`, URLs, `status` ni códigos específicos de Firebase. Debe devolver DTOs del dominio o lanzar un error normalizado:
+
+```js
+const repository = {
+  bootstrap(),
+  auth: { me(), signInWithGoogle(code), signOut() },
+  patients: { list, get, create, update, archive, restore, assign },
+  followUps: { list, create },
+  alerts: { list, create, resolve },
+  hospitals: { list, create, update, archive, restore },
+  volunteers: { list, updateProfile },
+  access: { list, addVolunteer, remove },
+  stats: { mine, global },
+};
+```
+
+En la implementación actual, `dbService` tendría que dejar de usar directamente `api.patients.create()` y recibir este repository por inyección.
+
+### Inyección recomendada
+
+Conviene transformar el singleton actual en una fábrica:
+
+```js
+const apiRepository = createApiRepository({
+  provider: import.meta.env.VITE_BACKEND_PROVIDER ?? 'http',
+});
+
+export const dbService = createDbService({
+  apiRepository,
+  offlineStore,
+});
+```
+
+Para pruebas, la fábrica puede recibir un repository falso o un spy sin modificar componentes:
+
+```js
+const service = createDbService({
+  apiRepository: fakeApiRepository,
+  offlineStore: fakeOfflineStore,
+});
+```
+
+La selección del adapter debe ocurrir una sola vez en un composition root, por ejemplo `front/src/services/container.js`. No conviene que cada página consulte `VITE_BACKEND_PROVIDER`.
+
+### Separaciones que deben mantenerse
+
+`ApiRepository` puede contener las operaciones clínicas y de sesión que realmente se consumen como API, pero no debería absorber toda la infraestructura:
+
+- `AuthRepository` o `AuthPort` para login, sesión y logout.
+- `NotificationPort` para VAPID/Web Push o FCM.
+- `OfflineStorePort` para IndexedDB y outbox.
+
+Si auth y push quedan dentro del mismo objeto por conveniencia, deben seguir siendo subinterfaces independientes y testeables. Así un cambio de Firebase Auth o FCM no obliga a reemplazar el repositorio clínico.
+
+### Riesgo de falso reemplazo
+
+Cambiar la clase no garantiza equivalencia. Ambos adapters deben cumplir el mismo contrato en:
+
+- permisos por rol;
+- allow-list y bootstrap del admin;
+- DNI normalizado y único;
+- archivo/restauración;
+- varias alertas activas y resolución con nota;
+- `clientMutationId` e idempotencia offline;
+- paginación/filtros y forma de fechas;
+- estadísticas personales/globales;
+- errores reintentables y conflictos.
+
+La validación debe ser una suite de contract tests compartida por `HttpApiRepository` y `FirebaseApiRepository`. Para Firebase directo, también habría que validar Security Rules y Cloud Functions. Para Firebase detrás de la API, el nuevo adapter puede vivir en la API y el front no cambia.
+
+### Veredicto
+
+Sí, `ApiRepository` con adapters intercambiables es una buena dirección y encaja con el front actual. La arquitectura queda sólida si:
+
+1. el port expresa casos de uso y DTOs canónicos;
+2. `dbService` recibe el port por inyección;
+3. auth, push y offline tienen ports propios;
+4. el adapter se selecciona en un único composition root;
+5. se exige paridad mediante contract tests.
+
+El primer paso seguro es implementar `HttpApiRepository` sobre el cliente existente sin cambiar la funcionalidad. Después se puede agregar un `FirebaseApiRepository` en forma incremental.
+
 ## Criterio de aceptación de la abstracción
 
 El cambio estará listo cuando se pueda seleccionar el adapter desde la composición de infraestructura, sin modificar páginas ni casos de uso, y ambos adapters puedan pasar los casos de login, roles, directorio, alta/edición, seguimiento, alertas, archivo/restauración, estadísticas, offline y push. La validación de Turso queda fuera de este criterio.
-
