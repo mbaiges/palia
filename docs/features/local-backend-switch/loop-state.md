@@ -1,7 +1,7 @@
 # Loop state: local-backend-switch
 
-Updated: 2026-09-22  
-Iteration: 2  
+Updated: 2026-09-22
+Iteration: 3
 Status: COMPLETE
 
 ## Source of truth
@@ -28,6 +28,7 @@ Status: COMPLETE
 - Existing API uses SQLite migrations and has all domain tables needed by the seed.
 - Existing loop-build screenshot artifacts live under `e2e/artifacts/`; this feature uses `e2e/artifacts/screenshots/local-backend-switch/`.
 - Implemented the shared seed, API runner, IndexedDB adapter, runtime composition root, provider-specific offline stores, Settings controls, outbox guard and mobile/desktop E2E journey.
+- Added persisted backend preference, deep shared-seed validation, safe reset policy for API seeds, recent seed dates for rolling metrics, reload coverage and resilient mobile scroll verification.
 
 ## Screenshot manifest
 
@@ -44,11 +45,11 @@ Status: COMPLETE
 
 - Feature unit tests: `front npm run test:unit` — 23 passing.
 - Full root test: API 359 tests and frontend 23 tests — all passing.
-- Feature E2E: `npm run test:e2e:local-backend-switch` — 1 passing.
-- Full E2E: `npm run test:e2e` — 7 passing, including mobile smoke tests.
+- Feature E2E: `npm run test:e2e:local-backend-switch` — 1 passing, including reload persistence.
+- Full E2E: `npm run test:e2e` — passing, including mobile smoke tests.
 - Builds: `front npm run build`, `api npm run build` — passing.
 - Lint: front `oxlint` passes with pre-existing warnings; API lint could not run because `eslint` is not installed in the scaffold.
-- Seed runner: local SQLite `seed:medice -- --reset` — applied successfully.
+- Seed runner: local SQLite `seed:medice -- --reset` — applied successfully; reset policy unit tests pass.
 - `git diff --check` — no whitespace errors.
 - Screenshot review: all six manifest images opened and visually checked for content, responsive layout and backend labels.
 

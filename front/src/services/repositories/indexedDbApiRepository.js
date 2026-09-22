@@ -141,7 +141,7 @@ export class IndexedDBApiRepository extends ApiRepository {
       role: 'admin',
       patients,
       hospitals: clone(state.hospitals),
-      followUps: clone(state.followUps),
+      followUps: clone(state.followUps).map((item) => ({ ...item, date: item.date ?? item.occurredAt })),
       alerts: clone(state.alerts),
       volunteers: state.users.map((item) => ({ ...item, activePatients: patients.filter((patient) => patient.assignedVolunteers.includes(item.id) && !patient.archivedAt).length })),
       invitations: state.allowedUsers.map((email) => ({ id: email, email, status: 'Autorizado' })),

@@ -35,6 +35,13 @@ test('switches between API and seeded IndexedDB without mixing data', async ({ p
   await expect(page.getByText('Paciente Demo Activo').first()).toBeVisible();
   await capture(page, '03-local-seed-dashboard.png');
 
+  await page.reload();
+  await expect(page.getByRole('heading', { name: /buenos días|buenas tardes|buenas noches/i })).toBeVisible();
+  await page.getByRole('button', { name: 'Configuración' }).click();
+  await expect(page.getByRole('region', { name: 'Backend de datos' }).getByText('Local (IndexedDB)', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Inicio' }).click();
+  await expect(page.getByText('Paciente Demo Activo').first()).toBeVisible();
+
   await page.getByRole('button', { name: 'person_search Pacientes' }).click();
   await page.getByText('Paciente Demo Activo').first().click();
   await expect(page.getByText('Cuidador Demo')).toBeVisible();

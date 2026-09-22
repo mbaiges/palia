@@ -6,8 +6,13 @@ import { createOfflineStore } from './offlineStore';
 const localEnabled = import.meta.env.VITE_LOCAL_BACKEND_ENABLED === 'true'
   && import.meta.env.MODE !== 'production';
 const defaultProvider = import.meta.env.VITE_DEFAULT_BACKEND === 'local' && localEnabled ? 'local' : 'http';
+const BACKEND_PREFERENCE_KEY = 'medice.backend-provider';
+const storedProvider = (() => {
+  try { return window.localStorage.getItem(BACKEND_PREFERENCE_KEY); } catch { return null; }
+})();
+const initialProvider = storedProvider === 'local' && localEnabled ? 'local' : storedProvider === 'http' ? 'http' : defaultProvider;
 const localRepository = new IndexedDBApiRepository();
-let activeProvider = defaultProvider;
+let activeProvider = initialProvider;
 let activeRepository = activeProvider === 'local' ? localRepository : defaultApiRepository;
 const offlineDatabaseName = (provider) => provider === 'http' ? 'palia-offline-v1' : 'palia-offline-local-v1';
 let activeOfflineStore = createOfflineStore(offlineDatabaseName(activeProvider));
@@ -71,6 +76,7 @@ export async function switchBackend(provider) {
     throw error;
   }
   activeProvider = provider;
+  try { window.localStorage.setItem(BACKEND_PREFERENCE_KEY, provider); } catch { /* storage can be unavailable in private mode */ }
   activeRepository = provider === 'local' ? localRepository : defaultApiRepository;
   activeOfflineStore = createOfflineStore(offlineDatabaseName(activeProvider));
   activeDbService = createDbService({ apiRepository: activeRepository, offlineStore: activeOfflineStore, backendProvider: activeProvider });

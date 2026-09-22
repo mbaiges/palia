@@ -311,6 +311,9 @@ test("average 360px phone supports menus, community, administration and profile"
   ).toBeVisible();
   await noHorizontalOverflow();
   const addHospital = page.getByRole("button", { name: "Agregar Hospital" });
+  await page.locator(".content-canvas").evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
   await addHospital.scrollIntoViewIfNeeded();
   await expect(addHospital).toBeVisible();
   const addHospitalBox = await addHospital.boundingBox();

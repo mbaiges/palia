@@ -16,3 +16,7 @@
 - [x] Capture and visually review desktop, 360×800 and 390×844 screenshots.
 - [x] Run full unit suite, full E2E suite, builds, lint and `git diff --check` (API lint command is unavailable because this scaffold has no eslint binary).
 - [x] Update `loop-state.md` to `COMPLETE` after all applicable gates pass.
+- [x] Persist backend selection through reload when Local is enabled.
+- [x] Validate the full seed shape and relationships before API insertion and in frontend unit tests.
+- [x] Restrict destructive API seed reset to local development/test/e2e environments.
+- [x] Cover local reload persistence and recent rolling metrics in automated browser tests.

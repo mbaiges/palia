@@ -1,6 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseConfig } from '@/infrastructure/config/database';
+import { isSeedResetAllowed } from '@/infrastructure/seed/seedPolicy';
+// Shared fixture validator is authored as ESM so Vite and Node can consume it.
+// @ts-expect-error The seed directory intentionally has no API-specific build types.
+import { validateSeed } from '../../seed/validate-seed.mjs';
 
 type Seed = any;
 
@@ -10,16 +14,16 @@ function readSeed(): Seed {
 }
 
 async function run(): Promise<void> {
-  if (process.env.NODE_ENV === 'production' && process.argv.includes('--reset')) {
-    throw new Error('El reset del seed está bloqueado en producción.');
-  }
+  const reset = process.argv.includes('--reset');
+  if (reset && !isSeedResetAllowed()) throw new Error('El reset del seed solo está permitido en development/test/e2e con USE_LOCAL_DB=true.');
   await DatabaseConfig.initializeTables();
   const db = DatabaseConfig.getKnex();
   const seed = readSeed();
+  validateSeed(seed);
   const timestamp = seed.generatedAt ?? new Date().toISOString();
 
   await db.transaction(async trx => {
-    if (process.argv.includes('--reset')) {
+    if (reset) {
       const userIds = seed.users.map((user: any) => user.id);
       const patientIds = seed.patients.map((patient: any) => patient.id);
       const hospitalIds = seed.hospitals.map((hospital: any) => hospital.id);
@@ -48,7 +52,7 @@ async function run(): Promise<void> {
     await trx('alerts').insert(seed.alerts.map((item: any) => ({ id: item.id, patient_id: item.patientId, follow_up_id: item.followUpId || null, level: item.level, motive: item.motive, observations: item.observations, status: item.status, created_by: item.createdBy, created_at: item.createdAt, resolved_by: item.resolvedBy || null, resolved_at: item.resolvedAt || null, resolution_note: item.resolutionNote || null }))).onConflict('id').merge();
   });
 
-  console.log(`Medice seed ${seed.seedVersion} aplicado (${process.argv.includes('--reset') ? 'reset + upsert' : 'upsert'}).`);
+  console.log(`Medice seed ${seed.seedVersion} aplicado (${reset ? 'reset + upsert' : 'upsert'}).`);
   await DatabaseConfig.close();
 }
 

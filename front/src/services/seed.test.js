@@ -1,9 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import seed from '../../../seed/medice-seed.json' with { type: 'json' };
+import { validateSeed } from '../../../seed/validate-seed.mjs';
 
 describe('shared Medice seed', () => {
   it('covers the complete demo domain with stable unique identifiers', () => {
+    assert.equal(validateSeed(seed), true);
     assert.ok(seed.seedVersion);
     assert.equal(new Set(seed.users.map((user) => user.id)).size, seed.users.length);
     assert.equal(new Set(seed.patients.map((patient) => patient.id)).size, seed.patients.length);
@@ -15,4 +17,3 @@ describe('shared Medice seed', () => {
     assert.deepEqual(seed.users.map((user) => user.role).sort(), ['admin', 'coordinator', 'volunteer']);
   });
 });
-

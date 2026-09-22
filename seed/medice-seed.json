@@ -1,6 +1,6 @@
 {
   "seedVersion": "2026-09-22.1",
-  "generatedAt": "2026-01-15T12:00:00.000Z",
+  "generatedAt": "2026-09-22T12:00:00.000Z",
   "users": [
     { "id": "seed-admin", "email": "admin.seed@medice.test", "name": "Admin Demo", "role": "admin", "picture": "" },
     { "id": "seed-coordinator", "email": "coordinator.seed@medice.test", "name": "Coordinador Demo", "role": "coordinator", "picture": "" },
@@ -62,13 +62,13 @@
     { "userId": "seed-volunteer", "phone": "1100000012", "specialtyAvailability": "Acompañamiento domiciliario", "tenure": "Menos de 1 año", "avatarUrl": "", "status": "active" }
   ],
   "followUps": [
-    { "id": "seed-followup-in-person", "patientId": "seed-patient-active", "authorId": "seed-volunteer", "occurredAt": "2026-01-12T10:00:00.000Z", "contactType": "in_person", "durationMinutes": 120, "symptoms": { "pain": "Leve", "nausea": "No", "dyspnea": "No" }, "symptomObservations": "Sin novedades ficticias", "socialRisk": { "housing": "Estable" }, "equipmentNeeds": [], "equipmentOther": "", "interventions": "Escucha activa", "clientMutationId": "seed-mutation-1" },
-    { "id": "seed-followup-remote", "patientId": "seed-patient-alert", "authorId": "seed-coordinator", "occurredAt": "2026-01-13T15:00:00.000Z", "contactType": "remote", "durationMinutes": 60, "symptoms": { "pain": "Moderado", "nausea": "Leve", "dyspnea": "No" }, "symptomObservations": "Seguimiento remoto ficticio", "socialRisk": { "caregiver": "Requiere apoyo" }, "equipmentNeeds": ["Oxímetro"], "equipmentOther": "", "interventions": "Orientación", "clientMutationId": "seed-mutation-2" },
-    { "id": "seed-followup-custom", "patientId": "seed-patient-active", "authorId": "seed-admin", "occurredAt": "2026-01-14T09:00:00.000Z", "contactType": "in_person", "durationMinutes": 45, "symptoms": { "pain": "No", "nausea": "No", "dyspnea": "No" }, "symptomObservations": "Duración personalizada ficticia", "socialRisk": {}, "equipmentNeeds": ["Otro"], "equipmentOther": "Material demo", "interventions": "Acompañamiento", "clientMutationId": "seed-mutation-3" }
+    { "id": "seed-followup-in-person", "patientId": "seed-patient-active", "authorId": "seed-volunteer", "occurredAt": "2026-09-20T10:00:00.000Z", "contactType": "in_person", "durationMinutes": 120, "symptoms": { "pain": "Leve", "nausea": "No", "dyspnea": "No" }, "symptomObservations": "Sin novedades ficticias", "socialRisk": { "housing": "Estable" }, "equipmentNeeds": [], "equipmentOther": "", "interventions": "Escucha activa", "clientMutationId": "seed-mutation-1" },
+    { "id": "seed-followup-remote", "patientId": "seed-patient-alert", "authorId": "seed-coordinator", "occurredAt": "2026-09-21T15:00:00.000Z", "contactType": "remote", "durationMinutes": 60, "symptoms": { "pain": "Moderado", "nausea": "Leve", "dyspnea": "No" }, "symptomObservations": "Seguimiento remoto ficticio", "socialRisk": { "caregiver": "Requiere apoyo" }, "equipmentNeeds": ["Oxímetro"], "equipmentOther": "", "interventions": "Orientación", "clientMutationId": "seed-mutation-2" },
+    { "id": "seed-followup-custom", "patientId": "seed-patient-active", "authorId": "seed-admin", "occurredAt": "2026-09-22T09:00:00.000Z", "contactType": "in_person", "durationMinutes": 45, "symptoms": { "pain": "No", "nausea": "No", "dyspnea": "No" }, "symptomObservations": "Duración personalizada ficticia", "socialRisk": {}, "equipmentNeeds": ["Otro"], "equipmentOther": "Material demo", "interventions": "Acompañamiento", "clientMutationId": "seed-mutation-3" }
   ],
   "alerts": [
-    { "id": "seed-alert-active-1", "patientId": "seed-patient-alert", "followUpId": "seed-followup-remote", "level": "high", "motive": "Síntoma ficticio", "observations": "Alerta activa de prueba", "status": "active", "createdBy": "seed-coordinator", "createdAt": "2026-01-13T15:30:00.000Z" },
-    { "id": "seed-alert-active-2", "patientId": "seed-patient-alert", "followUpId": null, "level": "medium", "motive": "Apoyo ficticio", "observations": "Segunda alerta activa de prueba", "status": "active", "createdBy": "seed-volunteer", "createdAt": "2026-01-14T11:00:00.000Z" },
-    { "id": "seed-alert-resolved", "patientId": "seed-patient-active", "followUpId": "seed-followup-in-person", "level": "low", "motive": "Consulta ficticia", "observations": "Alerta resuelta de prueba", "status": "resolved", "createdBy": "seed-volunteer", "createdAt": "2026-01-12T12:00:00.000Z", "resolvedBy": "seed-admin", "resolvedAt": "2026-01-13T12:00:00.000Z", "resolutionNote": "Resuelta durante prueba del seed" }
+    { "id": "seed-alert-active-1", "patientId": "seed-patient-alert", "followUpId": "seed-followup-remote", "level": "high", "motive": "Síntoma ficticio", "observations": "Alerta activa de prueba", "status": "active", "createdBy": "seed-coordinator", "createdAt": "2026-09-21T15:30:00.000Z" },
+    { "id": "seed-alert-active-2", "patientId": "seed-patient-alert", "followUpId": null, "level": "medium", "motive": "Apoyo ficticio", "observations": "Segunda alerta activa de prueba", "status": "active", "createdBy": "seed-volunteer", "createdAt": "2026-09-22T11:00:00.000Z" },
+    { "id": "seed-alert-resolved", "patientId": "seed-patient-active", "followUpId": "seed-followup-in-person", "level": "low", "motive": "Consulta ficticia", "observations": "Alerta resuelta de prueba", "status": "resolved", "createdBy": "seed-volunteer", "createdAt": "2026-09-20T12:00:00.000Z", "resolvedBy": "seed-admin", "resolvedAt": "2026-09-21T12:00:00.000Z", "resolutionNote": "Resuelta durante prueba del seed" }
   ]
 }
