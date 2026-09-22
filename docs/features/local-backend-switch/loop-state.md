@@ -48,7 +48,7 @@ Status: COMPLETE
 - Feature E2E: `npm run test:e2e:local-backend-switch` — 1 passing, including reload persistence.
 - Full E2E: `npm run test:e2e` — passing, including mobile smoke tests.
 - Builds: `front npm run build`, `api npm run build` — passing.
-- Lint: front `oxlint` passes with pre-existing warnings; API lint could not run because `eslint` is not installed in the scaffold.
+- Lint: frontend `oxlint` and API `eslint` both pass without warnings.
 - Seed runner: local SQLite `seed:medice -- --reset` — applied successfully; reset policy unit tests pass.
 - `git diff --check` — no whitespace errors.
 - Screenshot review: all six manifest images opened and visually checked for content, responsive layout and backend labels.

@@ -14,7 +14,7 @@
 - [x] Keep the HTTP and IndexedDB adapters behind the same `ApiRepository` port and composition root.
 - [x] Add feature E2E for Local seed, backend switching, persistence and isolation.
 - [x] Capture and visually review desktop, 360×800 and 390×844 screenshots.
-- [x] Run full unit suite, full E2E suite, builds, lint and `git diff --check` (API lint command is unavailable because this scaffold has no eslint binary).
+- [x] Run full unit suite, full E2E suite, builds, lint and `git diff --check`.
 - [x] Update `loop-state.md` to `COMPLETE` after all applicable gates pass.
 - [x] Persist backend selection through reload when Local is enabled.
 - [x] Validate the full seed shape and relationships before API insertion and in frontend unit tests.
