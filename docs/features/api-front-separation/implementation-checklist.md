@@ -4,7 +4,7 @@ Esta lista define cuándo `api/` está terminada e integrada de forma comprobabl
 
 Las dos auditorías redundantes de cuatro agentes están resumidas en [gap-analysis.md](./gap-analysis.md). Los contratos y decisiones de producto están cerrados en los specs; no reabrirlos durante implementación.
 
-## Estado de implementación (iteración 36)
+## Estado de implementación (iteración 40)
 
 Los recorridos de producto tienen evidencia local contra SQLite y el cotejo por criterio está en [acceptance-coverage.md](./acceptance-coverage.md). Continúan abiertos solo los puntos enumerados aquí; no se valida Turso.
 
@@ -47,6 +47,7 @@ Los recorridos de producto tienen evidencia local contra SQLite y el cotejo por 
 - [x] Gate local iteración 36: API 49 suites/357 tests; front 19 tests; Playwright raíz 6/6; acceptance aislado 1/1; builds API/front, lint front, Docker build + SQLite smoke (`/api/health/ready`, `/`, `/patients/123` todos 200) y `git diff --check` pasaron. Sin Turso.
 - [x] Iteración 37: seguimientos (listado, validación, idempotencia, transacción con alerta, auditoría y notificación genérica) pasan por `MediceFollowUpService`/repositorio SQLite; el contrato y payload del front se conservan.
 - [x] Gate local iteración 37: API 50 suites/359 tests; front 19; E2E raíz 6/6 y acceptance 1/1; builds API/front, lint y `git diff --check` verdes. No se validó Turso.
+- [x] Iteración 40: voluntarios, allow-list y estadísticas pasan por `MediceDirectoryService`/repositorio SQLite; se preservan búsqueda, conteo de asignaciones, auditoría, conflictos de email y métricas personales/globales.
 - [x] Iteración 38: alertas (listado paginado, alta, resolución con nota y auditoría) pasan por `MediceAlertService`/repositorio SQLite; se mantiene la notificación genérica al equipo asignado.
 - [x] Iteración 39: lectura y edición del perfil propio pasan por `MediceProfileService`/repositorio SQLite; campos protegidos, límites, URL de avatar y conteo de asignaciones se mantienen en el servicio.
 - [x] En iteración 5, `npm run test:e2e:api-front-separation` pasó y se revisó visualmente `28-volunteer-profile.png`.
@@ -107,7 +108,7 @@ Los recorridos de producto tienen evidencia local contra SQLite y el cotejo por 
 
 - [x] Definir migraciones Knex compatibles con SQLite local/test para usuarios/roles/sesiones, pacientes, cuidadores, hospitales, asignaciones, seguimientos, alertas, allow-list, auditoría y suscripciones push.
 - [x] Añadir claves foráneas, índices, restricciones e invariantes: relación de cuidador vigente, DNI según política acordada, claves únicas de idempotencia, integridad de asignaciones y estados de alerta.
-- [ ] Completar repositorios y servicios de dominio separados de HTTP para todas las áreas Medice. En iteración 34 se extrajeron lectura, filtros, paginación y DTO de pacientes a `MedicePatientService` + `MedicePatientRepository`/adaptador SQLite; siguen pendientes altas/ediciones, seguimientos, alertas, hospitales, perfiles, asignaciones y estadísticas.
+- [ ] Completar la revisión arquitectónica del agregador `bootstrap` y cualquier consulta duplicada restante en `MediceController`; las áreas pacientes, centros/asignaciones, seguimientos, alertas, perfil, voluntarios, allow-list y estadísticas ya tienen servicios/repositorios.
 - [x] Persistir cada seguimiento como historial append-only con autor, hora UTC y campos validados; no sobrescribir historial.
 - [x] Crear alerta en la misma transacción que su seguimiento cuando el formulario incluye nivel/motivo/observaciones; resolver solo mediante operación explícita y conservar quién/cuándo/nota.
 - [x] Implementar asignación/desasignación de pacientes y actualizar/invalidar el acceso offline correspondiente.

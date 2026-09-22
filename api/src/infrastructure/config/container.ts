@@ -54,6 +54,8 @@ import { MediceAlertService } from '@/domain/services/MediceAlertService';
 import { SqliteMediceAlertRepository } from '@/infrastructure/adapters/repositories/SqliteMediceAlertRepository';
 import { MediceProfileService } from '@/domain/services/MediceProfileService';
 import { SqliteMediceProfileRepository } from '@/infrastructure/adapters/repositories/SqliteMediceProfileRepository';
+import { MediceDirectoryService } from '@/domain/services/MediceDirectoryService';
+import { SqliteMediceDirectoryRepository } from '@/infrastructure/adapters/repositories/SqliteMediceDirectoryRepository';
 
 // Database
 container.register('Database', {
@@ -132,6 +134,11 @@ container.register(
   { useClass: SqliteMediceProfileRepository },
   { lifecycle: Lifecycle.Singleton },
 );
+container.register(
+  'MediceDirectoryRepository',
+  { useClass: SqliteMediceDirectoryRepository },
+  { lifecycle: Lifecycle.Singleton },
+);
 container.register('ClinicalAlertNotifier', { useToken: 'GenericNotificationService' });
 
 // Auth repository
@@ -195,6 +202,7 @@ container.register('MediceOperationsService', { useClass: MediceOperationsServic
 container.register('MediceFollowUpService', { useClass: MediceFollowUpService });
 container.register('MediceAlertService', { useClass: MediceAlertService });
 container.register('MediceProfileService', { useClass: MediceProfileService });
+container.register('MediceDirectoryService', { useClass: MediceDirectoryService });
 container.register(SocketIORealtimeGateway, { useClass: SocketIORealtimeGateway });
 
 // Application Handlers

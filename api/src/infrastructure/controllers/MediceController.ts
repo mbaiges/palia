@@ -10,6 +10,7 @@ import { MediceOperationsService } from '@/domain/services/MediceOperationsServi
 import { MediceFollowUpService } from '@/domain/services/MediceFollowUpService';
 import { MediceAlertService } from '@/domain/services/MediceAlertService';
 import { MediceProfileService } from '@/domain/services/MediceProfileService';
+import { MediceDirectoryService } from '@/domain/services/MediceDirectoryService';
 import { GenericNotificationService } from '@/infrastructure/services/GenericNotificationService';
 
 const now = () => new Date().toISOString();
@@ -34,6 +35,8 @@ export class MediceController {
     private readonly alertService: MediceAlertService,
     @inject('MediceProfileService')
     private readonly profileService: MediceProfileService,
+    @inject('MediceDirectoryService')
+    private readonly directoryService: MediceDirectoryService,
   ) {}
   private get db(): Knex {
     return DatabaseConfig.getKnex();
@@ -606,38 +609,7 @@ export class MediceController {
     res.json({ success: true });
   }
   async listVolunteers(req: Request, res: Response): Promise<void> {
-    const rows = await this.db('volunteer_profiles as vp')
-      .join('users as u', 'u.id', 'vp.user_id')
-      .where('vp.status', 'active')
-      .select('vp.*', 'u.name', 'u.email', 'u.profile_image_id');
-    const q = normalizeText(req.query.q);
-    const filtered = rows.filter(
-      row =>
-        !q ||
-        [row.name, row.email, row.specialty_availability].some(value =>
-          normalizeText(value).includes(q)
-        )
-    );
-    res.json({
-      data: await Promise.all(
-        filtered.map(async row => ({
-          id: row.user_id,
-          userId: row.user_id,
-          name: row.name,
-          email: row.email,
-          phone: row.phone,
-          specialty: row.specialty_availability,
-          tenure: row.tenure,
-          avatar: row.avatar_url ?? row.profile_image_id,
-          status: row.status,
-          activePatients: await this.db('patient_assignments')
-            .where({ user_id: row.user_id })
-            .count({ count: '*' })
-            .first()
-            .then(value => Number(value?.count ?? 0)),
-        }))
-      ),
-    });
+    res.json(await this.directoryService.volunteers(req.query.q));
   }
 
   async updateMyProfile(req: Request, res: Response): Promise<void> {
@@ -651,106 +623,17 @@ export class MediceController {
     res.json({ data });
   }
   async addVolunteerAllowlist(req: Request, res: Response): Promise<void> {
-    const email = String(req.body?.email ?? '')
-      .trim()
-      .toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      res.status(422).json({ error: 'Ingrese un email válido.' });
-      return;
-    }
-    try {
-      await this.db.transaction(async trx => {
-        await trx('app_settings_allowed_users').insert({
-          email,
-          created_at: now(),
-        });
-        await this.recordAudit(
-          trx,
-          this.userId(req),
-          'access.allowlist_added',
-          'allowlist',
-          null,
-        );
-      });
-    } catch (error: any) {
-      const databaseCode = String(error?.code ?? '');
-      const databaseMessage = String(error?.message ?? '').toLowerCase();
-      if (
-        databaseCode.includes('CONSTRAINT') &&
-        databaseMessage.includes('app_settings_allowed_users.email')
-      ) {
-        res.status(409).json({ error: 'Ese correo ya está autorizado.' });
-        return;
-      }
-      throw error;
-    }
-    res.status(201).json({ data: { email, role: 'volunteer' } });
+    try { res.status(201).json({ data: await this.directoryService.addAllowlist(req.body?.email, this.userId(req)) }); }
+    catch (error: any) { if (error.status) { res.status(error.status).json({ error: error.message }); return; } throw error; }
   }
 
   async listVolunteerAllowlist(_req: Request, res: Response): Promise<void> {
-    const rows = await this.db('app_settings_allowed_users')
-      .select('email', 'created_at')
-      .orderBy('email');
-    res.json({
-      data: rows.map((row: any) => ({
-        id: row.email,
-        email: row.email,
-        createdAt: row.created_at,
-        status: 'Autorizado',
-        role: 'Voluntario',
-      })),
-    });
+    res.json(await this.directoryService.allowlist());
   }
 
   async getStats(req: Request, res: Response): Promise<void> {
-    const isGlobal = req.path.endsWith('/global');
-    const userId = this.userId(req);
-    const since = new Date();
-    since.setDate(since.getDate() - Number(req.query.periodDays ?? 7));
-    const query = this.db('follow_ups').where(
-      'occurred_at',
-      '>=',
-      since.toISOString()
-    );
-    if (!isGlobal) query.where({ author_id: userId });
-    const recent = await query.clone().count({ count: '*' }).first();
-    const all = this.db('follow_ups');
-    if (!isGlobal) all.where({ author_id: userId });
-    const totals = await all
-      .select(
-        this.db.raw('COUNT(*) as visits'),
-        this.db.raw('COALESCE(SUM(duration_minutes), 0) as duration_minutes'),
-        this.db.raw('COUNT(DISTINCT patient_id) as patients_attended')
-      )
-      .first();
-    const data: Record<string, number> = {
-      visits: Number(totals?.visits ?? 0),
-      durationHours: Number(totals?.duration_minutes ?? 0) / 60,
-      patientsAttended: Number(totals?.patients_attended ?? 0),
-      recentVisits: Number(recent?.count ?? 0),
-    };
-    if (isGlobal) {
-      const [activeAlerts, activePatients, activeVolunteers] =
-        await Promise.all([
-          this.db('alerts')
-            .where({ status: 'active' })
-            .count({ count: '*' })
-            .first(),
-          this.db('patients')
-            .whereNull('archived_at')
-            .count({ count: '*' })
-            .first(),
-          this.db('volunteer_profiles')
-            .where({ status: 'active' })
-            .count({ count: '*' })
-            .first(),
-        ]);
-      Object.assign(data, {
-        activeAlerts: Number(activeAlerts?.count ?? 0),
-        activePatients: Number(activePatients?.count ?? 0),
-        activeVolunteers: Number(activeVolunteers?.count ?? 0),
-      });
-    }
+    const global = req.path.endsWith('/global');
+    const data = await this.directoryService.stats(this.userId(req), global, Number(req.query.periodDays ?? 7));
     res.json({ data });
   }
 }
