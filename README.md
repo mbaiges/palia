@@ -1,5 +1,7 @@
 # Medice
 
+La guía operativa para configurar y probar el sistema está en [docs/OPERATIONS-TESTING-GUIDE.md](docs/OPERATIONS-TESTING-GUIDE.md).
+
 Monorepo con dos aplicaciones independientes y un contrato de API compartido:
 
 - `front/`: React + Vite. Usa un cliente HTTP centralizado, rutas relativas `/api`, cookie de sesión y CSRF.
