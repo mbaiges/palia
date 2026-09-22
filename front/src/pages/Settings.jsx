@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiRepository, dbService } from '../services/container';
+import { apiRepository, dbService, getBackendInfo, resetActiveLocalSeed, switchBackend, getPendingOutboxCount, discardActiveOutbox } from '../services/container';
 import OfflineSync from '../components/OfflineSync';
 import { applyTheme, getStoredTheme } from '../tokens.js';
 import { scrollToSection } from '../utils/navigation';
@@ -19,6 +19,19 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
   const [pushMessage, setPushMessage] = useState('');
   const [activeSubTab, setActiveSubTab] = useState('preferencias');
   const [syncFocusSection, setSyncFocusSection] = useState(null);
+  const [backendInfo, setBackendInfo] = useState(() => getBackendInfo());
+  const [backendBusy, setBackendBusy] = useState(false);
+  const [backendMessage, setBackendMessage] = useState('');
+  const [pendingOutbox, setPendingOutbox] = useState(0);
+
+  const refreshPendingOutbox = () => getPendingOutboxCount().then(setPendingOutbox).catch(() => setPendingOutbox(0));
+
+  useEffect(() => {
+    refreshPendingOutbox();
+    const handler = () => refreshPendingOutbox();
+    window.addEventListener('medice:data-updated', handler);
+    return () => window.removeEventListener('medice:data-updated', handler);
+  }, [backendInfo.provider]);
 
   useEffect(() => {
     let active = true;
@@ -54,6 +67,42 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
     applyTheme(nextTheme);
   };
 
+  const changeBackend = async (provider) => {
+    if (provider === backendInfo.provider) return;
+    const confirmed = window.confirm(provider === 'local'
+      ? 'Vas a cambiar a datos locales ficticios. No se sincronizarán con la API. ¿Continuar?'
+      : 'Vas a volver a la API. Los cambios locales no se enviarán. ¿Continuar?');
+    if (!confirmed) return;
+    setBackendBusy(true); setBackendMessage('');
+    try {
+      const next = await switchBackend(provider);
+      setBackendInfo(next);
+      setBackendMessage(`Backend activo: ${next.label}.`);
+    } catch (error) {
+      if (error.code === 'PENDING_OUTBOX') setPendingOutbox(error.pending ?? 0);
+      setBackendMessage(error.message || 'No se pudo cambiar el backend.');
+    } finally { setBackendBusy(false); }
+  };
+
+  const discardPending = async () => {
+    if (!window.confirm('Se descartarán los seguimientos offline pendientes. ¿Continuar?')) return;
+    setBackendBusy(true);
+    try {
+      await discardActiveOutbox();
+      await refreshPendingOutbox();
+      setBackendMessage('Cambios offline descartados.');
+    } catch (error) { setBackendMessage(error.message || 'No se pudieron descartar los cambios.'); }
+    finally { setBackendBusy(false); }
+  };
+
+  const resetLocalSeed = async () => {
+    if (!window.confirm('Esto reemplazará todos los datos locales por el seed demo. ¿Continuar?')) return;
+    setBackendBusy(true); setBackendMessage('');
+    try { await resetActiveLocalSeed(); setBackendMessage('Seed local cargado correctamente.'); }
+    catch (error) { setBackendMessage(error.message || 'No se pudo cargar el seed local.'); }
+    finally { setBackendBusy(false); }
+  };
+
   const togglePush = async () => {
     setPushBusy(true); setPushMessage('');
     try {
@@ -87,6 +136,24 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
           Gestione las preferencias de la aplicación, la sincronización offline y accesos.
         </p>
       </div>
+
+      {backendInfo.enabled && (
+        <section className="card" aria-label="Backend de datos" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '18px' }}>Backend de prueba</h2>
+            <p style={{ margin: '4px 0 0', color: 'var(--color-on-surface-variant)', fontSize: '13px' }}>
+              Activo: <strong>{backendInfo.label}</strong>. El modo Local usa IndexedDB y no comparte datos con la API.
+            </p>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <button type="button" className={`btn ${backendInfo.provider === 'http' ? 'btn-primary' : 'btn-tertiary'}`} disabled={backendBusy} onClick={() => changeBackend('http')}>Usar API</button>
+            <button type="button" className={`btn ${backendInfo.provider === 'local' ? 'btn-primary' : 'btn-tertiary'}`} disabled={backendBusy} onClick={() => changeBackend('local')}>Usar Local</button>
+            {backendInfo.provider === 'local' && <button type="button" className="btn btn-secondary" disabled={backendBusy} onClick={resetLocalSeed}>Cargar seed local</button>}
+            {pendingOutbox > 0 && <button type="button" className="btn btn-tertiary" disabled={backendBusy} onClick={discardPending}>Descartar {pendingOutbox} pendientes</button>}
+          </div>
+          {backendMessage && <div role="status" style={{ color: 'var(--color-on-surface-variant)', fontSize: '13px' }}>{backendMessage}</div>}
+        </section>
+      )}
 
       {/* Tabs Menu */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderBottom: '1px solid var(--color-outline-variant)', paddingBottom: '8px' }}>

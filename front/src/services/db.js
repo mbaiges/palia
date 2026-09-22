@@ -4,7 +4,7 @@ import { syncPendingFollowUps } from './offlineSync';
 
 const emptyState = () => ({ patients: [], hospitals: [], followUps: [], alerts: [], volunteers: [], invitations: [], profile: null, stats: {} });
 
-export function createDbService({ apiRepository = defaultApiRepository, offlineStore = defaultOfflineStore } = {}) {
+export function createDbService({ apiRepository = defaultApiRepository, offlineStore = defaultOfflineStore, backendProvider = 'http' } = {}) {
 let state = emptyState();
 let initialized = false;
 
@@ -143,7 +143,7 @@ const service = {
   async deleteHospital(id) { await apiRepository.hospitals.archive(id); await refresh(); },
   async restoreHospital(id) { await apiRepository.hospitals.restore(id); await refresh(); },
   getAllFollowUps: () => state.followUps,
-  isCloudBackend: () => true,
+  isCloudBackend: () => backendProvider === 'http',
   getAlerts: () => state.alerts,
   async resolveAlert(id, note) { await apiRepository.alerts.resolve(id, note); await refresh(); },
   async createAlert(patientId, alert) { await apiRepository.patients.createAlert(patientId, alert); await refresh(); },

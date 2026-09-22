@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { dbService } from '../services/container';
+import { dbService, getBackendInfo } from '../services/container';
 import { useMobilePopoverPosition } from '../hooks/useMobilePopoverPosition';
 
 function NotificationPopoverContent({ alerts, onViewPatient, onClose }) {
@@ -127,6 +127,7 @@ function ProfilePopoverContent({ user, onNavigate, onLogout, onClose }) {
 
 export default function Header({ searchVal, setSearchVal, onSearchFocus, user, onLogout, onNavigate, onViewPatient, alertPatients = [] }) {
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  const [backendInfo, setBackendInfo] = useState(() => getBackendInfo());
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const notifRef = useRef(null);
@@ -145,6 +146,12 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user, o
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleBackend = (event) => setBackendInfo(event.detail ?? getBackendInfo());
+    window.addEventListener('medice:backend-changed', handleBackend);
+    return () => window.removeEventListener('medice:backend-changed', handleBackend);
   }, []);
 
   useEffect(() => {
@@ -272,7 +279,7 @@ export default function Header({ searchVal, setSearchVal, onSearchFocus, user, o
               {isOnline ? 'cloud' : 'cloud_off'}
             </span>
             <span className="db-status-text">
-              {isOnline ? 'API centralizada' : 'Sin conexión · cola local'}
+              {backendInfo.provider === 'local' ? 'Local (IndexedDB)' : isOnline ? 'API centralizada' : 'Sin conexión · cola local'}
             </span>
           </div>
         </div>

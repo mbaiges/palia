@@ -12,7 +12,7 @@ export default defineConfig({
   // The former UI suite used the retired localStorage demo database and
   // hard-coded demo people. Run the API-backed acceptance and responsive
   // smoke suites until those legacy scenarios are rewritten for live data.
-  testMatch: ["api-front-separation.spec.js", "responsive-smoke.spec.js"],
+  testMatch: ["api-front-separation.spec.js", "responsive-smoke.spec.js", "local-backend-switch.spec.js"],
   outputDir: "./test-results/api-front-separation",
   timeout: 30000,
   workers: 1,
@@ -57,6 +57,8 @@ export default defineConfig({
       env: {
         SCAFFOLD_API_PROXY_TARGET: apiOrigin,
         VITE_GOOGLE_CLIENT_ID: "test-google-client-id",
+        VITE_LOCAL_BACKEND_ENABLED: "true",
+        VITE_DEFAULT_BACKEND: "http",
       },
     },
   ],

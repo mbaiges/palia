@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Medice shared seed",
+  "type": "object",
+  "required": ["seedVersion", "users", "allowedUsers", "hospitals", "patients", "profiles", "followUps", "alerts"],
+  "properties": {
+    "seedVersion": { "type": "string" },
+    "users": { "type": "array" },
+    "allowedUsers": { "type": "array", "items": { "type": "string" } },
+    "hospitals": { "type": "array" },
+    "patients": { "type": "array" },
+    "profiles": { "type": "array" },
+    "followUps": { "type": "array" },
+    "alerts": { "type": "array" }
+  }
+}

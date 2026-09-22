@@ -1,13 +1,13 @@
 const DATABASE = "palia-offline-v1";
 const VERSION = 2;
 
-function openDatabase() {
+function openDatabase(database = DATABASE) {
   if (!("indexedDB" in globalThis))
     return Promise.reject(
       new Error("Este navegador no permite guardar datos offline."),
     );
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DATABASE, VERSION);
+    const request = indexedDB.open(database, VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
       const transaction = request.transaction;
@@ -45,8 +45,8 @@ function openDatabase() {
   });
 }
 
-async function transact(storeName, mode, run) {
-  const db = await openDatabase();
+async function transact(database, storeName, mode, run) {
+  const db = await openDatabase(database);
   return new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, mode);
     const store = tx.objectStore(storeName);
@@ -73,9 +73,10 @@ async function transact(storeName, mode, run) {
   });
 }
 
-export const offlineStore = {
+export function createOfflineStore(database = DATABASE) {
+  return {
   saveIdentity(identity) {
-    return transact("profiles", "readwrite", (store) =>
+    return transact(database, "profiles", "readwrite", (store) =>
       store.put({
         id: identity.id,
         name: identity.displayName,
@@ -85,31 +86,31 @@ export const offlineStore = {
     );
   },
   getIdentity(userId) {
-    return transact("profiles", "readonly", (store) => store.get(userId));
+    return transact(database, "profiles", "readonly", (store) => store.get(userId));
   },
   async getLastIdentity() {
-    const profiles = await transact("profiles", "readonly", (store) =>
+    const profiles = await transact(database, "profiles", "readonly", (store) =>
       store.getAll(),
     );
     return profiles.sort((a, b) => b.savedAt - a.savedAt)[0] ?? null;
   },
   cachePatient(userId, patient) {
-    return transact("patients", "readwrite", (store) =>
+    return transact(database, "patients", "readwrite", (store) =>
       store.put({ userId, ...patient, cachedAt: Date.now() }),
     );
   },
   getPatient(userId, patientId) {
-    return transact("patients", "readonly", (store) =>
+    return transact(database, "patients", "readonly", (store) =>
       store.get([userId, patientId]),
     );
   },
   removePatient(userId, patientId) {
-    return transact("patients", "readwrite", (store) =>
+    return transact(database, "patients", "readwrite", (store) =>
       store.delete([userId, patientId]),
     );
   },
   listPatients(userId) {
-    return transact("patients", "readonly", (store) =>
+    return transact(database, "patients", "readonly", (store) =>
       store.getAll(IDBKeyRange.bound([userId, ""], [userId, "\uffff"])),
     );
   },
@@ -117,17 +118,17 @@ export const offlineStore = {
     const patients = await this.listPatients(userId);
     await Promise.all(
       patients.map((patient) =>
-        transact("patients", "readwrite", (store) =>
+        transact(database, "patients", "readwrite", (store) =>
           store.delete([userId, patient.id]),
         ),
       ),
     );
   },
   removeIdentity(userId) {
-    return transact("profiles", "readwrite", (store) => store.delete(userId));
+    return transact(database, "profiles", "readwrite", (store) => store.delete(userId));
   },
   enqueue(userId, patientId, payload) {
-    return transact("outbox", "readwrite", (store) =>
+    return transact(database, "outbox", "readwrite", (store) =>
       store.put({
         id: payload.clientMutationId,
         userId,
@@ -141,16 +142,24 @@ export const offlineStore = {
     );
   },
   listOutbox(userId) {
-    return transact("outbox", "readonly", (store) =>
+    return transact(database, "outbox", "readonly", (store) =>
       store.index("userId").getAll(userId),
     );
   },
   updateOutbox(item) {
-    return transact("outbox", "readwrite", (store) => store.put(item));
+    return transact(database, "outbox", "readwrite", (store) => store.put(item));
   },
   removeOutbox(userId, id) {
-    return transact("outbox", "readwrite", (store) =>
+    return transact(database, "outbox", "readwrite", (store) =>
       store.delete([userId, id]),
     );
   },
-};
+  async clearOutbox(userId) {
+    const pending = await this.listOutbox(userId);
+    await Promise.all(pending.map((item) => this.removeOutbox(userId, item.id)));
+    return pending.length;
+  },
+  };
+}
+
+export const offlineStore = createOfflineStore();

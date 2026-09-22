@@ -9,13 +9,12 @@ import NewFollowUp from './pages/NewFollowUp';
 import Volunteers from './pages/Volunteers';
 import Stats from './pages/Stats';
 import Administration from './pages/Administration';
-import { apiRepository, dbService } from './services/container';
+import { apiRepository, dbService, offlineStore } from './services/container';
 import Login from './pages/Login';
 import Settings from './pages/Settings';
 import HomeDashboard from './pages/HomeDashboard';
 import { scrollToSection, resetContentScroll } from './utils/navigation';
 import { syncMobileLayout, syncViewportHeight, syncMobileNavOffset } from './utils/viewport';
-import { offlineStore } from './services/offlineStore';
 import { disablePushNotifications, syncExistingPushSubscription } from './services/pushNotifications';
 
 function App() {
@@ -83,9 +82,25 @@ function App() {
     const unsubscribe = dbService.subscribe(() => setDataVersion((version) => version + 1));
     const onUnauthorized = () => { dbService.clear(); setUser(null); };
     window.addEventListener('medice:unauthorized', onUnauthorized);
+    const onBackendChanged = async () => {
+      if (!active) return;
+      setAuthReady(false);
+      try {
+        const auth = await apiRepository.auth.me();
+        await dbService.initialize();
+        const identity = { ...auth.user, displayName: auth.user.name, photoURL: auth.user.profileImageId, role: auth.role };
+        await dbService.saveOfflineIdentity({ id: identity.id, displayName: identity.displayName, role: identity.role });
+        if (active) setUser(identity);
+      } catch {
+        if (active) setUser(null);
+      } finally {
+        if (active) setAuthReady(true);
+      }
+    };
+    window.addEventListener('medice:backend-changed', onBackendChanged);
     const syncWhenOnline = () => { dbService.syncOffline().catch(() => undefined); };
     window.addEventListener('online', syncWhenOnline);
-    return () => { active = false; unsubscribe(); window.removeEventListener('medice:unauthorized', onUnauthorized); window.removeEventListener('online', syncWhenOnline); };
+    return () => { active = false; unsubscribe(); window.removeEventListener('medice:unauthorized', onUnauthorized); window.removeEventListener('medice:backend-changed', onBackendChanged); window.removeEventListener('online', syncWhenOnline); };
   }, []);
 
   const normalizeNavOptions = (secondArg) => {

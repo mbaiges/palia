@@ -1,0 +1,18 @@
+# Implementation checklist
+
+- [x] Add the canonical shared seed under `seed/` with schema and documentation.
+- [x] Add the SQLite API seed runner with safe upsert default and local/test-only reset.
+- [x] Implement `IndexedDBApiRepository` for the complete `ApiRepository` contract.
+- [x] Add local admin demo identity and local authorization behavior.
+- [x] Make repository selection runtime configurable for DEV, E2E and staging, never production.
+- [x] Make `dbService`, auth, push and offline synchronization follow the active repository.
+- [x] Namespace IndexedDB data and outbox by provider and user (the HTTP namespace keeps the legacy `palia-offline-v1` migration path).
+- [x] Block backend switching while pending outbox items exist unless they are synchronized or explicitly discarded.
+- [x] Add Settings controls for active backend, local seed reset and local mode status.
+- [x] Keep Local push unavailable and prevent local operations from reaching the API.
+- [x] Add deterministic seed and end-to-end isolation coverage; repository behavior is exercised through the browser IndexedDB path.
+- [x] Keep the HTTP and IndexedDB adapters behind the same `ApiRepository` port and composition root.
+- [x] Add feature E2E for Local seed, backend switching, persistence and isolation.
+- [x] Capture and visually review desktop, 360×800 and 390×844 screenshots.
+- [x] Run full unit suite, full E2E suite, builds, lint and `git diff --check` (API lint command is unavailable because this scaffold has no eslint binary).
+- [x] Update `loop-state.md` to `COMPLETE` after all applicable gates pass.

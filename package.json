@@ -14,6 +14,7 @@
     "api:test": "npm test --prefix api",
     "test": "npm run api:test && npm run front:test:unit",
     "test:e2e": "npm run front:test:e2e",
-    "test:e2e:api-front-separation": "npm run front:test:e2e:api-front-separation"
+    "test:e2e:api-front-separation": "npm run front:test:e2e:api-front-separation",
+    "test:e2e:local-backend-switch": "npm run test:e2e:local-backend-switch --prefix front"
   }
 }

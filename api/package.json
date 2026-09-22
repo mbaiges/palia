@@ -16,6 +16,7 @@
     "migrate:rollback": "knex migrate:rollback --knexfile knexfile.ts",
     "migrate:status": "knex migrate:status --knexfile knexfile.ts",
     "assign-admin-users": "cross-env ts-node -r tsconfig-paths/register scripts/assign-admin-users.ts",
+    "seed:medice": "cross-env USE_LOCAL_DB=true ts-node -r tsconfig-paths/register scripts/seed-medice.ts",
     "db:reset-turso": "ts-node -r tsconfig-paths/register scripts/reset-turso.ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
