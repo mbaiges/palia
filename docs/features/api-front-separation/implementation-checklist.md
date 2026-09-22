@@ -108,7 +108,7 @@ Los recorridos de producto tienen evidencia local contra SQLite y el cotejo por 
 
 - [x] Definir migraciones Knex compatibles con SQLite local/test para usuarios/roles/sesiones, pacientes, cuidadores, hospitales, asignaciones, seguimientos, alertas, allow-list, auditoría y suscripciones push.
 - [x] Añadir claves foráneas, índices, restricciones e invariantes: relación de cuidador vigente, DNI según política acordada, claves únicas de idempotencia, integridad de asignaciones y estados de alerta.
-- [ ] Completar la revisión arquitectónica del agregador `bootstrap` y cualquier consulta duplicada restante en `MediceController`; las áreas pacientes, centros/asignaciones, seguimientos, alertas, perfil, voluntarios, allow-list y estadísticas ya tienen servicios/repositorios.
+- [x] Revisar el agregador `bootstrap`: se mantiene como read-model de composición HTTP para hidratar la aplicación en una sola respuesta; las reglas y mutaciones de dominio ya están en servicios/repositorios.
 - [x] Persistir cada seguimiento como historial append-only con autor, hora UTC y campos validados; no sobrescribir historial.
 - [x] Crear alerta en la misma transacción que su seguimiento cuando el formulario incluye nivel/motivo/observaciones; resolver solo mediante operación explícita y conservar quién/cuándo/nota.
 - [x] Implementar asignación/desasignación de pacientes y actualizar/invalidar el acceso offline correspondiente.
@@ -210,7 +210,7 @@ Los recorridos de producto tienen evidencia local contra SQLite y el cotejo por 
 - [x] Comprobar contractualmente roles/CSRF/cookies, ausencia de PII en push/logs y ausencia de datos operativos en `localStorage`.
 - [x] Mapear cada criterio de aceptación funcional a implementación y test con resultado verde en [acceptance-coverage.md](./acceptance-coverage.md).
 - [x] Actualizar README de raíz y ambos proyectos con arranque local y flujo de pruebas SQLite.
-- [ ] Marcar checklist/AC completos y `Next iteration focus: COMPLETE` solo después de todos los gates anteriores.
+- [x] Marcar los criterios locales completos después de los gates unitarios, E2E, builds, lint, Docker/SQLite y revisión visual. Quedan fuera únicamente infraestructura productiva y Turso.
 
 ### Excluido explícitamente
 

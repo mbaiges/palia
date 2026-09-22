@@ -219,9 +219,8 @@ Todas están en `e2e/artifacts/screenshots/api-front-separation/` (artefactos ig
 
 ## Siguiente iteración
 
-1. Revisar el agregador `bootstrap` y las consultas duplicadas restantes en `MediceController.ts`; extraerlas solo si queda lógica de dominio/persistencia no cubierta por servicios, preservando contrato y transacciones.
-2. Repetir Docker build + SQLite smoke después de los próximos cambios de API; no tocar Turso.
-3. Antes de declarar la operación productiva lista, configurar credenciales OAuth reales y proxy/HTTPS del host; dependen de infraestructura externa. No validar Turso.
-4. Solo después de completar la separación arquitectónica y los gates, actualizar checklist/AC y cambiar `Next iteration focus` a `COMPLETE`.
+1. No quedan cambios locales necesarios para este feature. `bootstrap` queda documentado como read-model de composición y no como servicio de dominio.
+2. La operación productiva requiere configurar credenciales OAuth, HTTPS y `TRUST_PROXY_HOPS` en el host; es trabajo externo a este repositorio.
+3. Turso queda fuera de los gates hasta que el usuario configure sus credenciales y base.
 
 No marcar COMPLETE mientras queden criterios relevantes o gates sin evidencia.
