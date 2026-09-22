@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { dbService } from '../services/db';
+import { dbService } from '../services/container';
 import { useMobilePopoverPosition } from '../hooks/useMobilePopoverPosition';
 
 function NotificationPopoverContent({ alerts, onViewPatient, onClose }) {

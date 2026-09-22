@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { api, ApiError } from '../services/apiClient';
+import { apiRepository as defaultApiRepository } from '../services/container';
+import { isAccessDeniedError } from '../services/repositories/apiRepository';
 
-export default function Login({ onLoginSuccess }) {
+export default function Login({ onLoginSuccess, apiRepository = defaultApiRepository }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -18,9 +19,9 @@ export default function Login({ onLoginSuccess }) {
   }, [googleClientId]);
 
   const completeLogin = async (result) => {
-    const user = result?.data?.user;
+    const user = result?.user;
     if (!user) throw new Error('La API no devolvió la identidad autenticada.');
-    await onLoginSuccess({ ...user, displayName: user.name, photoURL: user.profileImageId, role: result.data.role });
+    await onLoginSuccess({ ...user, displayName: user.name, photoURL: user.profileImageId, role: result.role });
   };
 
   const handleGoogleLogin = () => {
@@ -36,8 +37,8 @@ export default function Login({ onLoginSuccess }) {
         scope: 'openid email profile',
         ux_mode: 'popup',
         callback: async (response) => {
-          try { await completeLogin(await api.auth.google(response.code)); }
-          catch (err) { setError(err instanceof ApiError && err.status === 403 ? 'Tu cuenta no está autorizada para usar Palia.' : err.message); }
+          try { await completeLogin(await apiRepository.auth.google(response.code)); }
+          catch (err) { setError(isAccessDeniedError(err) ? 'Tu cuenta no está autorizada para usar Palia.' : err.message); }
           finally { setLoading(false); }
         },
         error_callback: (response) => { setError(response.message || 'No se pudo completar la autenticación con Google.'); setLoading(false); },
@@ -48,7 +49,7 @@ export default function Login({ onLoginSuccess }) {
 
   const handleDevLogin = async (email, name) => {
     setError(''); setLoading(true);
-    try { await completeLogin(await api.auth.devBypass(email, name)); }
+    try { await completeLogin(await apiRepository.auth.devBypass(email, name)); }
     catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };

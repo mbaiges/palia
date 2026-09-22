@@ -1,12 +1,12 @@
-import { api } from "./apiClient";
-import { offlineStore } from "./offlineStore";
+import { defaultApiRepository } from "./repositories/apiRepository";
+import { offlineStore as defaultOfflineStore } from "./offlineStore";
 import { classifySyncFailure } from "./offlineSyncStatus.js";
 
 const activeSyncs = new Map();
 
-export async function syncPendingFollowUps(userId) {
+export async function syncPendingFollowUps(userId, { apiRepository = defaultApiRepository, offlineStore = defaultOfflineStore } = {}) {
   if (activeSyncs.has(userId)) return activeSyncs.get(userId);
-  const operation = performSync(userId);
+  const operation = performSync(userId, { apiRepository, offlineStore });
   activeSyncs.set(userId, operation);
   try {
     return await operation;
@@ -15,7 +15,7 @@ export async function syncPendingFollowUps(userId) {
   }
 }
 
-async function performSync(userId) {
+async function performSync(userId, { apiRepository, offlineStore }) {
   if (!userId || !navigator.onLine)
     return {
       synced: 0,
@@ -27,7 +27,7 @@ async function performSync(userId) {
     a.createdAt.localeCompare(b.createdAt),
   )) {
     try {
-      await api.patients.createFollowUp(item.patientId, item.payload);
+      await apiRepository.patients.createFollowUp(item.patientId, item.payload);
       await offlineStore.removeOutbox(userId, item.id);
       synced += 1;
     } catch (error) {

@@ -9,13 +9,12 @@ import NewFollowUp from './pages/NewFollowUp';
 import Volunteers from './pages/Volunteers';
 import Stats from './pages/Stats';
 import Administration from './pages/Administration';
-import { dbService } from './services/db';
+import { apiRepository, dbService } from './services/container';
 import Login from './pages/Login';
 import Settings from './pages/Settings';
 import HomeDashboard from './pages/HomeDashboard';
 import { scrollToSection, resetContentScroll } from './utils/navigation';
 import { syncMobileLayout, syncViewportHeight, syncMobileNavOffset } from './utils/viewport';
-import { api } from './services/apiClient';
 import { offlineStore } from './services/offlineStore';
 import { disablePushNotifications, syncExistingPushSubscription } from './services/pushNotifications';
 
@@ -45,28 +44,27 @@ function App() {
   };
 
   const handleLogout = async () => {
-    try { await disablePushNotifications({ bestEffort: true }).catch(() => undefined); await api.auth.signOut(); } finally { dbService.clear(); setUser(null); }
+    try { await disablePushNotifications({ bestEffort: true, apiRepository }).catch(() => undefined); await apiRepository.auth.signOut(); } finally { dbService.clear(); setUser(null); }
   };
 
   const acceptLogin = async (identity) => {
     await dbService.initialize();
     openAlertFromUrl();
     await dbService.saveOfflineIdentity({ id: identity.id, displayName: identity.displayName ?? identity.name, role: identity.role });
-    await syncExistingPushSubscription().catch(() => undefined);
+    await syncExistingPushSubscription({ apiRepository }).catch(() => undefined);
     await dbService.syncOffline();
     setUser(identity);
   };
 
   useEffect(() => {
     let active = true;
-    api.auth.me().then(async (response) => {
+    apiRepository.auth.me().then(async (auth) => {
       if (!active) return;
-      const auth = response.data;
       await dbService.initialize();
       openAlertFromUrl();
       const identity = { ...auth.user, displayName: auth.user.name, photoURL: auth.user.profileImageId, role: auth.role };
       await dbService.saveOfflineIdentity({ id: identity.id, displayName: identity.displayName, role: identity.role });
-      await syncExistingPushSubscription().catch(() => undefined);
+      await syncExistingPushSubscription({ apiRepository }).catch(() => undefined);
       if (active) { setUser(identity); await dbService.syncOffline(); }
     }).catch(async (error) => {
       if (!active) return;

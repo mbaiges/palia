@@ -1,5 +1,5 @@
 import React from 'react';
-import { dbService } from '../services/db';
+import { dbService } from '../services/container';
 import { buildWeeklyVisitsChart, filterFollowUpsByPeriod, toBarFillStyle } from '../utils/chartData';
 
 export default function HomeDashboard({ user, onNavigate, onViewDetail }) {

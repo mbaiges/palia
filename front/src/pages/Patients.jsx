@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { dbService } from '../services/db';
+import { dbService } from '../services/container';
 
 export default function Patients({ onViewDetail, onNewPatient, searchVal, canManage = false }) {
   const [filterStatus, setFilterStatus] = useState('Todos');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { dbService } from '../services/db';
+import { dbService } from '../services/container';
 import AlertModal from '../components/AlertModal';
 import PrintReportPreview from '../components/PrintReportPreview';
 

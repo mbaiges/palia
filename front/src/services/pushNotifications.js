@@ -1,4 +1,4 @@
-import { api } from './apiClient';
+import { defaultApiRepository } from './repositories/apiRepository';
 
 function applicationServerKey(base64Url) {
   const padding = '='.repeat((4 - base64Url.length % 4) % 4);
@@ -13,29 +13,29 @@ export async function getPushSubscription() {
   return registration.pushManager.getSubscription();
 }
 
-export async function syncExistingPushSubscription() {
+export async function syncExistingPushSubscription({ apiRepository = defaultApiRepository } = {}) {
   const subscription = await getPushSubscription();
-  if (subscription) await api.push.subscribe(subscription.toJSON());
+  if (subscription) await apiRepository.push.subscribe(subscription.toJSON());
 }
 
-export async function enablePushNotifications(onPermissionChange = () => {}) {
+export async function enablePushNotifications(onPermissionChange = () => {}, { apiRepository = defaultApiRepository } = {}) {
   if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     throw new Error('Este dispositivo o navegador no admite notificaciones push.');
   }
   const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
   onPermissionChange(permission);
   if (permission !== 'granted') throw new Error('El permiso de notificaciones no fue concedido.');
-  const { publicKey } = await api.push.vapidPublicKey();
+  const { publicKey } = await apiRepository.push.vapidPublicKey();
   const registration = await navigator.serviceWorker.ready;
   const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: applicationServerKey(publicKey) });
-  await api.push.subscribe(subscription.toJSON());
+  await apiRepository.push.subscribe(subscription.toJSON());
   return subscription;
 }
 
-export async function disablePushNotifications({ bestEffort = false } = {}) {
+export async function disablePushNotifications({ bestEffort = false, apiRepository = defaultApiRepository } = {}) {
   const subscription = await getPushSubscription();
   if (!subscription) return;
-  try { await api.push.unsubscribe(subscription.endpoint); }
+  try { await apiRepository.push.unsubscribe(subscription.endpoint); }
   catch (error) { if (!bestEffort) throw error; }
   await subscription.unsubscribe();
 }

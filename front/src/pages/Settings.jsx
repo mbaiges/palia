@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { dbService } from '../services/db';
+import { apiRepository, dbService } from '../services/container';
 import OfflineSync from '../components/OfflineSync';
 import { applyTheme, getStoredTheme } from '../tokens.js';
 import { scrollToSection } from '../utils/navigation';
@@ -57,8 +57,8 @@ export default function Settings({ onNavigate, initialFocus, onFocusConsumed }) 
   const togglePush = async () => {
     setPushBusy(true); setPushMessage('');
     try {
-      if (pushEnabled) { await disablePushNotifications(); setPushEnabled(false); }
-      else { await enablePushNotifications(setNotifPermission); setPushEnabled(true); }
+      if (pushEnabled) { await disablePushNotifications({ apiRepository }); setPushEnabled(false); }
+      else { await enablePushNotifications(setNotifPermission, { apiRepository }); setPushEnabled(true); }
       setNotifPermission('Notification' in window ? Notification.permission : 'No compatible');
     } catch (error) { setPushMessage(error.status === 503 ? 'Las notificaciones push no están configuradas en el servidor.' : error.message || 'No se pudo actualizar la suscripción push.'); }
     finally { setPushBusy(false); }

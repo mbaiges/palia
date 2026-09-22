@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { dbService } from '../services/db';
+import { dbService } from '../services/container';
 
 export default function NewPatient({ onCancel, onSaveSuccess, patient = null }) {
   const hospitals = dbService.getHospitals();

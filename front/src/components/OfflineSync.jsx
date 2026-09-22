@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { dbService } from '../services/db';
+import { dbService } from '../services/container';
 import { scrollToSection } from '../utils/navigation';
 
 export default function OfflineSync({ focusSection, onFocusConsumed }) {

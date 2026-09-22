@@ -1,8 +1,10 @@
-import { api } from './apiClient';
-import { offlineStore } from './offlineStore';
+import { defaultApiRepository } from './repositories/apiRepository';
+import { offlineStore as defaultOfflineStore } from './offlineStore';
 import { syncPendingFollowUps } from './offlineSync';
 
 const emptyState = () => ({ patients: [], hospitals: [], followUps: [], alerts: [], volunteers: [], invitations: [], profile: null, stats: {} });
+
+export function createDbService({ apiRepository = defaultApiRepository, offlineStore = defaultOfflineStore } = {}) {
 let state = emptyState();
 let initialized = false;
 
@@ -11,8 +13,8 @@ function notify() {
 }
 
 async function refresh() {
-  const response = await api.bootstrap();
-  state = response.data ?? emptyState();
+  const response = await apiRepository.bootstrap();
+  state = response ?? emptyState();
   if (state.userId) {
     const cachedPatients = await offlineStore.listPatients(state.userId);
     const stillAssigned = new Set(state.patients.filter((patient) => !patient.archivedAt && patient.assignedVolunteers?.includes(state.userId)).map((patient) => patient.id));
@@ -31,7 +33,7 @@ function canonicalSymptoms(input = {}) {
   };
 }
 
-export const dbService = {
+const service = {
   initialize: refresh,
   async initializeOffline(identity) {
     const [patients, queued] = await Promise.all([offlineStore.listPatients(identity.id), offlineStore.listOutbox(identity.id)]);
@@ -51,7 +53,7 @@ export const dbService = {
   },
   async syncOffline() {
     if (!state.userId || !navigator.onLine) return { synced: 0, pending: 0 };
-    const result = await syncPendingFollowUps(state.userId);
+    const result = await syncPendingFollowUps(state.userId, { apiRepository, offlineStore });
     if (result.synced) await refresh();
     notify();
     return result;
@@ -75,12 +77,12 @@ export const dbService = {
   getPatient: (id) => state.patients.find((patient) => patient.id === id) ?? null,
   async savePatient(patientData, caregiverData) {
     const body = { ...patientData, caregiver: caregiverData };
-    const result = patientData.id ? await api.patients.update(patientData.id, body) : await api.patients.create(body);
+    const result = patientData.id ? await apiRepository.patients.update(patientData.id, body) : await apiRepository.patients.create(body);
     await refresh();
-    return result.data?.id;
+    return result?.id;
   },
-  async archivePatient(id) { await api.patients.archive(id); await refresh(); },
-  async restorePatient(id) { await api.patients.restore(id); await refresh(); },
+  async archivePatient(id) { await apiRepository.patients.archive(id); await refresh(); },
+  async restorePatient(id) { await apiRepository.patients.restore(id); await refresh(); },
   updatePatientStatus() { /* Patient status is derived from active alerts and complexity by the API. */ },
   getCaregiverForPatient: (patientId) => state.patients.find((patient) => patient.id === patientId)?.caregiver ?? null,
   getFollowUpsForPatient: (patientId) => state.followUps.filter((followUp) => followUp.patientId === patientId).sort((a, b) => new Date(b.occurredAt ?? b.date) - new Date(a.occurredAt ?? a.date)),
@@ -100,9 +102,9 @@ export const dbService = {
       alert: eventData.alert ?? null,
     };
     try {
-      const result = await api.patients.createFollowUp(eventData.patientId, payload);
+      const result = await apiRepository.patients.createFollowUp(eventData.patientId, payload);
       await refresh();
-      return result.data;
+      return result;
     } catch (error) {
       const patient = state.patients.find((item) => item.id === eventData.patientId);
       if (!(error instanceof TypeError) && navigator.onLine) throw error;
@@ -117,16 +119,16 @@ export const dbService = {
   },
   getVolunteers: () => state.volunteers,
   async saveVolunteer(volunteer) {
-    const result = await api.volunteers.updateProfile({
+    const result = await apiRepository.volunteers.updateProfile({
       phone: volunteer.phone,
       specialtyAvailability: volunteer.specialtyAvailability ?? volunteer.specialty,
       tenure: volunteer.tenure,
       avatarUrl: volunteer.avatarUrl ?? volunteer.avatar,
     });
     await refresh();
-    return result.data;
+    return result;
   },
-  async assignVolunteersToPatient(patientId, volunteerIds) { await api.patients.assign(patientId, volunteerIds); await refresh(); },
+  async assignVolunteersToPatient(patientId, volunteerIds) { await apiRepository.patients.assign(patientId, volunteerIds); await refresh(); },
   async assignVolunteerToPatient(patientId, volunteerId) {
     const patient = this.getPatient(patientId);
     const assigned = patient?.assignedVolunteers ?? [];
@@ -134,23 +136,28 @@ export const dbService = {
   },
   getHospitals: () => state.hospitals,
   async saveHospital(hospital) {
-    const result = hospital.id ? await api.hospitals.update(hospital.id, hospital) : await api.hospitals.create(hospital);
+    const result = hospital.id ? await apiRepository.hospitals.update(hospital.id, hospital) : await apiRepository.hospitals.create(hospital);
     await refresh();
-    return result.data;
+    return result;
   },
-  async deleteHospital(id) { await api.hospitals.archive(id); await refresh(); },
-  async restoreHospital(id) { await api.hospitals.restore(id); await refresh(); },
+  async deleteHospital(id) { await apiRepository.hospitals.archive(id); await refresh(); },
+  async restoreHospital(id) { await apiRepository.hospitals.restore(id); await refresh(); },
   getAllFollowUps: () => state.followUps,
   isCloudBackend: () => true,
   getAlerts: () => state.alerts,
-  async resolveAlert(id, note) { await api.alerts.resolve(id, note); await refresh(); },
-  async createAlert(patientId, alert) { await api.patients.createAlert(patientId, alert); await refresh(); },
+  async resolveAlert(id, note) { await apiRepository.alerts.resolve(id, note); await refresh(); },
+  async createAlert(patientId, alert) { await apiRepository.patients.createAlert(patientId, alert); await refresh(); },
   getInvitations: () => state.invitations,
   async saveInvitation(invite) {
-    const result = await api.access.addVolunteer(invite.email);
+    const result = await apiRepository.access.addVolunteer(invite.email);
     await refresh();
-    return result.data;
+    return result;
   },
   revokeInvitation(email) { return this.deleteInvitation(email); },
-  async deleteInvitation(email) { await api.access.remove(email); await refresh(); },
+  async deleteInvitation(email) { await apiRepository.access.remove(email); await refresh(); },
 };
+
+return service;
+}
+
+export const dbService = createDbService();
